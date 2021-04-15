@@ -13,13 +13,13 @@ const state = {
 };
 
 function App() {
-  const  {counter} = useProxy(state.counter);
-  return (
-    <div>
-      <span>Count: {counter.value}</span>
-      <button onclick={()=>counter.value++}>Increment</button>
-    </div>
-  );
+    const  {counter} = useProxy(state);
+    return (
+        <div>
+            <span>Count: {counter.value}</span>
+            <button onClick={()=>counter.value++}>Increment</button>
+        </div>
+    );
 }
 
 export default App;
@@ -32,18 +32,7 @@ useProxy creates and returns an ES6 proxy for the object your component uses. Th
 * When any property (or child property) is modified, the noted component referencing that property is re-rendered.
 * As child properties are referenced a proxy is substituted so that this behavior is passed down to all child properties
 * A parent child hierarchy is maintained such that modifying child properties causes the re-rendinging of components referencing thier parents, thus emulating the rules of immutable object reference comparrison as used with react and redux.
-## Memoization
-Anyone using redux for state management can take advantage of memoization which reduces costly recalculation of derived state information every time you reference the derived state.  Proxily make it easy to do memoization in any function within a proxied object using the memo function:
-```
-const state = {
-    counters: [counter, counter],
-    sortedCounters: {
-       this.counters.splice(0).sort((a,b) => a.value - b.value)
-    };
-};
-memoizeObject(state, 'sortedCounters');
-```
-memoizeObject simply records the value and recalculates it if any of the proxied values changes.
+
 ## Usage Patterns
 
 ### Moving State Management out of Components
@@ -63,13 +52,13 @@ const state = {
 which let's the Counter component assume nothing about the functionality of the counter:
 ```javascript
 function Counter({counter}) {
-  const {value, increment} = useProxy(counter);
-  return (
-    <div>
-      <span>Count: {value}</span>
-      <button onclick={increment}>Increment</button>
-    </div>
-  );
+    const {value, increment} = useProxy(counter);
+    return (
+        <div>
+            <span>Count: {value}</span>
+            <button onClick={increment}>Increment</button>
+        </div>
+    );
 }
 function App () {
     return (
@@ -77,6 +66,24 @@ function App () {
     );
 }
 ```
+### Wait. Why did that work?
+Why didn't the this.value++ fail because we call increment without a an object reference (e.g. counter.increment)? Proxily binds all function references so you can freely dereference them  
+### Prefer Classes?
+```
+```
+## Memoization
+Anyone using redux for state management can take advantage of memoization which reduces costly recalculation of derived state information every time you reference the derived state.  Proxily make it easy to do memoization in any function within a proxied object using the memo function:
+```
+const state = {
+    counters: [counter, counter],
+    sortedCounters: {
+       this.counters.splice(0).sort((a,b) => a.value - b.value)
+    };
+};
+memoizeObject(state, 'sortedCounters');
+```
+memoizeObject simply records the value and recalculates it if any of the proxied values changes.
+
 ### This seems a lot like MobX
 Yes there are important similarities:
 * Both use a proxy to monitor changes to your data
@@ -84,9 +91,8 @@ Yes there are important similarities:
 * They both allow great freedom in how you update your state and structure your data
 
 The main differences are:
-* Proxily is designed for React functional components and uses the more familiar 'use' semantics rather than wrapping components in an observable call.
-* Only the properties in your state that are consumed during the course of the render will cause a re-render when changed.
-* Proxily makes few assumptions about your data.  You don't have to make it observable.  All you need is to call useProxy when consuming the data.  This works with sub-classing as well.
+* Proxily is designed for functional components and so offers 'use' semantics rather than wrapping components in an observable HOC and passing the state through properties.
+* Proxily makes few assumptions about your data.  You don't have to make your data observable.  All you need is to call useProxy when consuming the data.  This works with sub-classing as well.
 * Uses a memo methodology for specific functions or getters that return data derived from sthat that is expensive to compute.  If functions are used the parameter values are memoized as well.
-* Does not implement transactions since in rReact redundant renders are automatically optimized out.
+* Does not implement transactions since in React redundant renders are automatically optimized out
 

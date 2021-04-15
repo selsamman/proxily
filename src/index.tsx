@@ -130,8 +130,8 @@ export function useProp<S>(referenceProp: (() => S)) : [S, (value: S) => void] {
 }
 let currentContext : ObservationContext | undefined = undefined;
 let currentSelectorContext : ObservationContext | undefined = undefined;
-export function useProxy<A>(target: any, component? : any) : A {
-
+export function useProxy<A>(targetIn: A, component? : any) : A {
+    const target  = targetIn as unknown as Target;
     if(logLevel.useProxy) log(`useCAPI ${target.constructor.name}`);
 
     let context : ObservationContext;
