@@ -70,6 +70,29 @@ function App () {
 Why didn't the this.value++ fail because we call increment without a an object reference (e.g. counter.increment)? Proxily binds all function references so you can freely dereference them  
 ### Prefer Classes?
 ```
+        class CounterState {
+            value = 0;
+            increment () {this.value++}
+        }
+        const state = {
+            counter: new CounterState()
+        };
+
+        function Counter({counter} : {counter : CounterState}) {
+            const {value, increment} = useProxy(counter);
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+        }
+        function App () {
+            return (
+                <Counter counter={state.counter}/>
+            );
+        }
+
 ```
 ## Memoization
 Anyone using redux for state management can take advantage of memoization which reduces costly recalculation of derived state information every time you reference the derived state.  Proxily make it easy to do memoization in any function within a proxied object using the memo function:
