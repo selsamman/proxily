@@ -142,6 +142,7 @@ describe('Counter Patterns',  () => {
                 return this.counters.slice(0).sort((a,b) => a.value - b.value) as Array<CounterClass>;
             }
         };
+        memoizeClass(State, 'sortedCounters');
         const state = new State();
 
         function Counter({counter, id} : {counter : CounterClass, id: any}) {
@@ -153,6 +154,7 @@ describe('Counter Patterns',  () => {
                 </div>
             );
         }
+
         function App () {
             const {sortedCounters} = useProxy(state);
             return (
@@ -166,7 +168,7 @@ describe('Counter Patterns',  () => {
                 </>
             );
         }
-        memoizeClass(CounterClass, 'sortedCounters');
+
         render(<App />);
         screen.getByText('IncrementA0').click();
         expect (await screen.getByText("CountA0: 1")).toHaveTextContent("CountA0: 1");

@@ -1,15 +1,8 @@
 import * as React from 'react';
 import {Family, Person, Preference} from "./family";
-import { render, screen, getByTestId} from '@testing-library/react';
+import { render, screen} from '@testing-library/react';
+import {setLogLevel, useProp, useProxy, memoizeObject} from "../src/index";
 
-import {setLogLevel, useProp, useProxy, LogLevels, memoizeObject} from "../src/index";
-import {Component, memo, useState} from "react";
-
-const logChanges = {
-    changed(target : string, prop : string) {
-        console.log(`${target}.${prop} forced re-render`);
-    }
-}
 setLogLevel({render: true});
 
 export class FamilyContext {
@@ -21,11 +14,6 @@ export class FamilyContext {
     get member () {return this.family.members[this.currentMemberIx]};
 }
 
-function MyComponent ({family} : {family : Family})  {
-    const [familyContext, setFamilyContext] = useState<FamilyContext>(new FamilyContext(family));
-    const {name} = useProxy<FamilyContext>(familyContext).member;
-
-}
 test( 'memoizer', () => {
 
     let calculations = 0;
@@ -118,6 +106,7 @@ test('can render names', async () => {
             </div>
         );
     }
+    /*
     class LOC extends Component<any, any> {
         render() {
             return (<div></div>);
@@ -133,8 +122,8 @@ test('can render names', async () => {
         const props = passProps(family, (f) => [f.members]);
         return (<LOC {...props} />);
     }
-
-    const {unmount} = render(<App />);
+    */
+    render(<App />);
 
     expect (screen.getByTestId('P0')).toHaveTextContent("Sam");
     expect (screen.getByTestId('P1')).toHaveTextContent("Karen");

@@ -116,7 +116,7 @@ class State {
         return this.counters.slice(0).sort((a,b) => a.value - b.value);
     }
 };
-memoizeClass(CounterClass, 'sortedCounters');
+memoizeClass(State, 'sortedCounters');
 ```
 ### Similarities to MobX
 Proxily shares many similarities with MobX:
