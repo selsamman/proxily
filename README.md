@@ -1,4 +1,5 @@
 # Proxily (Proof of Concept)
+
 ##Global State Management for React
 
 Proxily is a simple un-opinionated library for managing state across multiple React components.  It re-renders components as state data is changed in a fashion identical to the immutable data pattern.  It does this without any specific requirements on how the state is updated.
