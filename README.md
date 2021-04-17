@@ -1,4 +1,4 @@
-# Proxily (Alpha)
+# Proxily (Proof of Concept)
 ##Global State Management for React
 
 Proxily is a simple un-opinionated library for managing state across multiple React components.  It re-renders components as state data is changed in a fashion identical to the immutable data pattern.  It does this without any specific requirements on how the state is updated.
@@ -95,27 +95,54 @@ Why didn't the this.value++ fail because we call increment without a an object r
 
 ```
 ## Memoization
-Anyone using redux for state management can take advantage of memoization which reduces costly recalculation of derived state information every time you reference the derived state.  Proxily make it easy to do memoization in any function within a proxied object using the memo function:
+Anyone using redux for state management can take advantage of memoization which reduces costly recalculation of derived state information every time you reference the derived state.  Proxily make it easy to do memoization in any function using **memoizeObject** and **memoizeClass**. using the memo function:
 ```
 const state = {
-    counters: [counter, counter],
-    sortedCounters: {
-       this.counters.splice(0).sort((a,b) => a.value - b.value)
-    };
+    counters: [counter1, counter2],
+    sortedCounters: function () {
+        return this.counters.slice(0).sort((a,b) => a.value - b.value);
+    }
 };
-memoizeObject(state, 'sortedCounters');
+memoizeObject(state, 'sortedCounters'); 
 ```
-memoizeObject simply records the value and recalculates it if any of the proxied values changes.
-
-### This seems a lot like MobX
-Yes there are important similarities:
+or to memoize a method within a class:
+```
+class State {
+    constructor () {
+        this.counters = [new CounterClass(), new CounterClass()];
+    }
+    counters : Array<CounterClass> = [];
+    sortedCounters () {
+        return this.counters.slice(0).sort((a,b) => a.value - b.value);
+    }
+};
+memoizeClass(CounterClass, 'sortedCounters');
+```
+### Similarities to MobX
+Proxily shares many similarities with MobX:
 * Both use a proxy to monitor changes to your data
 * Both can force the re-render of a component when data changes
-* They both allow great freedom in how you update your state and structure your data
+* Both allow great freedom in how you update your state and structure your data
 
 The main differences are:
-* Proxily is designed for functional components and so offers 'use' semantics rather than wrapping components in an observable HOC and passing the state through properties.
-* Proxily makes few assumptions about your data.  You don't have to make your data observable.  All you need is to call useProxy when consuming the data.  This works with sub-classing as well.
-* Uses a memo methodology for specific functions or getters that return data derived from sthat that is expensive to compute.  If functions are used the parameter values are memoized as well.
-* Does not implement transactions since in React redundant renders are automatically optimized out
+* Proxily supports functional components with 'use' semantics rather than having to wrap components in an observable HOC.
+* Proxily does not require that all objects in your state be made observable.  All you have to do is to proxy the root object. 
+* MobX only re-renders when the specific properties referenced in render change whereas Proxily will react when children are changed (similar to immutable change detection).
+### Similarities to Redux
+The similarities are:
+* Both support 'use' semantics for functional components
+* Both support the principal that changes to child properties are considered as changes to their parents (inherent in immutability)
+
+The differences are obviously in the semantics.  Proxily works on ordinary objects whereas Redux relies on immutability which is implemented using reducers.
+# Roadmap
+Presently Proxily is at the proof of concept phase.  The steps to a production-ready library are as follows:
+* Addition of annotations for memoization
+* Serialization and storage integration
+* Extensive tests for core-functionality
+* Patterns of Usage Example
+* Full Documentation
+* Feedback from community
+
+Any the mean time please feel free to kick the tires.
+
 

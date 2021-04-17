@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {render, screen} from '@testing-library/react';
-import {useProxy} from '../../src';
-
+import {memoizeClass, memoizeObject, setLogLevel, useProxy} from '../../src';
+setLogLevel({});
 describe('Counter Patterns',  () => {
     it( 'Can modify data directly in events', async () => {
         const state = {
@@ -30,6 +30,7 @@ describe('Counter Patterns',  () => {
             counter: counter
         };
 
+        // @ts-ignore
         function Counter({counter}) {
             const {value, increment} = useProxy(counter);
             return (
@@ -74,5 +75,101 @@ describe('Counter Patterns',  () => {
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+    it("can memoize a function", async () => {
+        let sorts = 0;
+
+        const counter = {
+            value : 0,
+            increment () {
+                this.value++
+            }
+        }
+        const state = {
+            counters: [Object.assign({},counter), Object.assign({},counter)],
+            sortedCounters: function () {
+                ++sorts;
+                return this.counters.slice(0).sort((a,b) => a.value - b.value);
+            }
+        };
+        // @ts-ignore
+        function Counter({counter, id}) {
+            const {value, increment} = useProxy(counter);
+            return (
+                <div>
+                    <span>Count{id}: {value}</span>
+                    <button onClick={increment}>Increment{id}</button>
+                </div>
+            );
+        }
+        function App () {
+            const {sortedCounters} = useProxy(state);
+            return (
+                <>
+                    {sortedCounters().map((c, i) =>
+                        <Counter key={i} id={'A' + i} counter={c} />
+                    )}
+                    {sortedCounters().map((c, i) =>
+                        <Counter key={i} id={'B' + i} counter={c} />
+                    )}
+                </>
+            );
+        }
+        memoizeObject(state, 'sortedCounters');
+        render(<App />);
+        screen.getByText('IncrementA0').click();
+        expect (await screen.getByText("CountA0: 1")).toHaveTextContent("CountA0: 1");
+        expect(sorts).toBe(2);
+
+    });
+    it("can memoize a class", async () => {
+        let sorts = 0;
+
+        class CounterClass {
+            value = 0;
+            increment () {
+                this.value++
+            }
+        }
+        class State {
+            constructor () {
+                this.counters = [new CounterClass(), new CounterClass()];
+            }
+            counters : Array<CounterClass> = [];
+            sortedCounters () {
+                sorts = sorts + 1;
+                console.log(this.counters.length);
+                return this.counters.slice(0).sort((a,b) => a.value - b.value) as Array<CounterClass>;
+            }
+        };
+        const state = new State();
+
+        function Counter({counter, id} : {counter : CounterClass, id: any}) {
+            const {value, increment} = useProxy(counter);
+            return (
+                <div>
+                    <span>Count{id}: {value}</span>
+                    <button onClick={increment}>Increment{id}</button>
+                </div>
+            );
+        }
+        function App () {
+            const {sortedCounters} = useProxy(state);
+            return (
+                <>
+                    {sortedCounters().map((c, i) =>
+                        <Counter  key={i} id={'A' + i} counter={c} />
+                    )}
+                    {sortedCounters().map((c, i) =>
+                        <Counter  key={i} id={'B' + i} counter={c} />
+                    )}
+                </>
+            );
+        }
+        memoizeClass(CounterClass, 'sortedCounters');
+        render(<App />);
+        screen.getByText('IncrementA0').click();
+        expect (await screen.getByText("CountA0: 1")).toHaveTextContent("CountA0: 1");
+        expect(sorts).toBe(2);
     });
 });
