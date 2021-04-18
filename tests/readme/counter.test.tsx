@@ -1,6 +1,8 @@
 import * as React from 'react';
 import {render, screen} from '@testing-library/react';
-import {memoizeClass, memoizeObject, setLogLevel, useProxy} from '../../src';
+import {memoizeClass, memoizeObject, setLogLevel, useProxy, memoize} from '../../src';
+import "@testing-library/jest-dom/extend-expect";
+
 setLogLevel({});
 describe('Counter Patterns',  () => {
     it( 'Can modify data directly in events', async () => {
@@ -138,11 +140,61 @@ describe('Counter Patterns',  () => {
             counters : Array<CounterClass> = [];
             sortedCounters () {
                 sorts = sorts + 1;
-                console.log(this.counters.length);
                 return this.counters.slice(0).sort((a,b) => a.value - b.value) as Array<CounterClass>;
             }
         };
         memoizeClass(State, 'sortedCounters');
+        const state = new State();
+
+        function Counter({counter, id} : {counter : CounterClass, id: any}) {
+            const {value, increment} = useProxy(counter);
+            return (
+                <div>
+                    <span>Count{id}: {value}</span>
+                    <button onClick={increment}>Increment{id}</button>
+                </div>
+            );
+        }
+
+        function App () {
+            const {sortedCounters} = useProxy(state);
+            return (
+                <>
+                    {sortedCounters().map((c, i) =>
+                        <Counter  key={i} id={'A' + i} counter={c} />
+                    )}
+                    {sortedCounters().map((c, i) =>
+                        <Counter  key={i} id={'B' + i} counter={c} />
+                    )}
+                </>
+            );
+        }
+
+        render(<App />);
+        screen.getByText('IncrementA0').click();
+        expect (await screen.getByText("CountA0: 1")).toHaveTextContent("CountA0: 1");
+        expect(sorts).toBe(2);
+    });
+    it("can memoize a class with a decorator", async () => {
+        let sorts = 0;
+
+        class CounterClass {
+            value = 0;
+            increment () {
+                this.value++
+            }
+        }
+        class State {
+            constructor () {
+                this.counters = [new CounterClass(), new CounterClass()];
+            }
+            counters : Array<CounterClass> = [];
+            @memoize()
+            sortedCounters () {
+                sorts = sorts + 1;
+                return this.counters.slice(0).sort((a,b) => a.value - b.value) as Array<CounterClass>;
+            }
+        };
         const state = new State();
 
         function Counter({counter, id} : {counter : CounterClass, id: any}) {

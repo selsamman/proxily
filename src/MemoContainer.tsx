@@ -62,7 +62,11 @@ export function memoizeObject (obj: any, propOrProps : string | Array<string>) {
 export function memoizeClass (cls : any, propOrProps : string | Array<string>) {
     memoizeObject(cls.prototype, propOrProps);
 }
-
+export function memoize() {
+    return function (classPrototype: any, prop: string) {
+        memoizeObject(classPrototype, prop);
+    };
+}
 export function isMemoized(prop: string, target: Target) {
     return target.__memoizedProps__ && target.__memoizedProps__[prop];
 }

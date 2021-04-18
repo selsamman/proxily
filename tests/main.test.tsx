@@ -2,8 +2,9 @@ import * as React from 'react';
 import {Family, Person, Preference} from "./family";
 import { render, screen} from '@testing-library/react';
 import {setLogLevel, useProp, useProxy, memoizeObject} from "../src/index";
+import "@testing-library/jest-dom/extend-expect";
 
-setLogLevel({render: true});
+setLogLevel({});
 
 export class FamilyContext {
     constructor(family : Family) {
