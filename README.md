@@ -126,7 +126,7 @@ class State {
         this.counters = [new CounterClass(), new CounterClass()];
     }
     counters : Array<CounterClass> = [];
-    @memoize
+    @memoize()
     sortedCounters () {
         return this.counters.slice(0).sort((a,b) => a.value - b.value);
     }
