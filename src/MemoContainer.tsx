@@ -7,9 +7,9 @@ import {
 import {ProxyWrapper, Target} from "./ProxyWrapper";
 
 export class GetterMemo {
-    constructor(prop: string, valueFunction: () => any, proxy : ProxyWrapper) {
+    constructor(valueFunction: () => any, proxy : ProxyWrapper) {
         this.valueFunction = valueFunction;
-        this.context = new ObservationContext("GetterMemo-" + prop , ()=>{
+        this.context = new ObservationContext(()=>{
             this.dependentsChanged = true
         });
         this.proxy = proxy;
@@ -76,7 +76,7 @@ export function CreateMemoization (prop: string, target: Target, proxy: ProxyWra
     {
         if (!proxy.__memoContexts__)
             proxy.__memoContexts__ = {};
-        const memo = new GetterMemo(prop, valueFunction, proxy);
+        const memo = new GetterMemo(valueFunction, proxy);
         memo.connectProxy(proxy);
         proxy.__memoContexts__[prop] = memo;
 

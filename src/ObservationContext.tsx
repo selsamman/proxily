@@ -9,21 +9,18 @@ export function setCurrentContext (currentContextIn : ObservationContext | undef
     currentContext = currentContextIn;
 }
 export class ObservationContext {
-    constructor(name : string, forceReRender : (value : any) => void) {
+    constructor(onChange : (target : string, prop : string) => void) {
         // eslint-disable-next-line react-hooks/rules-of-hooks
-        this.forceReRender = forceReRender;
-        this.name = name || "";
+        this.onChange = onChange;
     }
-    name = "";
-    forceReRender : (value : any) => void | undefined;
-    reRenderSequence = 0;
+    onChange : (target : string, prop : string) => void | undefined;
     connectedProxies : Map<ProxyWrapper, ConnectedProxy> = new Map();
     proxy : ProxyWrapper | undefined;
 
     changed(proxy: ProxyWrapper, target : string, prop : string) {
         if (this.connectedProxies.get(proxy)?.referencedProps[prop as any]) {
-            if(logLevel.render) log(`${this.name} ${target}.${prop} forced re-render`);
-            this.forceReRender(++this.reRenderSequence);
+            if(logLevel.render) log(`${target}.${prop} forced re-render`);
+            this.onChange(target, prop);
         }
     };
     referenced(proxy : ProxyWrapper, prop : string) {

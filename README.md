@@ -155,8 +155,9 @@ The differences are obviously in the semantics.  Proxily works on ordinary objec
 The similarities are: 
 * Both use the same rules of immutability for tracking changes to child properties
 * Both make no assumptions about your data
+
 The differences are:
-* Immer actually makes your state immutable whereas proxily does not. 
+* Immer actually makes your state immutable whereas Proxily does not. 
 * Immer requires that modifying the state using the producer pattern
 
 ### Summary

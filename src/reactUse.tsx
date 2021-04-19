@@ -29,31 +29,17 @@ export function useProp<S>(referenceProp: (() => S)) : [S, (value: S) => void] {
 }
 
 
-export function useProxy<A>(targetIn: A, component? : any) : A {
+export function useProxy<A>(targetIn: A) : A {
     const target  = targetIn as unknown as Target;
     if(logLevel.useProxy) log(`useCAPI ${target.constructor.name}`);
 
-    let context : ObservationContext;
-    const isFunctionalComponent = !component || typeof component === 'function' || typeof component === 'string';
-    if (isFunctionalComponent) {
-        const componentName = typeof component === 'string' ? component :
-            component && component.name ? component.name : "FunctionalComponent"
-        context = createContext(componentName);
-    } else {
-        const componentName = component.constructor && component.constructor.displayName ?
-            component.constructor.displayName : "Component"
-        const setSeq = (seq : number) => component.setState({___force_render___ : seq})
-        if (!component.___proxyfi_context___)
-            component.___proxyfi_context___ = new ObservationContext(componentName, setSeq);
-        context = component.___proxyfi_context___;
-    }
-
+    const context = createContext();
     if (!context.proxy)
         context.proxy = MakeProxy(target);
 
     return context.proxy as unknown as A;
 }
-function createContext(componentName? : string) : ObservationContext{
+function createContext() : ObservationContext{
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [,setSeq] = useState(0);
 
@@ -61,7 +47,7 @@ function createContext(componentName? : string) : ObservationContext{
     let contextContainer : any = useRef(null);
 
     if (!contextContainer.current)
-        contextContainer.current = new ObservationContext(componentName || "Anynomous", setSeq);
+        contextContainer.current = new ObservationContext(()=>setSeq((seq) => seq + 1));
     const context = contextContainer.current;
     setCurrentContext(context);
 
