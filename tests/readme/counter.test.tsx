@@ -1,6 +1,6 @@
 import * as React from 'react';
-import {render, screen} from '@testing-library/react';
-import {memoizeClass, memoizeObject, setLogLevel, useProxy, memoize} from '../../src';
+import { render, screen} from '@testing-library/react';
+import {memoizeClass, memoizeObject, setLogLevel, useProxy, memoize, proxy} from '../../src';
 import "@testing-library/jest-dom/extend-expect";
 
 setLogLevel({});
@@ -23,6 +23,28 @@ describe('Counter Patterns',  () => {
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
+    it( 'Can modify data anywhere', async () => {
+        const state = {
+            counter: {value: 0}
+        };
+
+        setTimeout(()=> {
+            proxy(state).counter.value++
+        }, 1000);
+
+        function App() {
+            const  {counter} = useProxy(state);
+            return (
+                <div>
+                    <span>Count: {counter.value}</span>
+                </div>
+            );
+        }
+        const {getByText, findByText} = render(<App />);
+        await findByText("Count: 1", {}, {timeout: 1000});
+        expect (getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+
     it( 'Can have self contained state without TS' , async () => {
         const counter = {
             value : 0,

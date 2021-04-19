@@ -14,7 +14,7 @@ export interface ProxyWrapper {
     __parents__ : Map<ProxyWrapper, ParentProxy>;
     __memoContexts__ : { [key: string] : GetterMemo}
 }
-
+const proxies = new WeakMap<Target, ProxyWrapper>();
 // Additional properties on objects being proxied
 export interface Target {
     __memoizedProps__ : {[index: string] : boolean};
@@ -107,15 +107,24 @@ export function MakeProxy(targetOrProxyWrapper : Target | ProxyWrapper, parentPr
             return ret;
         }
     }
-
+    // If passed a proxywrapper just use it
     if ((targetOrProxyWrapper as ProxyWrapper).__target__) {
         const proxy : ProxyWrapper = targetOrProxyWrapper as ProxyWrapper;
         ConnectContext(proxy);
         return proxy;
     }
     const target = targetOrProxyWrapper as Target;
+
+    // If object already has a proxy use it
+    const previousProxy = proxies.get(target);
+    if (previousProxy) {
+        ConnectContext(previousProxy);
+        return previousProxy;
+    }
+
     // Create the proxy and wrap it so we can add additional properties
     const proxy = Object.create(new Proxy(target, handler)) as ProxyWrapper;
+    proxies.set(target, proxy);
 
     proxy.__parents__ = new Map();
     proxy.__target__ = target;
@@ -173,4 +182,8 @@ export const lastReference : LastReference = {
         this.prop = "";
         this.value = {};
     }
+}
+export function proxy<A>(targetIn: A) : A {
+    const target  = targetIn as unknown as Target;
+    return MakeProxy(target) as unknown as A;
 }

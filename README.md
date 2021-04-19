@@ -3,8 +3,8 @@
 ## Global State Management for React
 
 Proxily is a simple un-opinionated library for managing state across multiple React components.  It re-renders components as state data is changed in a fashion identical to the immutable data pattern.  It does this without any specific requirements on how the state is updated.
-### Just call useProxy
-
+### Call useProxy in a Component
+useProxy will track any changes in state and re-render your component.
 ```javascript
 import React from 'react';
 import {useProxy} from 'proxily';
@@ -25,9 +25,18 @@ function App() {
 
 export default App;
 ```
+### Call proxy elsewhere
+If you are updating data outside of the component you must do the updates on a proxy for the data.  This will detect changes and re-render any components that are using useProxy and refererencing the data.
+```
+import {proxy} from 'proxily';
+
+    setTimeout(()=> {
+        proxy(state).counter.value++
+    }, 1000);
+```
 ### How does that work?
 
-useProxy creates and returns an ES6 proxy for the object your component uses. This proxy will rerender the component when any property referenced in the render function changes or any child property of the referenced property changes.  The proxy traps all references so it can:
+proxy and useProxy create and returns an ES6 proxy for the object your component uses. This proxy will rerender the component when any property referenced in the render function changes or any child property of the referenced property changes.  The proxy traps all references so it can:
 
 * Note any properties referenced during the course of rendering.
 * When any property (or child property) is modified, the component is re-rendered.
@@ -39,7 +48,7 @@ useProxy creates and returns an ES6 proxy for the object your component uses. Th
 ### Moving State Management out of Components
 The first example demonstrated that you change your state directly in your component.  Just because you **can** do so does not mean that you **should** do so.
 
-Best practices are to keep state management separate from the component which represents the presentation of that state.  Proxily does not prescribe any specific method of doing that but it is easily achieved by reorganizing state to be:
+Best practices are to keep state management separate from the component which represents the presentation of that state.  Most frameworks require this through actions. Proxily does not prescribe any specific method of doing that but it is easily achieved by reorganizing state to be:
 
 ```javascript
 const counter = {
@@ -93,8 +102,8 @@ Why didn't the this.value++ fail because we call increment without a an object r
                 <Counter counter={state.counter}/>
             );
         }
-
 ```
+Classes also offer away to enforce state not being updated within components or other code not associated with the store.  You simply make the properties private or protected.
 ## Memoization
 Anyone using redux for state management can take advantage of memoization which reduces costly recalculation of derived state information every time you reference the derived state.  Proxily make it easy to do memoization in any function using **memoizeObject** and **memoizeClass**. using the memo function:
 ```
