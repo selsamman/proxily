@@ -80,28 +80,28 @@ function App () {
 Why didn't the this.value++ fail because we call increment without a an object reference (e.g. counter.increment)? Proxily binds all function references so you can freely dereference to the target option so you can use them like standalone functions.
 ### Prefer Classes?
 ```
-        class CounterState {
-            value = 0;
-            increment () {this.value++}
-        }
-        const state = {
-            counter: new CounterState()
-        };
+class CounterState {
+    value = 0;
+    increment () {this.value++}
+}
+const state = {
+    counter: new CounterState()
+};
 
-        function Counter({counter} : {counter : CounterState}) {
-            const {value, increment} = useProxy(counter);
-            return (
-                <div>
-                    <span>Count: {value}</span>
-                    <button onClick={increment}>Increment</button>
-                </div>
-            );
-        }
-        function App () {
-            return (
-                <Counter counter={state.counter}/>
-            );
-        }
+function Counter({counter} : {counter : CounterState}) {
+    const {value, increment} = useProxy(counter);
+    return (
+        <div>
+            <span>Count: {value}</span>
+            <button onClick={increment}>Increment</button>
+        </div>
+    );
+}
+function App () {
+    return (
+        <Counter counter={state.counter}/>
+    );
+}
 ```
 Classes also offer away to enforce state not being updated within components or other code not associated with the store.  You simply make the properties private or protected.
 ## Memoization
@@ -141,6 +141,66 @@ class State {
     }
 };
 ```
+# Serialization
+> Note:  Serialization will likely be moved out of Proxily into it's own library
+
+In the real world state graphs have to be serialized either to kept in local storage or session storage.  With Redux this is straight forward since it used plane old javascript objects that work with JSON.stringify and JSON.parse.  Since Proxily makes it easy to uses classes having a way to serialize them is essential.
+
+There are libraries out there which can help with this like serializr which is often used with MobX.  Supertype form haven-life also serializes complex objects.  Both require you to describe your schema.
+
+Proxily serialize converts the object graph to JSON noting any objects discovered in the process directly in the JSON.  Proxily deserialize does the opposite looking at the object notes and re-instantiating objects using new.  You must provide a list of the Classes used so that deserialize can do it's job.  Here is an example structure used when serializr was first introduced:
+```
+class Box {
+    uuid = generateUUID();
+    x = 0;
+    y = 0;
+    constructor(x : number, y : number) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+class Arrow {
+    uuid = generateUUID();
+    from;
+    to;
+    constructor(from : Box, to : Box) {
+        this.from = from;
+        this.to = to;
+    }
+}
+
+class Drawing {
+    name = "My Drawing";
+    boxes : Array<Box> = [];
+    arrows : Array<Arrow> = [];
+}
+```
+Assume it is initialized like this:
+```
+    const drawing = new Drawing()
+    const box1 = new Box(20, 40)
+    const box2 = new Box(70, 70)
+    const arrow1 = new Arrow(box1, box2)
+    drawing.boxes.push(box1, box2)
+    drawing.arrows.push(arrow1);
+```
+To serialize it:
+```
+const json = serialize(drawing);
+```
+And to deserialize it:
+```
+const newDrawing = deserialize(json, [Box, Arrow, Drawing]);
+```
+There are some constraints on the structure:
+You can serialize anything that JSON.stringify/JSON.parse support plus:
+* Dates
+* Sets
+* Maps
+* Classes - deserialize will instantiate the class with an empty constructor and then copy over the properties.
+
+If you want to manually control the creation of objects you can also pass a hash of class names and an associated function that will be passed the serialized data from the object and is expected to return the instantiated object.  This hash is the third (optional) parameter.
 # Design Goals
 
 ### Similarities to MobX
@@ -160,6 +220,7 @@ The similarities are:
 * Both support the principal that changes to child properties are considered as changes to their parents (inherent in immutability)
 
 The differences are obviously in the semantics.  Proxily works on ordinary objects whereas Redux relies on immutability which is implemented using reducers.
+
 ### Similarities to Immer
 The similarities are: 
 * Both use the same rules of immutability for tracking changes to child properties
@@ -178,7 +239,8 @@ In short the main goal of proxily is to allow parts of your application to have 
 # Roadmap
 Presently Proxily is at the proof of concept phase.  The steps to a production-ready library are as follows:
 * [x] Addition of annotations for memoization
-* [ ] Serialization and storage integration
+* [x] Serialization
+* [ ] Storage integration
 * [ ] Extensive tests for core-functionality
 * [ ] Patterns of Usage Example
 * [ ] Full Documentation
