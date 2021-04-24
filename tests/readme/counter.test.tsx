@@ -51,7 +51,7 @@ describe('Counter Patterns',  () => {
             increment () {this.value++}
         }
         const state = {
-            counter: counter
+            counter: Object.create(counter)
         };
 
         // @ts-ignore
@@ -75,8 +75,9 @@ describe('Counter Patterns',  () => {
     });
     it( 'Can have self contained state with TS' , async () => {
         class CounterState {
-            value = 0;
-            increment () {this.value++}
+            private _value = 0;
+            get value () {return this._value}
+            increment () {this._value++}
         }
         const state = {
             counter: new CounterState()

@@ -56,7 +56,7 @@ const counter = {
     increment () {this.value++}
 }
 const state = {
-    counter: counter
+    counter: Object.create(counter)
 };
 ```
 which let's the Counter component assume nothing about the functionality of the counter:
@@ -76,9 +76,15 @@ function App () {
     );
 }
 ```
-### Wait. Why did that work?
-Why didn't the this.value++ fail because we call increment without a an object reference (e.g. counter.increment)? Proxily binds all function references so you can freely dereference to the target option so you can use them like standalone functions.
-### Prefer Classes?
+### Object Destructuring
+Notice that destructuring increment from counter worked properly. 
+```
+const {value, increment} = useProxy(counter);
+```
+
+That is because proxily binds all functions to the target.  While Proxily is not opinionated in terms of how you implement your logic we recognize that objects (whether prototypical or class-based) are a valuble tool for structuring code and data. Therefore we strive to remove some of the inconveniences of using them.  Your component should be able to consume your logic without being aware that it is object based.
+
+### Classes
 ```
 class CounterState {
     value = 0;
@@ -103,7 +109,7 @@ function App () {
     );
 }
 ```
-Classes also offer away to enforce state not being updated within components or other code not associated with the store.  You simply make the properties private or protected.
+Proxily is written in Typescript and it's API is fully type aware.
 ## Memoization
 Anyone using redux for state management can take advantage of memoization which reduces costly recalculation of derived state information every time you reference the derived state.  Proxily make it easy to do memoization in any function using **memoizeObject** and **memoizeClass**. using the memo function:
 ```

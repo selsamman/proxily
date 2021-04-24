@@ -74,8 +74,8 @@ export function MakeProxy(targetOrProxyWrapper : Target | ProxyWrapper, parentPr
 
         set(target : Target, prop: string, value: any, proxy: ProxyWrapper): boolean {
 
-            if (prop.match(/__.*__/) ||
-                Object.getOwnPropertyDescriptor(Object.getPrototypeOf(target), prop))
+            if (prop.match(/__.*__/) /*||
+                Object.getOwnPropertyDescriptor(Object.getPrototypeOf(target), prop)*/)
                 return Reflect.set(target, prop, value, proxy)
 
             if(logLevel.propertyChange) log(`${target.constructor.name}.${prop} changed`);
