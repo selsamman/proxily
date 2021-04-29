@@ -2,7 +2,11 @@
 > Note:  This project is being actively developped.  See the road map towards a 1.0 release at the end. In the mean time it is subject to change.
 ## Global State Management for React
 
-Proxily is a simple un-opinionated library for managing state across multiple React components.  It re-renders components as state data is changed in a fashion identical to the immutable data pattern.  It does this without any specific requirements on how the state is updated.
+Proxily is a simple un-opinionated library for managing state across multiple React components.  It re-renders components as state data is changed in a fashion identical to the immutable data pattern.  It does this without any specific requirements on how the state is updated.  Core features include:
+* Does not not require redux
+* Support for Typescript, classes and objects as first class citizens.
+* Serialization of complex object graphs
+* Asynchrous semantics through redux-sagas without redux via channels
 ### Call useProxy in a Component
 useProxy will track any changes in state and re-render your component.
 ```javascript
@@ -217,12 +221,12 @@ class Container {
     *task({interval} : {interval : number}) {
         yield delay(interval);
     }
-    invokeWorker () {
+    invokeTask () {
         scheduleTask(this.task,{interval: 1000},takeLeading); //sequentialize
     }
 }
 const container = proxy(new Container());
-container.invokeWorker();
+container.invokeTask();
 ```
 If using an effect that takes a time parameter like throttle or debounce you can pass it in:
 ```
