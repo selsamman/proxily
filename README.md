@@ -2,11 +2,10 @@
 > Note:  This project is being actively developped.  See the road map towards a 1.0 release at the end. In the mean time it is subject to change.
 ## Global State Management for React
 
-Proxily is a simple un-opinionated library for managing state across multiple React components.  It re-renders components as state data is changed in a fashion identical to the immutable data pattern.  It does this without any specific requirements on how the state is updated.  Core features include:
-* Does not not require redux
-* Support for Typescript, classes and objects as first class citizens.
-* Serialization of complex object graphs
-* Asynchrous semantics through redux-sagas without redux via channels
+Proxily is a simple un-opinionated library for managing state across multiple React components.  It re-renders components as state data is changed in a fashion identical to the immutable data pattern.  It does this without any specific requirements on how the state is updated organized or annotated and without relying on redux or immutable patterns. Core features include:
+* First class support for Typescript, classes and objects
+* Serialization of complex object graphs that may use classes
+* Asynchronous semantics through redux-sagas via channels (redux itself not used)
 ### Call useProxy in a Component
 useProxy will track any changes in state and re-render your component.
 ```javascript
@@ -30,7 +29,7 @@ function App() {
 export default App;
 ```
 ### Call proxy elsewhere
-If you are updating data outside of the component you must do the updates on a proxy for the data.  This will detect changes and re-render any components that are using useProxy and refererencing the data.
+If you are updating data outside of the component you must do the updates on a proxy for the data.  This will detect changes and re-render any components that are using useProxy and referencing the data.
 ```
 import {proxy} from 'proxily';
 
@@ -38,15 +37,14 @@ import {proxy} from 'proxily';
         proxy(state).counter.value++
     }, 1000);
 ```
-### How does that work?
+### Use of ES6 Proxies
 
 proxy and useProxy create and returns an ES6 proxy for the object your component uses. This proxy will rerender the component when any property referenced in the render function changes or any child property of the referenced property changes.  The proxy traps all references so it can:
 
 * Note any properties referenced during the course of rendering.
 * When any property (or child property) is modified, the component is re-rendered.
-* As child properties are referenced a proxy is substituted so that this behavior is passed down to all child properties.  This is done in the proxy itself such that the original data is unchanged
-* A parent child hierarchy is created such that modifying child properties causes  re-rendering of the component, thus emulating the rules of immutable object reference comparison as used in redux.
-
+* As child properties are referenced a proxy is substituted so that this behavior is passed down to all child properties.  
+* A parent child hierarchy is created such that modifying child properties causes re-rendering of any component referencing parent properties, thus emulating the familiar rules of immutable object reference and shallow comparison as used in redux.
 ## Usage Patterns
 
 ### Moving State Management out of Components
@@ -63,7 +61,7 @@ const state = {
     counter: Object.create(counter)
 };
 ```
-which let's the Counter component assume nothing about the functionality of the counter:
+Now the Counter component can assume nothing about the implementation of the counter:
 ```javascript
 function Counter({counter}) {
     const {value, increment} = useProxy(counter);
@@ -81,14 +79,15 @@ function App () {
 }
 ```
 ### Object Destructuring
-Notice that destructuring increment from counter worked properly. 
+Notice that destructuring **increment** from counter worked properly. 
 ```
 const {value, increment} = useProxy(counter);
 ```
 
-That is because proxily binds all functions to the target.  While Proxily is not opinionated in terms of how you implement your logic we recognize that objects (whether prototypical or class-based) are a valuble tool for structuring code and data. Therefore we strive to remove some of the inconveniences of using them.  Your component should be able to consume your logic without being aware that it is object based.
+That is because proxily binds all functions to the target.  Now you can use objects without the consumer having to be aware of the object implementation.
 
 ### Classes
+Proxily doesn't care whether you use prototypical delegation or classes or pure functions to update your data.  Since it only tracks the data (rather than mutating it) it leaves the creation of objects up to you.
 ```
 class CounterState {
     value = 0;
@@ -113,7 +112,7 @@ function App () {
     );
 }
 ```
-Proxily is written in Typescript and it's API is fully type aware.
+Proxily itself is written in Typescript and it's API is fully type-aware.
 ## Memoization
 Anyone using redux for state management can take advantage of memoization which reduces costly recalculation of derived state information every time you reference the derived state.  Proxily make it easy to do memoization in any function using **memoizeObject** and **memoizeClass**. using the memo function:
 ```
@@ -145,6 +144,7 @@ class State {
         this.counters = [new CounterClass(), new CounterClass()];
     }
     counters : Array<CounterClass> = [];
+    
     @memoize()
     sortedCounters () {
         return this.counters.slice(0).sort((a,b) => a.value - b.value);
@@ -152,13 +152,13 @@ class State {
 };
 ```
 # Serialization
-> Note:  Serialization will likely be moved out of Proxily into it's own library
+> Note:  Serialization may be moved out of Proxily into it's own library
 
 In the real world state graphs have to be serialized either to kept in local storage or session storage.  With Redux this is straight forward since it used plane old javascript objects that work with JSON.stringify and JSON.parse.  Since Proxily makes it easy to uses classes having a way to serialize them is essential.
 
-There are libraries out there which can help with this like serializr which is often used with MobX.  Supertype form haven-life also serializes complex objects.  Both require you to describe your schema.
+There are libraries out there which can help with this like serializr which is often used with MobX.  Supertype, from haven-life also serializes complex objects.  Both require you to describe your schema.  Proxily does not.
 
-Proxily serialize converts the object graph to JSON noting any objects discovered in the process directly in the JSON.  Proxily deserialize does the opposite looking at the object notes and re-instantiating objects using new.  You must provide a list of the Classes used so that deserialize can do it's job.  Here is an example structure used when serializr was first introduced:
+Proxily **serialize** converts the object graph to JSON, discovering any objects discovered in the process and noting their constructor in the JSON.  When you call **deserialize**, Proxily does the opposite and re-instantiates the object by class.  You must provide a list of the classes used so that Proxily can call new on the class.  Here is an example structure used by Michel Westrate when serializr was first introduced:
 ```
 class Box {
     uuid = generateUUID();
@@ -208,21 +208,28 @@ You can serialize anything that JSON.stringify/JSON.parse support plus:
 * Dates
 * Sets
 * Maps
-* Classes - deserialize will instantiate the class with an empty constructor and then copy over the properties.
+* Classes - deserialize will instantiate the class with an empty constructor and then copy over the properties.  Therefore the class must be able to be created with an empty constructor
 
-If you want to manually control the creation of objects you can also pass a hash of class names and an associated function that will be passed the serialized data from the object and is expected to return the instantiated object.  This hash is the third (optional) parameter.
+If you want to manually control the creation of objects or have classes that require specific parameters in the constructor you can also pass a hash of class names and an associated function that will be passed the serialized data from the object and is expected to return the instantiated object.  This hash is the third (optional) parameter.
 # Sagas
-Proxily provides a wrapper around the channel capabilities of redux-saga that permit it's use without redux itself.  Since redux is a entirely based on "listening" for actions and Proxily is a top-down call structure the paradygm for running sagas is incorporated into a the *scheduleTask* function which does the following:
-* Will start a dispatching saga using a channel with the effect of your choice (takeEvery, takeLeading, takeMaybe, debounce, throttle) if needed.  Once started the dispatching sage runs until cancelled.
-* Will emit to the channel a value that the saga can take and process
-Sagas object and class are friendly because the sagas are bound by proxily to the object.
+Asynchronous behavior is an important part of many React applications.  In Redux you have thunks and in Proxily any method can be async make use of promises.  However oranizing complex behavior is sometimes simplified by using generators and redux-saga has a rich tool-kit for doing so.  Fortunately it can be used without Redux itself using the channel API.
+
+Proxily provides a wrapper around redux-saga that facilitates it's use without a redux store.  While Redux is a entirely based on "listening" for actions,  Proxily is oriented twoards a top-down call structure where generator tasks are scheduled. The **scheduleTask** accomplishes this by:
+* Calling runSaga on a dispatching saga for your task
+* You choose the effect (takeEvery, takeLeading, takeMaybe, debounce, throttle). 
+* Only one dispatching saga is instantiated for each task/effect combination.  Note that with objects each instance of task counts as a task.
+* The dispatching saga will run until it is cancelled by calling **cancelTask**
+* The dispatching saga takes from a channel rather than taking an action pattern.
+* Emits to the channel a value that the saga can take and process each time scheuldeTask is called.
+
+Sagas are object and class friendly because the sagas, which are member functions, are automaticaslly bound by Proxily to their target object.
 ```
 class Container {
     *task({interval} : {interval : number}) {
         yield delay(interval);
     }
     invokeTask () {
-        scheduleTask(this.task,{interval: 1000},takeLeading); //sequentialize
+        scheduleTask(this.task,{interval: 1000}, takeLeading); //sequentialize
     }
 }
 const container = proxy(new Container());
@@ -249,7 +256,7 @@ const takeLeadingCustom = (patternOrChannel:any, saga:any, ...args:any) => fork(
 scheduleTask(this.task, {interval: 1000}, takeLeadingCustom);
 
 ```
-You must include redux-saga into your project and import scheduleTask and cancelTask from proxily/sagas  
+You must include redux-saga into your project and import **scheduleTask** and **cancelTask** from proxily/sagas  
 # Design Goals
 
 ### Similarities to MobX
