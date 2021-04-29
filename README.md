@@ -207,6 +207,45 @@ You can serialize anything that JSON.stringify/JSON.parse support plus:
 * Classes - deserialize will instantiate the class with an empty constructor and then copy over the properties.
 
 If you want to manually control the creation of objects you can also pass a hash of class names and an associated function that will be passed the serialized data from the object and is expected to return the instantiated object.  This hash is the third (optional) parameter.
+# Sagas
+Proxily provides a wrapper around the channel capabilities of redux-saga that permit it's use without redux itself.  Since redux is a entirely based on "listening" for actions and Proxily is a top-down call structure the paradygm for running sagas is incorporated into a the *scheduleTask* function which does the following:
+* Will start a dispatching saga using a channel with the effect of your choice (takeEvery, takeLeading, takeMaybe, debounce, throttle) if needed.  Once started the dispatching sage runs until cancelled.
+* Will emit to the channel a value that the saga can take and process
+Sagas object and class are friendly because the sagas are bound by proxily to the object.
+```
+class Container {
+    *task({interval} : {interval : number}) {
+        yield delay(interval);
+    }
+    invokeWorker () {
+        scheduleTask(this.task,{interval: 1000},takeLeading); //sequentialize
+    }
+}
+const container = proxy(new Container());
+container.invokeWorker();
+```
+If using an effect that takes a time parameter like throttle or debounce you can pass it in:
+```
+scheduleTask(this.task, {interval: 1000}, debounce, 500);
+```
+If you wish to cancel a task's dispatching saga you can do so like this:
+```
+ cancelTask(this.task, takeLeading);
+```
+And if you want a more exotic use of sagas just pass in your own effect.  Here is the example for takeEvery
+```
+const takeLeadingCustom = (patternOrChannel:any, saga:any, ...args:any) => fork(function*() {
+    while (true) {
+        const action : any = yield take(patternOrChannel);
+        yield call(saga, ...args.concat(action));
+        console.log("foo");
+    }
+})
+...
+scheduleTask(this.task, {interval: 1000}, takeLeadingCustom);
+
+```
+You must include redux-saga into your project and import scheduleTask and cancelTask from proxily/sagas  
 # Design Goals
 
 ### Similarities to MobX
@@ -246,6 +285,7 @@ In short the main goal of proxily is to allow parts of your application to have 
 Presently Proxily is at the proof of concept phase.  The steps to a production-ready library are as follows:
 * [x] Addition of annotations for memoization
 * [x] Serialization
+* [x] redux-saga integration  
 * [ ] Storage integration
 * [ ] Extensive tests for core-functionality
 * [ ] Patterns of Usage Example
