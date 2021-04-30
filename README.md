@@ -216,10 +216,10 @@ Asynchronous behavior is an important part of many React applications.  In Redux
 Proxily provides a wrapper around redux-saga that facilitates it's use without a redux store.  While Redux is based on "listening" for actions, Proxily is oriented towards a top-down call structure where generator tasks are scheduled. **scheduleTask** accomplishes this by:
 * Calling runSaga on a dispatching saga for your task
 * You choose the effect (takeEvery, takeLeading, takeMaybe, debounce, throttle). 
-* Only one dispatching saga is instantiated for each task/effect combination.  Note that with objects each instance of task counts as a task.
+* Only one dispatching saga is instantiated for each task/effect combination.  Note that with objects each instance of a task counts as a task.
 * The dispatching saga will run until it is cancelled by calling **cancelTask**
 * The dispatching saga takes from a channel rather than taking an action pattern.
-* Emits to the channel a value that the saga can take and process each time scheuldeTask is called.
+* After setting up the dispatching saga (if not already running), **shceduleTask** emits to the channel a value that the saga can take and process each time **scheduleTask** is called.
 
 Sagas are object and class friendly because the sagas, which are member functions, are automaticaslly bound by Proxily to their target object.
 ```
