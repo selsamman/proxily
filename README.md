@@ -39,10 +39,9 @@ import {proxy} from 'proxily';
 ```
 ### Use of ES6 Proxies
 
-proxy and useProxy create and returns an ES6 proxy for the object your component uses. This proxy will rerender the component when any property referenced in the render function changes or any child property of the referenced property changes.  The proxy traps all references so it can:
+proxy and useProxy create and return an ES6 proxy for the object your component uses. This proxy will rerender the component when any property referenced in the render function changes or any child property of the referenced property changes.  The proxy traps all references so it can:
 
-* Note any properties referenced during the course of rendering.
-* When any property (or child property) is modified, the component is re-rendered.
+* Note any properties referenced during the course of rendering and re-render when that property changes.
 * As child properties are referenced a proxy is substituted so that this behavior is passed down to all child properties.  
 * A parent child hierarchy is created such that modifying child properties causes re-rendering of any component referencing parent properties, thus emulating the familiar rules of immutable object reference and shallow comparison as used in redux.
 ## Usage Patterns
@@ -50,7 +49,7 @@ proxy and useProxy create and returns an ES6 proxy for the object your component
 ### Moving State Management out of Components
 The first example demonstrated that you change your state directly in your component.  Just because you **can** do so does not mean that you **should** do so.
 
-Best practices are to keep state management separate from the component which represents the presentation of that state.  Most frameworks require this through actions. Proxily does not prescribe any specific method of doing that but it is easily achieved by reorganizing state to be:
+Best practices are to keep state management separate from the component which represents the presentation of that state.  Most frameworks require this through actions. Proxily does not prescribe any specific method of doing this but it is easily achieved by reorganizing state with an object like this:
 
 ```javascript
 const counter = {
@@ -84,7 +83,7 @@ Notice that destructuring **increment** from counter worked properly.
 const {value, increment} = useProxy(counter);
 ```
 
-That is because proxily binds all functions to the target.  Now you can use objects without the consumer having to be aware of the object implementation.
+That is because Proxily binds all functions to the target.  Now you can use objects without the consumer having to be aware of the object implementation.
 
 ### Classes
 Proxily doesn't care whether you use prototypical delegation or classes or pure functions to update your data.  Since it only tracks the data (rather than mutating it) it leaves the creation of objects up to you.
@@ -212,7 +211,7 @@ You can serialize anything that JSON.stringify/JSON.parse support plus:
 
 If you want to manually control the creation of objects or have classes that require specific parameters in the constructor you can also pass a hash of class names and an associated function that will be passed the serialized data from the object and is expected to return the instantiated object.  This hash is the third (optional) parameter.
 # Sagas
-Asynchronous behavior is an important part of many React applications.  In Redux you have thunks and in Proxily any method can be async make use of promises.  However oranizing complex behavior is sometimes simplified by using generators and redux-saga has a rich tool-kit for doing so.  Fortunately it can be used without Redux itself using the channel API.
+Asynchronous behavior is an important part of many React applications.  In Redux you have thunks and in Proxily any method can be async and make use of promises.  Sometimes organizing complex behavior can be simplified by using generators and redux-saga has a rich tool-kit for doing so.  Fortunately it can be used without Redux itself using the channel API.
 
 Proxily provides a wrapper around redux-saga that facilitates it's use without a redux store.  While Redux is a entirely based on "listening" for actions,  Proxily is oriented twoards a top-down call structure where generator tasks are scheduled. The **scheduleTask** accomplishes this by:
 * Calling runSaga on a dispatching saga for your task
