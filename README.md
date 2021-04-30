@@ -213,7 +213,7 @@ If you want to manually control the creation of objects or have classes that req
 # Sagas
 Asynchronous behavior is an important part of many React applications.  In Redux you have thunks and in Proxily any method can be async and make use of promises.  Sometimes organizing complex behavior can be simplified by using generators and redux-saga has a rich tool-kit for doing so.  Fortunately it can be used without Redux itself using the channel API.
 
-Proxily provides a wrapper around redux-saga that facilitates it's use without a redux store.  While Redux is a entirely based on "listening" for actions,  Proxily is oriented twoards a top-down call structure where generator tasks are scheduled. The **scheduleTask** accomplishes this by:
+Proxily provides a wrapper around redux-saga that facilitates it's use without a redux store.  While Redux is based on "listening" for actions, Proxily is oriented towards a top-down call structure where generator tasks are scheduled. The **scheduleTask** accomplishes this by:
 * Calling runSaga on a dispatching saga for your task
 * You choose the effect (takeEvery, takeLeading, takeMaybe, debounce, throttle). 
 * Only one dispatching saga is instantiated for each task/effect combination.  Note that with objects each instance of task counts as a task.
