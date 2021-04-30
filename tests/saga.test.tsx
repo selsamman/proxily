@@ -20,6 +20,7 @@ const takeLeading = (patternOrChannel:any, saga:any, ...args:any) => fork(functi
 })
 */
 import {proxy} from "../src";
+// @ts-ignore
 import EventEmitter from "events";
 import type { EventChannel } from 'redux-saga';
 import type { Saga } from 'redux-saga';
@@ -156,13 +157,12 @@ describe("scheduling with redux-saga", () => {
     });
     it("can cancel with class", async () => {
         let resolver : any;
-        let count = 0;
 
         class Container {
             *task({interval} : {interval : number}) {
                 yield delay(interval);
-                ++count;
-                if (count > 1)
+                ++this.count;
+                if (this.count > 1)
                     resolver();
             }
             doTask () {
@@ -171,6 +171,7 @@ describe("scheduling with redux-saga", () => {
             cancelTask() {
                 cancelTask(this.task, takeLeading);
             }
+            count = 0;
         }
         const container = proxy(new Container());
         const start = (new Date().getTime());
@@ -183,5 +184,4 @@ describe("scheduling with redux-saga", () => {
 
 
     });
-
 });

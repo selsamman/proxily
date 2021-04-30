@@ -221,7 +221,7 @@ Proxily provides a wrapper around redux-saga that facilitates it's use without a
 * The dispatching saga takes from a channel rather than taking an action pattern.
 * After setting up the dispatching saga (if not already running), **shceduleTask** emits to the channel a value that the saga can take and process each time **scheduleTask** is called.
 
-Sagas are object and class friendly because the sagas, which are member functions, are automaticaslly bound by Proxily to their target object.
+Sagas are object and class friendly because the sagas, which are member functions, are automatically bound by Proxily to their target object.
 ```
 class Container {
     *task({interval} : {interval : number}) {
@@ -279,11 +279,12 @@ The differences are obviously in the semantics.  Proxily works on ordinary objec
 ### Similarities to Immer
 The similarities are: 
 * Both use the same rules of immutability for tracking changes to child properties
-* Both make no assumptions about your data
+* Both make no assumptions about your data (with the exception of classes)
 
 The differences are:
 * Immer actually makes your state immutable whereas Proxily does not. 
-* Immer requires that modifying the state using the producer pattern
+* Immer requires that modifying the state use the producer pattern
+* Immer requires that you annotate classes
 
 ### Summary
 We build on the shoulders of giants. Redux and MobX are both very effective mechanisms for reacting to state changes.  With Redux, you can setup your parent component to reference objects that can then be passed into sub-components without them having to be redux-specific.  With MobX you really need to have sub-components be observable since higher level components will only re-render when properties they reference change.
@@ -302,6 +303,6 @@ Presently Proxily is at the proof of concept phase.  The steps to a production-r
 * [ ] Full Documentation
 * [ ] Feedback from community
 
-In the mean time please feel free to kick the tires.
+In the meantime please feel free to kick the tires.
 
 
