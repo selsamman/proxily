@@ -1,5 +1,5 @@
 
-import {memoizeClass} from "../src/index";
+import {memoizeClass} from "../src";
 
 let id = 1;
 export class Preference {

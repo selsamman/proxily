@@ -24,7 +24,7 @@ import {proxy} from "../src";
 import EventEmitter from "events";
 import type { EventChannel } from 'redux-saga';
 import type { Saga } from 'redux-saga';
-import {scheduleTask, cancelTask} from "../src/sagas";
+import {scheduleTask, cancelTask} from "../src";
 
 describe("scheduling with redux-saga", () => {
     it("can start a saga via channel", async () => {

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/extend-expect";
-import {serialize} from "../src/serialize";
-import {deserialize} from "../src/deserialize";
+import {serialize} from "../src";
+import {deserialize} from "../src";
 
 let id = 1;
 function generateUUID() {

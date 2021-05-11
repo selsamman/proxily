@@ -210,6 +210,25 @@ You can serialize anything that JSON.stringify/JSON.parse support plus:
 * Classes - deserialize will instantiate the class with an empty constructor and then copy over the properties.  Therefore the class must be able to be created with an empty constructor
 
 If you want to manually control the creation of objects or have classes that require specific parameters in the constructor you can also pass a hash of class names and an associated function that will be passed the serialized data from the object and is expected to return the instantiated object.  This hash is the third (optional) parameter.
+# Storage Integration
+Proxily will integrate with any storage object that supports getItem and setItem.  Specifically this includes localStorage and sessionStorage.  To integrate with storage use persist to read from storage, merge with an initial state, setup a proxy and observe any changes to the proxy and write back to storage
+```
+const stateProxy = persist(state, {classes: [Class1, Class2]});
+```
+The first parameter to persist is the intial state which is any structure supported by Proxily including plane objects or class based hierarchies.  The second parameter is the configuration which may include these properties:
+* **storageEngine** - Any storage engine that supports getItem and setItem. defaults to localStorage
+* **classes** - An array of classes used in the structure just as for deserialize
+* **migrate** - A function which is passed the persisted state and the initial state and shoud return the new state.  It might, for example, enhance the persisted state to bring it up-to-date with the current application requirements and then merge it using the default merge routine exported from Proxily
+
+The default migration logic will merge initial and persistent states giving preference to the persistent state.  It will merge multiple levels up to but not including properties of built-in objects or Arrays.
+```
+import {migrate, perist} from 'proxily';
+const stateProxy = persist(state, {classes: [Class1, Class2], migrate: myMigrate});
+function myMigrate (persist, initial) {
+    persist.activeWidgetCount = persist.widgets.filter(w => w.active).length
+    return migrate(persist, initial);
+}
+```
 # Sagas
 Asynchronous behavior is an important part of many React applications.  In Redux you have thunks and in Proxily any method can be async and make use of promises.  Sometimes organizing complex behavior can be simplified by using generators and redux-saga has a rich tool-kit for doing so.  Fortunately it can be used without Redux itself using the channel API.
 
@@ -255,7 +274,7 @@ const takeLeadingCustom = (patternOrChannel:any, saga:any, ...args:any) => fork(
 scheduleTask(this.task, {interval: 1000}, takeLeadingCustom);
 
 ```
-You must include redux-saga into your project and import **scheduleTask** and **cancelTask** from proxily/sagas  
+You must include redux-saga into your project and import **scheduleTask** and **cancelTask** from proxily/sagas
 # Design Goals
 
 ### Similarities to MobX
@@ -297,7 +316,7 @@ Presently Proxily is at the proof of concept phase.  The steps to a production-r
 * [x] Addition of annotations for memoization
 * [x] Serialization
 * [x] redux-saga integration  
-* [ ] Storage integration
+* [x] Storage integration
 * [ ] Extensive tests for core-functionality
 * [ ] Patterns of Usage Example
 * [ ] Full Documentation

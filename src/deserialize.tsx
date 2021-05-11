@@ -3,15 +3,15 @@ interface ObjectMarker {
     i: number
     v: any
 }
-type ClassHandlers = {[index: string] : (obj: any)=>any};
+export type ClassHandlers = {[index: string] : (obj: any)=>any};
 
-
-export function deserialize(json : string, classes : Array<any>, classHandlers? : ClassHandlers) {
+export function deserialize(json : string, classes? : Array<any>, classHandlers? : ClassHandlers) {
     const classHelpers : {[index: string] : (obj: any)=>any} = {};
     Object.assign(classHelpers, classHandlers || {});
 
     const classMap : {[index: string] : any} = {}
-    classes.map(c => classMap[c.prototype.constructor.name] = c);
+    if (classes)
+        classes.map(c => classMap[c.prototype.constructor.name] = c);
 
     const objects : Map<number, any> = new Map();
     const obj = JSON.parse(json);
@@ -70,12 +70,12 @@ export function deserialize(json : string, classes : Array<any>, classHandlers? 
         for (const prop in obj) {
             if (obj[prop] instanceof Array)
                 obj[prop] = obj[prop].map((element : any) => {
-                    if (typeof element === "object")
+                    if (typeof element === "object" && element !== null)
                         return processObjectMarker(element)
                     else
                         return element;
                 });
-            else if (typeof obj[prop] === "object")
+            else if (typeof obj[prop] === "object" && obj[prop] !== null)
                 obj[prop] = processObjectMarker(obj[prop]);
         }
         return obj;

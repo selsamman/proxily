@@ -18,15 +18,17 @@ export class ObservationContext {
     proxy : ProxyWrapper | undefined;
 
     changed(proxy: ProxyWrapper, target : string, prop : string) {
-        if (this.connectedProxies.get(proxy)?.referencedProps[prop as any]) {
-            if(logLevel.render) log(`${target}.${prop} forced re-render`);
-            this.onChange(target, prop);
-        }
+        const connectedProxy = this.connectedProxies.get(proxy);
+        if (connectedProxy)
+            if (connectedProxy.referencedProps[prop as any] || connectedProxy.referencedProps['*']) {
+                if(logLevel.render) log(`${target}.${prop} forced re-render`);
+                this.onChange(target, prop);
+            }
     };
     referenced(proxy : ProxyWrapper, prop : string) {
         const connectedProxy = this.connectedProxies.get(proxy)
         if (connectedProxy)
-            connectedProxy.referencedProps[prop]  = true;
+            connectedProxy.referencedProps[prop] = true;
     };
     connect (proxy : ProxyWrapper) {
         this.connectedProxies.set(proxy, {proxy: proxy, referencedProps: {}});
@@ -44,7 +46,7 @@ export class ObservationContext {
     }
 
 }
-export function ConnectContext (proxy : ProxyWrapper) {
+export function ConnectContext (proxy : ProxyWrapper, context? : ObservationContext) {
     if(currentContext) {
         proxy.__contexts__.set(currentContext, currentContext);
         currentContext.connect(proxy);
@@ -52,6 +54,10 @@ export function ConnectContext (proxy : ProxyWrapper) {
     if(currentSelectorContext) {
         proxy.__contexts__.set(currentSelectorContext, currentSelectorContext);
         currentSelectorContext.connect(proxy);
+    }
+    if(context) {
+        proxy.__contexts__.set(context, context);
+        context.connect(proxy);
     }
 }
 

@@ -1,7 +1,8 @@
-import {lastReference, MakeProxy, Target} from "./ProxyWrapper";
+import {makeProxy, Target} from "./ProxyWrapper";
 import {currentContext, ObservationContext, setCurrentContext} from "./ObservationContext";
 import {log, logLevel} from "./log";
 import {useEffect, useRef, useState} from "react";
+import {lastReference} from "./proxyCommon";
 
 export function useProxyContext<A>(apiIn: any, callback : (api: A) => void) {
     const api = useProxy<A>(apiIn);
@@ -35,11 +36,11 @@ export function useProxy<A>(targetIn: A) : A {
 
     const context = createContext();
     if (!context.proxy)
-        context.proxy = MakeProxy(target);
+        context.proxy = makeProxy(target);
 
     return context.proxy as unknown as A;
 }
-function createContext() : ObservationContext{
+function createContext() : ObservationContext {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [,setSeq] = useState(0);
 

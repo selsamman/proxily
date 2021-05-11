@@ -26,7 +26,7 @@ export function serialize(rootObj : any) {
                 v: this[prop].getTime(),
                 i: 0
             }
-        } else if (typeof value !== 'object')
+        } else if (typeof value !== 'object' || value === null)
             return value;
 
         const cachedObj = objToId.get(value);
@@ -38,7 +38,6 @@ export function serialize(rootObj : any) {
 
         if (value instanceof Array)
             return value;
-
 
         const className = value.constructor.name;
         const handler =  handleObject.get(value.constructor);
