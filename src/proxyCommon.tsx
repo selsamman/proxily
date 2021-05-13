@@ -23,7 +23,7 @@ export function DataChanged(proxy : ProxyWrapper, prop : string, originalProxy :
 export interface LastReference {
     value: Object;
     prop : string;
-    proxy : ProxyWrapper | undefined;
+    proxyWrapper : ProxyWrapper | undefined;
     set: (target : any, prop : string, value : any) => void;
     clear: () => void;
 }
@@ -31,14 +31,14 @@ export interface LastReference {
 export const lastReference : LastReference = {
     value: {},
     prop : "",
-    proxy : undefined,
+    proxyWrapper : undefined,
     set: function (proxy : ProxyWrapper, prop : string, value : any) : void {
-        this.proxy = proxy;
+        this.proxyWrapper = proxy;
         this.prop = prop;
         this.value = value;
     },
     clear: function () : void {
-        this.proxy = undefined;
+        this.proxyWrapper = undefined;
         this.prop = "";
         this.value = {};
     }

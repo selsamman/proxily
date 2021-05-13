@@ -1,16 +1,20 @@
 
 import {log, logLevel} from "./log";
-import {makeProxy, ProxyWrapper, Target} from "./ProxyWrapper";
+import {makeProxy, proxies, Target} from "./ProxyWrapper";
 import {DataChanged, lastReference} from "./proxyCommon";
 
 
 export const proxyHandlerMap = {
 
-    get(target : Target, prop: any, proxy: ProxyWrapper) : any {
+    get(target : Target, prop: any) : any {
 
         // Only way to get a reference to the object being proxied
         if (prop === '__target__')
             return target;
+        const proxyWrapper = proxies.get(target);
+        if (!proxyWrapper)
+            return Reflect.get(target, prop);
+
         const targetValue = Reflect.get(target, prop, target);
         if (typeof targetValue !== "function")
             return targetValue;
@@ -20,44 +24,44 @@ export const proxyHandlerMap = {
         switch (prop) {
             case 'get':
                 return (key : any) => {
-                    let value : any = proxy.__references__[prop] || targetValue.call(target, key);
+                    let value : any = proxyWrapper.__references__[prop] || targetValue.call(target, key);
                     if (typeof value === "object" && !value.__target__)
-                        value = proxy.__references__[prop] = makeProxy(value,  prop, proxy);
+                        value = proxyWrapper.__references__[prop] = makeProxy(value,  prop, proxyWrapper);
                     else
                         value = targetValue.call(target, key)
-                    proxy.__contexts__.forEach(context => context.referenced(proxy, prop));
-                    lastReference.set(proxy, prop, value);
+                    proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, prop));
+                    lastReference.set(proxyWrapper, prop, value);
                     return value;
                 }
             case 'set':
                 return (key: any, newValue: any) => {
-                    const oldObject = proxy.__references__[key];
+                    const oldObject = proxyWrapper.__references__[key];
 
                     if (oldObject && oldObject !== newValue) {
-                        const parentProxy = oldObject.__parents__.get(proxy);
+                        const parentProxy = oldObject.__parents__.get(proxyWrapper);
                         if (parentProxy)  {
                             delete parentProxy.props[prop];
                             if (Object.keys(parentProxy.props).length === 0) {
-                                oldObject.__parents__.delete(proxy);
+                                oldObject.__parents__.delete(proxyWrapper);
                                 if (oldObject.__parents__.size === 0)
                                     oldObject.__contexts__.forEach(context =>
-                                        context.disconnect(proxy)
+                                        context.disconnect(proxyWrapper)
                                     )
                             }
                         }
                     }
 
                     if (typeof newValue === "object")
-                        proxy.__references__[prop] = makeProxy(newValue,  key, proxy);
+                        proxyWrapper.__references__[prop] = makeProxy(newValue,  key, proxyWrapper);
 
                     // Change the value in the target
                     targetValue.call(target, key, newValue);
 
                     // Notify referencing object that referenced property has changed
-                    DataChanged(proxy, prop, proxy);
+                    DataChanged(proxyWrapper, prop, proxyWrapper);
                 }
             case 'delete':
-                DataChanged(proxy, prop, proxy);
+                DataChanged(proxyWrapper, prop, proxyWrapper);
                 return targetValue.bind(target);
 
             case Symbol.iterator:
@@ -65,11 +69,11 @@ export const proxyHandlerMap = {
             case 'entries':
 
                 (target as unknown as Map<any, any>).forEach( (key : any, value : any) => {
-                   value = proxy.__references__[key] || value;
+                   value = proxyWrapper.__references__[key] || value;
                     if (typeof value === "object" && !value.__target__)
-                        value = proxy.__references__[prop] = makeProxy(value,  prop, proxy);
-                    proxy.__contexts__.forEach(context => context.referenced(proxy, prop));
-                    lastReference.set(proxy, prop, value);
+                        value = proxyWrapper.__references__[prop] = makeProxy(value,  prop, proxyWrapper);
+                    proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, prop));
+                    lastReference.set(proxyWrapper, prop, value);
                 });
 
             default:

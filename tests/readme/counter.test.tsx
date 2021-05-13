@@ -29,8 +29,10 @@ describe('Counter Patterns',  () => {
         };
 
         setTimeout(()=> {
-            proxy(state).counter.value++
-        }, 1000);
+            const pstate = proxy(state);
+            pstate.counter.value++
+            console.log(pstate.counter.value);
+        }, 750);
 
         function App() {
             const  {counter} = useProxy(state);
@@ -41,7 +43,7 @@ describe('Counter Patterns',  () => {
             );
         }
         const {getByText, findByText} = render(<App />);
-        await findByText("Count: 1", {}, {timeout: 1000});
+        await findByText("Count: 1", {}, {timeout: 5000});
         expect (getByText(/Count/)).toHaveTextContent("Count: 1");
     });
 
@@ -76,7 +78,9 @@ describe('Counter Patterns',  () => {
     it( 'Can have self contained state with TS' , async () => {
         class CounterState {
             private _value = 0;
-            get value () {return this._value}
+            get value () {
+                return this._value
+            }
             increment () {this._value++}
         }
         const state = {
@@ -143,7 +147,7 @@ describe('Counter Patterns',  () => {
         memoizeObject(state, 'sortedCounters');
         render(<App />);
         screen.getByText('IncrementA0').click();
-        expect (await screen.getByText("CountA0: 1")).toHaveTextContent("CountA0: 1");
+        expect (await screen.getByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
         expect(sorts).toBe(2);
 
     });
@@ -195,7 +199,7 @@ describe('Counter Patterns',  () => {
 
         render(<App />);
         screen.getByText('IncrementA0').click();
-        expect (await screen.getByText("CountA0: 1")).toHaveTextContent("CountA0: 1");
+        expect (await screen.getByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
         expect(sorts).toBe(2);
     });
     it("can memoize a class with a decorator", async () => {
@@ -246,7 +250,7 @@ describe('Counter Patterns',  () => {
 
         render(<App />);
         screen.getByText('IncrementA0').click();
-        expect (await screen.getByText("CountA0: 1")).toHaveTextContent("CountA0: 1");
+        expect (await screen.getByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
         expect(sorts).toBe(2);
     });
 });

@@ -47,15 +47,15 @@ export class ObservationContext {
 
 }
 export function ConnectContext (proxy : ProxyWrapper, context? : ObservationContext) {
-    if(currentContext) {
+    if(currentContext && !proxy.__contexts__.has(currentContext)) {
         proxy.__contexts__.set(currentContext, currentContext);
         currentContext.connect(proxy);
     }
-    if(currentSelectorContext) {
+    if(currentSelectorContext && !proxy.__contexts__.has(currentSelectorContext)) {
         proxy.__contexts__.set(currentSelectorContext, currentSelectorContext);
         currentSelectorContext.connect(proxy);
     }
-    if(context) {
+    if(context && !proxy.__contexts__.has(context)) {
         proxy.__contexts__.set(context, context);
         context.connect(proxy);
     }
