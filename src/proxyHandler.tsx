@@ -2,7 +2,6 @@ import {CreateMemoization, isMemoized} from "./memoize";
 import {log, logLevel} from "./log";
 import {makeProxy, ProxyWrapper, Target} from "./ProxyWrapper";
 import {DataChanged, getterProps, lastReference} from "./proxyCommon";
-
 export const proxyHandler = {
 
     get(target : Target, prop: string, proxy: ProxyWrapper) : any {
@@ -58,19 +57,8 @@ export const proxyHandler = {
 
         // Unlink parental reference
         const oldObject = proxy.__references__[prop];
-        if (oldObject && oldObject !== value) {
-            const parentProxy = oldObject.__parents__.get(proxy);
-            if (parentProxy)  {
-                delete parentProxy.props[prop];
-                if (Object.keys(parentProxy.props).length === 0) {
-                    oldObject.__parents__.delete(proxy);
-                    if (oldObject.__parents__.size === 0)
-                        oldObject.__contexts__.forEach(context =>
-                            context.disconnect(proxy)
-                        )
-                }
-            }
-        }
+        if (oldObject && oldObject !== value)
+            removeChildReference(proxy, oldObject, prop)
         if (typeof value === "object")
             proxy.__references__[prop] = makeProxy(value,  prop, proxy);
 
@@ -81,5 +69,37 @@ export const proxyHandler = {
         DataChanged(proxy, prop, proxy);
 
         return ret;
+    },
+
+    deleteProperty(target : Target, prop: string): boolean {
+
+        if(logLevel.propertyChange) log(`${target.constructor.name}.${prop} changed`);
+
+        // Unlink parental reference
+        //const oldObject = proxy.__references__[prop];
+        //removeChildReference(proxy, oldObject, prop);
+
+        //delete proxy.__references__[prop];
+        const ret = Reflect.deleteProperty(target, prop);
+
+        // Notify referencing object that referenced property has changed
+        //DataChanged(proxy, prop, proxy);
+
+        return ret;
     }
+
+}
+function removeChildReference(proxy : ProxyWrapper, oldObject : ProxyWrapper, prop: string) {
+    const parentProxy = oldObject.__parents__.get(proxy);
+    if (parentProxy)  {
+        delete parentProxy.props[prop];
+        if (Object.keys(parentProxy.props).length === 0) {
+            oldObject.__parents__.delete(proxy);
+            if (oldObject.__parents__.size === 0)
+                oldObject.__contexts__.forEach(context =>
+                    context.disconnect(proxy)
+                )
+        }
+    }
+
 }

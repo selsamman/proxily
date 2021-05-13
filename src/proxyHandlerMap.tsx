@@ -56,6 +56,9 @@ export const proxyHandlerMap = {
                     // Notify referencing object that referenced property has changed
                     DataChanged(proxy, prop, proxy);
                 }
+            case 'delete':
+                DataChanged(proxy, prop, proxy);
+                return targetValue.bind(target);
 
             case Symbol.iterator:
             case 'forEach':

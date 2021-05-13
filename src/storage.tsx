@@ -1,5 +1,5 @@
 import {ClassHandlers, deserialize} from "./deserialize";
-import {observe} from "./ProxyWrapper";
+import {observe, proxy} from "./ProxyWrapper";
 import {serialize} from "./serialize";
 export interface StorageEngine {
     getItem(key : string) : any
@@ -29,7 +29,8 @@ export function persist<T>(initialState: T, config : PersistConfig) : T {
     } else
         persistedState = initialState;
     let scheduled = false;
-    return observe(persistedState, onChange);
+    observe(persistedState, onChange);
+    return proxy(persistedState);
     function onChange(_proxy:string, _prop : string) {
         if (!scheduled)
             setTimeout(() => {

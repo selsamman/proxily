@@ -4,23 +4,24 @@ import {ConnectContext} from "./ObservationContext";
 import {proxyHandler} from "./proxyHandler";
 import {GetterMemo} from "./memoize";
 import {proxyHandlerMap} from "./proxyHandlerMap";
+import {proxyHandlerDate} from "./proxyHandlerDate";
 
 export function proxy<A>(targetIn: A) : A {
     const target  = targetIn as unknown as Target;
     return makeProxy(target) as unknown as A;
 }
 
-export function observe<T>(targetIn: T, onChange : (target : string, prop : string) => void,  observer? : () => void) : T {
+export function observe<T>(targetIn: T, onChange : (target : string, prop : string) => void,  observer? : (target : T) => void) : ObservationContext {
     const observationContext = new ObservationContext(onChange);
-    const target  = targetIn as unknown as Target;
-    const proxy = makeProxy(target, undefined, undefined, observationContext);
+
+    const proxy = makeProxy(targetIn as unknown as Target, undefined, undefined, observationContext);
     if (observer) {
         setCurrentContext(observationContext);
-        observer();
+        observer(proxy as unknown as T);
         setCurrentContext(undefined);
     } else
         observationContext.referenced(proxy, '*');
-    return proxy as unknown as T;
+    return observationContext;
 }
 
 
@@ -53,7 +54,7 @@ export function makeProxy(targetOrProxyWrapper : Target | ProxyWrapper, parentPr
     // If passed a proxywrapper just use it
     if ((targetOrProxyWrapper as ProxyWrapper).__target__) {
         const proxy : ProxyWrapper = targetOrProxyWrapper as ProxyWrapper;
-        ConnectContext(proxy);
+        ConnectContext(proxy, observationContext);
         return proxy;
     }
     const target = targetOrProxyWrapper as Target;
@@ -66,7 +67,13 @@ export function makeProxy(targetOrProxyWrapper : Target | ProxyWrapper, parentPr
     }
 
     // Create the proxy and wrap it so we can add additional properties
-    const handler = target instanceof Map ? proxyHandlerMap : proxyHandler;
+    let handler;
+    if (target instanceof Map)
+        handler = proxyHandlerMap;
+    else if (target instanceof Date)
+        handler = proxyHandlerDate;
+    else
+        handler = proxyHandler;
     const proxy = Object.create(new Proxy(target, handler)) as ProxyWrapper;
 
     proxies.set(target, proxy);
