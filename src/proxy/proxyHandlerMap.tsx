@@ -1,6 +1,6 @@
 
-import {log, logLevel} from "./log";
-import {makeProxy, proxies, Target} from "./ProxyWrapper";
+import {log, logLevel} from "../log";
+import {makeProxy, proxies, Target} from "../ProxyWrapper";
 import {DataChanged, lastReference} from "./proxyCommon";
 
 

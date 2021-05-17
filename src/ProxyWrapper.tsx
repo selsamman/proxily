@@ -1,10 +1,10 @@
 // A wrapper for the proxy that let's us track additional information
 import {ObservationContext, setCurrentContext} from "./ObservationContext";
 import {ConnectContext} from "./ObservationContext";
-import {proxyHandler} from "./proxyHandler";
+import {proxyHandler} from "./proxy/proxyHandler";
 import {GetterMemo} from "./memoize";
-import {proxyHandlerMap} from "./proxyHandlerMap";
-import {proxyHandlerDate} from "./proxyHandlerDate";
+import {proxyHandlerMap} from "./proxy/proxyHandlerMap";
+import {proxyHandlerDate} from "./proxy/proxyHandlerDate";
 
 export function proxy<A>(targetIn: A) : A {
     const target  = targetIn as unknown as Target;

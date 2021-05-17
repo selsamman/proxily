@@ -1,6 +1,6 @@
-import {CreateMemoization, isMemoized} from "./memoize";
-import {log, logLevel} from "./log";
-import {makeProxy, proxies, ProxyWrapper, Target} from "./ProxyWrapper";
+import {CreateMemoization, isMemoized} from "../memoize";
+import {log, logLevel} from "../log";
+import {makeProxy, proxies, ProxyWrapper, Target} from "../ProxyWrapper";
 import {DataChanged, getterProps, lastReference} from "./proxyCommon";
 export const proxyHandler = {
 

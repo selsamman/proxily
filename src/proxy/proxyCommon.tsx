@@ -1,4 +1,4 @@
-import {ProxyWrapper, Target} from "./ProxyWrapper";
+import {ProxyWrapper, Target} from "../ProxyWrapper";
 
 export function getterProps(target : Target, prop : string) {
     const props = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(target), prop);
