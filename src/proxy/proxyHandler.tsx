@@ -1,7 +1,7 @@
-import {CreateMemoization, isMemoized} from "../memoize";
+import {createMemoization, isMemoized} from "../memoize";
 import {log, logLevel} from "../log";
-import {makeProxy, proxies, ProxyWrapper, Target} from "../ProxyWrapper";
-import {DataChanged, getterProps, lastReference} from "./proxyCommon";
+import {makeProxy, proxies, Target} from "../ProxyWrapper";
+import {DataChanged, getterProps, lastReference, proxyMissing, updateObjectReference} from "./proxyCommon";
 export const proxyHandler = {
 
     get(target : Target, prop: string, receiver: any) : any {
@@ -9,33 +9,30 @@ export const proxyHandler = {
         // Only way to get a reference to the object being proxied
         if (prop === '__target__')
             return target;
-        const proxyWrapper = proxies.get(target);
-        if (!proxyWrapper)
-            return Reflect.get(target, prop, receiver);
+
+        // Find proxyWrapper via WeakMap.  It should always be there
+        const proxyWrapper = proxies.get(target) || proxyMissing(target, prop) ;
         if(logLevel.propertyReference) log(`${target.constructor.name}.${prop} referenced`);
 
+        // Handle case of getter which may need to be memoized
         const props : any = getterProps(target, prop);
         if (props) {
             if (isMemoized(prop, target)) {
-                const memo = CreateMemoization(prop, target, proxyWrapper, props.get);
+                const memo = createMemoization(prop, target, proxyWrapper, props.get);
                 return memo.getValue([]);
             } else
                 Reflect.get(target, prop, receiver);
         }
 
-        // If an internal field or a getter just pass through
-        if (prop.match(/__.*__/))
-            return Reflect.get(target, prop, receiver);
-
-
-
         // If referencing an object that is not proxied proxy it and keep on the side for serving up
-        let value : any = proxyWrapper.__references__[prop] || Reflect.get(target, prop, target);
-        if (typeof value === "object" && !value.__target__)
-            return proxyWrapper.__references__[prop] = makeProxy(value,  prop, proxyWrapper);
-        else if (typeof value === "function") {
+        let value : any = proxyWrapper.__references__.get(prop) || Reflect.get(target, prop, target);
+        if (typeof value === "object" && !value.__target__) {
+            value = makeProxy(value,  prop, proxyWrapper);
+            proxyWrapper.__references__.set(prop, value);
+            return value;
+        } else if (typeof value === "function") {
             if (isMemoized(prop, target)) {
-                const memo = CreateMemoization(prop, target, proxyWrapper, value)
+                const memo = createMemoization(prop, target, proxyWrapper, value)
                 if (!memo.closureFunction)
                     memo.closureFunction = (function MemoClosure (...args : any) {
                         return memo.getValue(args);
@@ -52,42 +49,30 @@ export const proxyHandler = {
 
     },
 
-    set(target : Target, prop: string, value: any, receiver: any): boolean {
+    set(target : Target, key: string, value: any): boolean {
 
-        const proxyWrapper = proxies.get(target);
-        if (!proxyWrapper)
-            return Reflect.get(target, prop, receiver);
-        if(logLevel.propertyChange) log(`${target.constructor.name}.${prop} changed`);
+        const proxyWrapper = proxies.get(target) || proxyMissing(target, key);
+        if(logLevel.propertyChange) log(`${target.constructor.name}.${key} changed`);
 
-        // Unlink parental reference
-        const oldObject = proxyWrapper.__references__[prop];
-        if (oldObject && oldObject !== value)
-            removeChildReference(proxyWrapper, oldObject, prop)
-        if (typeof value === "object")
-            proxyWrapper.__references__[prop] = makeProxy(value,  prop, proxyWrapper);
+        // Maintain proxyWrapper reference structure
+        updateObjectReference(proxyWrapper, key, value)
 
         // Change the value in the target
-        const ret = Reflect.set(target, prop, value);
+        const ret = Reflect.set(target, key, value);
 
         // Notify referencing object that referenced property has changed
-        DataChanged(proxyWrapper, prop, proxyWrapper);
+        DataChanged(proxyWrapper, key, proxyWrapper);
 
         return ret;
     },
 
     deleteProperty(target : Target, prop: string): boolean {
 
-        const proxyWrapper = proxies.get(target);
-        if (!proxyWrapper)
-            return Reflect.deleteProperty(target, prop);
+        const proxyWrapper = proxies.get(target) || proxyMissing(target, prop);
         if(logLevel.propertyChange) log(`${target.constructor.name}.${prop} deleted`);
 
+        updateObjectReference(proxyWrapper, prop);
 
-        // Unlink parental reference
-        const oldObject = proxyWrapper.__references__[prop];
-        removeChildReference(proxyWrapper, oldObject, prop);
-
-        delete proxyWrapper.__references__[prop];
         const ret = Reflect.deleteProperty(target, prop);
 
         // Notify referencing object that referenced property has changed
@@ -97,17 +82,4 @@ export const proxyHandler = {
     }
 
 }
-function removeChildReference(proxy : ProxyWrapper, oldObject : ProxyWrapper, prop: string) {
-    const parentProxy = oldObject.__parents__.get(proxy);
-    if (parentProxy)  {
-        delete parentProxy.props[prop];
-        if (Object.keys(parentProxy.props).length === 0) {
-            oldObject.__parents__.delete(proxy);
-            if (oldObject.__parents__.size === 0)
-                oldObject.__contexts__.forEach(context =>
-                    context.disconnect(proxy)
-                )
-        }
-    }
 
-}

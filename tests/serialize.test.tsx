@@ -42,7 +42,6 @@ describe("serialization tests", () => {
         drawing.boxes.push(box1, box2)
         drawing.arrows.push(arrow1);
         const json = serialize(drawing);
-        console.log(json);
         const newDrawing = deserialize(json, [Box, Arrow, Drawing]);
         expect(newDrawing instanceof Drawing).toBe(true);
         expect(newDrawing.boxes[0] instanceof Box).toBe(true);

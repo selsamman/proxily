@@ -4,7 +4,9 @@ import {ConnectContext} from "./ObservationContext";
 import {proxyHandler} from "./proxy/proxyHandler";
 import {GetterMemo} from "./memoize";
 import {proxyHandlerMap} from "./proxy/proxyHandlerMap";
+import {proxyHandlerSet} from "./proxy/proxyHandlerSet";
 import {proxyHandlerDate} from "./proxy/proxyHandlerDate";
+import {proxyHandlerArray} from "./proxy/proxyHandlerArray";
 
 export function proxy<A>(targetIn: A) : A {
     const target  = targetIn as unknown as Target;
@@ -32,7 +34,7 @@ export interface ProxyWrapper {
     __target__ : Target;  // The actual object that is being proxied
     __proxy__ : any;
     __contexts__ : Map<ObservationContext, ObservationContext>;  // A context that can communicate with the component
-    __references__ : { [key: string] : ProxyWrapper } // proxies for references to other objects in target
+    __references__ : Map<any, Target> // proxies for references to other objects in target
     __parents__ : Map<ProxyWrapper, ParentProxy>;
     __memoContexts__ : { [key: string] : GetterMemo}
 }
@@ -54,7 +56,7 @@ export interface ParentProxy {
     proxy : ProxyWrapper;
 }
 
-export function makeProxy(targetOrProxy : Target | typeof Proxy, parentProp? : string, parentProxyWrapper? : ProxyWrapper, observationContext? : ObservationContext) : any {
+export function makeProxy(targetOrProxy : Target | typeof Proxy, parentProp? : string, parentProxyWrapper? : ProxyWrapper, observationContext? : ObservationContext) : Target {
 
     let proxyWrapper = proxies.get((targetOrProxy as unknown as any)?.__target__ || targetOrProxy)
 
@@ -70,8 +72,12 @@ export function makeProxy(targetOrProxy : Target | typeof Proxy, parentProp? : s
     let handler;
     if (target instanceof Map)
         handler = proxyHandlerMap;
+    else if (target instanceof Set)
+        handler = proxyHandlerSet;
     else if (target instanceof Date)
         handler = proxyHandlerDate;
+    else if (target instanceof Array)
+        handler = proxyHandlerArray;
     else
         handler = proxyHandler;
     const proxy = new Proxy(target, handler);
@@ -82,7 +88,7 @@ export function makeProxy(targetOrProxy : Target | typeof Proxy, parentProp? : s
         __target__: target,
         __proxy__: proxy,
         __contexts__: new Map(),
-        __references__: {},
+        __references__: new Map(),
         __memoContexts__ : {}
     }
     proxies.set(target, proxyWrapper);

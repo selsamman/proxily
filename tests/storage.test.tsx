@@ -5,7 +5,7 @@ class Leaf1 {
     str = "foo"
     date = new Date();
     nul = null;
-    parent : Root1;
+    parent : Root1 | undefined;
 }
 class Root1 {
     collection1 = [new Leaf1(), new Leaf1()];

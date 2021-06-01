@@ -70,7 +70,7 @@ export function memoize() {
 export function isMemoized(prop: string, target: Target) {
     return target.__memoizedProps__ && target.__memoizedProps__[prop];
 }
-export function CreateMemoization (prop: string, target: Target, proxyWrapper: ProxyWrapper, valueFunction: any) : GetterMemo {
+export function createMemoization (prop: string, target: Target, proxyWrapper: ProxyWrapper, valueFunction: any) : GetterMemo {
     if (target.__memoizedProps__ && target.__memoizedProps__[prop] &&
         (!proxyWrapper.__memoContexts__ || !proxyWrapper.__memoContexts__[prop]))
     {
