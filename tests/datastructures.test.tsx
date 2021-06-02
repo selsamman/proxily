@@ -1,4 +1,4 @@
-import {observe, proxy, setLogLevel} from "../src";
+import {observe, proxy} from "../src";
 
 describe("data structure tests of proxy", () => {
     class Leaf {
@@ -13,14 +13,14 @@ describe("data structure tests of proxy", () => {
         parent : Root | undefined;
     }
     class Root {
-        collection1 = [new Leaf(), new Leaf()];
-        collection2 = new Set([new Leaf(), new Leaf()]);
-        collection3 = new Map([['1', new Leaf()], ['2', new Leaf()]]);
-        collection4 = {'1': new Leaf(), '2': new Leaf()};
-        leaf1 = new Leaf();
-        leaf2 = new Leaf();
+        arrayCollection = [new Leaf(), new Leaf()];
+        setCollection = new Set([new Leaf(), new Leaf()]);
+        mapCollection = new Map([['1', new Leaf()], ['2', new Leaf()]]);
+        objectCollection = {a: new Leaf(), b: new Leaf()};
+        objectSingle = new Leaf();
     }
 
+    // Harness to observe a change to property and return the name of the property as <class>-<prop>-<observation-count>
     let reactions = 0;
     let observedObj;
     let observedProp;
@@ -39,59 +39,95 @@ describe("data structure tests of proxy", () => {
         }
     }
 
-    it ("can observe changes at top level to all data types", () => {
-/*
+    it ("reacts to all simple object types", () => {
         expect(observeResult(new Root(), (root) => {
-            console.log(typeof root.collection1[0]);
-            delete root.collection1[0];
-            expect(root.collection1[0]).toBe(undefined);
-        })).toBe("Root-collection1-1");
-*/
-        setLogLevel({propertyReference: true});
+            expect(root.objectSingle instanceof Leaf).toBe(true);
+            const previousLeaf = root.objectSingle;
+            root.objectSingle = new Leaf();
+            expect(previousLeaf !== root.objectSingle) .toBe(true)
+            const leaf = root.objectSingle;
+            expect(leaf.num).toBe(3);
+            expect(leaf.str).toBe("foo");
+            expect(leaf.date.getTime() <= (new Date()).getTime()).toBe(true)
+        })).toBe("Root-objectSingle-1");
+    });
+
+    it ("can observe changes to arrays", () => {
+
         expect(observeResult(new Root(), (root) => {
-            const leaf = root.collection1[0];
+            delete root.arrayCollection[0];
+            expect(root.arrayCollection[0]).toBe(undefined);
+        })).toBe("Root-arrayCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            const leaf = root.arrayCollection[0];
             if (leaf) {
                 leaf.date.getDate();
                 leaf.date.setMonth(1);
             } else
                 expect(false).toBe(true);
-        })).toBe("Root-collection1-1");
+        })).toBe("Root-arrayCollection-1");
 
         expect(observeResult(new Root(), (root) => {
-            expect(root.collection1.pop() instanceof Leaf).toBe(true);
-        })).toBe("Root-collection1-1");
+            expect(root.arrayCollection.pop() instanceof Leaf).toBe(true);
+        })).toBe("Root-arrayCollection-1");
 
         expect(observeResult(new Root(), (root) => {
             const leaf = proxy(new Leaf());
-            root.collection1.fill(leaf, 1)
-            expect(root.collection1[1]).toBe(leaf);
-        })).toBe("Root-collection1-1");
+            root.arrayCollection.fill(leaf, 1)
+            expect(root.arrayCollection[1]).toBe(leaf);
+        })).toBe("Root-arrayCollection-1");
+    });
+
+    it ("can observe changes to maps", () => {
 
         expect(observeResult(new Root(), (root) => {
-            const leaf = root.collection3.get('1');
+            const leaf = root.objectCollection.a;
             if (leaf)
                 leaf.parent = root
-        })).toBe("Root-collection3-1");
+        })).toBe("Root-objectCollection-1");
 
         expect(observeResult(new Root(), (root) => {
-            root.collection3.delete('1');
-            expect(root.collection3.size).toBe(1);
-        })).toBe("Root-collection3-1");
+            // @ts-ignore
+            delete root.objectCollection.a;
+            expect(root.objectCollection.a).toBe(undefined);
+        })).toBe("Root-objectCollection-1");
 
         expect(observeResult(new Root(), (root) => {
-            root.collection3.set('3', new Leaf());
-            expect(root.collection3.size).toBe(3);
-        })).toBe("Root-collection3-1");
+            // @ts-ignore
+            root.objectCollection.c = new Leaf();
+            expect(root.objectCollection.a instanceof Leaf).toBe(true);
+        })).toBe("Root-objectCollection-1");
+    });
+    it ("can observe changes to maps", () => {
 
         expect(observeResult(new Root(), (root) => {
-            root.collection2.add(new Leaf());
-            expect(root.collection2.size).toBe(3);
-        })).toBe("Root-collection2-1");
+            const leaf = root.mapCollection.get('1');
+            if (leaf)
+                leaf.parent = root
+        })).toBe("Root-mapCollection-1");
 
         expect(observeResult(new Root(), (root) => {
-            root.collection2.delete(Array.from(root.collection2)[0]);
-            expect(root.collection2.size).toBe(1);
-        })).toBe("Root-collection2-1");
+            root.mapCollection.delete('1');
+            expect(root.mapCollection.size).toBe(1);
+        })).toBe("Root-mapCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            root.mapCollection.set('3', new Leaf());
+            expect(root.mapCollection.size).toBe(3);
+        })).toBe("Root-mapCollection-1");
+    });
+    it ("can observe changes to sets", () => {
+
+        expect(observeResult(new Root(), (root) => {
+            root.setCollection.add(new Leaf());
+            expect(root.setCollection.size).toBe(3);
+        })).toBe("Root-setCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            root.setCollection.delete(Array.from(root.setCollection)[0]);
+            expect(root.setCollection.size).toBe(1);
+        })).toBe("Root-setCollection-1");
 
     });
 });

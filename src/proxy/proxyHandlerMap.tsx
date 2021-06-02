@@ -37,7 +37,7 @@ export const proxyHandlerMap = {
             case 'set':
                 return (key: any, newValue: any) => {
 
-                    updateObjectReference(proxyWrapper, key, newValue);
+                    newValue = updateObjectReference(proxyWrapper, key, newValue);
 
                     // Change the value in the target
                     targetValue.call(target, key, newValue);

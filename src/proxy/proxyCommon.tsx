@@ -21,34 +21,38 @@ export function DataChanged(proxy : ProxyWrapper, prop : string, originalProxy :
     });
 }
 export function proxyMissing (target : Target, prop: string) : ProxyWrapper{
-    throw(`ERROR: ${target.constructor.name}.${prop} missing ProxyWrapper`);
+    throw(new Error(`ERROR: ${target.constructor.name}.${prop} missing ProxyWrapper`));
 }
-export function updateObjectReference(proxyWrapper : ProxyWrapper, prop: any, value? : any) : void {
+export function updateObjectReference(proxyWrapper : ProxyWrapper, prop: any, value? : any) : Target {
 
     // Get proxyWrapper for previous object referenced
     const oldObject = proxyWrapper.__references__.get(prop);
-    if (!oldObject || oldObject === value)
-        return;
-    const oldObjectProxyWrapper = proxies.get(oldObject) || proxyMissing(proxyWrapper.__target__, prop);
 
-    // Unlink previous object from it's parents
-    const parentProxyWrapper = oldObjectProxyWrapper.__parents__.get(proxyWrapper);
-    if (parentProxyWrapper)  {
-        delete parentProxyWrapper.props[prop];
-        if (Object.keys(parentProxyWrapper.props).length === 0) {
-            oldObjectProxyWrapper.__parents__.delete(proxyWrapper);
-            if (oldObjectProxyWrapper.__parents__.size === 0)
-                oldObjectProxyWrapper.__contexts__.forEach(context =>
-                    context.disconnect(proxyWrapper)
-                )
+    if (oldObject && oldObject !== value) {
+
+        const oldObjectProxyWrapper = proxies.get(oldObject);
+        if (oldObjectProxyWrapper) {
+            // Unlink previous object from it's parents
+            const parentProxyWrapper = oldObjectProxyWrapper.__parents__.get(proxyWrapper);
+            if (parentProxyWrapper)  {
+                delete parentProxyWrapper.props[prop];
+                if (Object.keys(parentProxyWrapper.props).length === 0) {
+                    oldObjectProxyWrapper.__parents__.delete(proxyWrapper);
+                    if (oldObjectProxyWrapper.__parents__.size === 0)
+                        oldObjectProxyWrapper.__contexts__.forEach(context => context.disconnect(proxyWrapper))
+                }
+            }
         }
     }
 
     // Update reference
-    if (typeof value === "object")
-        proxyWrapper.__references__.set(prop, makeProxy(value,  prop, proxyWrapper));
-    else
+    if (typeof value === "object") {
+        value = makeProxy(value,  prop, proxyWrapper)
+        proxyWrapper.__references__.set(prop, value);
+    } else
         proxyWrapper.__references__.delete(prop);
+
+    return value;
 }
 
 export function proxyMapOrSetElements(target : Map<any, any> | Set<any>, proxyWrapper: ProxyWrapper) {

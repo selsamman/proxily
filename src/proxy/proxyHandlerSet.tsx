@@ -23,7 +23,7 @@ export const proxyHandlerSet = {
 
              case 'add':
                 return (newValue: any) => {
-                    updateObjectReference(proxyWrapper, newValue, newValue);
+                    newValue = updateObjectReference(proxyWrapper, newValue, newValue);
 
                     // Change the value in the target
                     targetValue.call(target, newValue);

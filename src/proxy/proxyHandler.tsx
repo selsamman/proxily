@@ -55,7 +55,7 @@ export const proxyHandler = {
         if(logLevel.propertyChange) log(`${target.constructor.name}.${key} changed`);
 
         // Maintain proxyWrapper reference structure
-        updateObjectReference(proxyWrapper, key, value)
+        value = updateObjectReference(proxyWrapper, key, value)
 
         // Change the value in the target
         const ret = Reflect.set(target, key, value);
