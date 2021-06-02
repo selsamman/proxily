@@ -1,5 +1,5 @@
 # Proxily 
-> Note:  This project is being actively developped.  See the road map towards a 1.0 release at the end. In the mean time it is subject to change.
+> Note:  This project is being actively developped and as such has not yet been published on NPM.  See the road map towards a release at the end. In the mean time it is subject to change.
 ## Global State Management for React
 
 Proxily is a simple un-opinionated library for managing state across multiple React components.  It re-renders components as state data is changed in a fashion identical to the immutable data pattern.  It does this without any specific requirements on how the state is updated organized or annotated and without relying on redux or immutable patterns. Core features include:
@@ -37,13 +37,15 @@ import {proxy} from 'proxily';
         proxy(state).counter.value++
     }, 1000);
 ```
-### Use of ES6 Proxies
+### Use of ES6 
 
 proxy and useProxy create and return an ES6 proxy for the object your component uses. This proxy will rerender the component when any property referenced in the render function changes or any child property of the referenced property changes.  The proxy traps all references so it can:
 
 * Note any properties referenced during the course of rendering and re-render when that property changes.
 * As child properties are referenced a proxy is substituted so that this behavior is passed down to all child properties.  
 * A parent child hierarchy is created such that modifying child properties causes re-rendering of any component referencing parent properties, thus emulating the familiar rules of immutable object reference and shallow comparison as used in redux.
+
+As such Proxily does not support Internet Explorer and requires 0.69 of React-Native
 ## Usage Patterns
 
 ### Moving State Management out of Components
