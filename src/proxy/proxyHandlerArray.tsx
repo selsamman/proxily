@@ -1,7 +1,7 @@
 
 import {log, logLevel} from "../log";
 import {makeProxy, proxies, Target} from "../ProxyWrapper";
-import {DataChanged, lastReference, proxyMissing} from "./proxyCommon";
+import {DataChanged, propertyReferenced, proxyMissing} from "./proxyCommon";
 import {proxyHandler} from "./proxyHandler";
 
 
@@ -43,11 +43,8 @@ export const proxyHandlerArray = {
                 default:
                     return value.bind(proxyWrapper.__proxy__);
             }
-        } else {
-            // Let the component context track who is using properties so they are notified if changed
-            proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, prop));
-            lastReference.set(proxyWrapper, prop, value);
         }
+        propertyReferenced(proxyWrapper, prop);
         return value;
 
     },

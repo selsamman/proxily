@@ -1,7 +1,13 @@
 import {createMemoization, isMemoized} from "../memoize";
 import {log, logLevel} from "../log";
 import {makeProxy, proxies, Target} from "../ProxyWrapper";
-import {DataChanged, getterProps, lastReference, proxyMissing, updateObjectReference} from "./proxyCommon";
+import {
+    DataChanged,
+    getterProps,
+    propertyReferenced,
+    proxyMissing,
+    updateObjectReference
+} from "./proxyCommon";
 export const proxyHandler = {
 
     get(target : Target, prop: string, receiver: any) : any {
@@ -29,7 +35,6 @@ export const proxyHandler = {
         if (typeof value === "object" && !value.__target__) {
             value = makeProxy(value,  prop, proxyWrapper);
             proxyWrapper.__references__.set(prop, value);
-            return value;
         } else if (typeof value === "function") {
             if (isMemoized(prop, target)) {
                 const memo = createMemoization(prop, target, proxyWrapper, value)
@@ -40,11 +45,8 @@ export const proxyHandler = {
                 return memo.closureFunction;
             } else
                 return value.bind(proxyWrapper.__proxy__);
-        } else {
-            // Let the component context track who is using properties so they are notified if changed
-            proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, prop));
-            lastReference.set(proxyWrapper, prop, value);
         }
+        propertyReferenced(proxyWrapper, prop);
         return value;
 
     },

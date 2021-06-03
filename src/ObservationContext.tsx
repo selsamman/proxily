@@ -46,6 +46,9 @@ export class ObservationContext {
     }
 
 }
+/*
+Connect this proxyWrapper to the current context (in an observer).
+ */
 export function ConnectContext (proxy : ProxyWrapper, context? : ObservationContext) {
     if(currentContext && !proxy.__contexts__.has(currentContext)) {
         proxy.__contexts__.set(currentContext, currentContext);

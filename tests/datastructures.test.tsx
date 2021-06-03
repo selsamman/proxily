@@ -39,6 +39,31 @@ describe("data structure tests of proxy", () => {
         }
     }
 
+    it ("only reacts to referenced properties", () => {
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                root.objectSingle.str = "Foo";
+                root.objectSingle = new Leaf();
+            },
+            (root) => root.objectCollection
+        )).toBe("--0");
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                root.objectSingle = new Leaf();
+            },
+            (root) => root.objectSingle
+        )).toBe("Root-objectSingle-1");
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                root.objectSingle.str = "Foo";
+            },
+            (root) => root.objectSingle
+        )).toBe("Root-objectSingle-1");
+
+    });
     it ("reacts to all simple object types", () => {
         expect(observeResult(
             new Root(),
@@ -83,7 +108,7 @@ describe("data structure tests of proxy", () => {
         })).toBe("Root-arrayCollection-1");
     });
 
-    it ("can observe changes to objects", () => {
+    it ("can observe changes to maps", () => {
 
         expect(observeResult(new Root(), (root) => {
             const leaf = root.objectCollection.a;
@@ -100,19 +125,8 @@ describe("data structure tests of proxy", () => {
         expect(observeResult(new Root(), (root) => {
             // @ts-ignore
             root.objectCollection.c = new Leaf();
-            // @ts-ignore
-            expect(root.objectCollection.c instanceof Leaf).toBe(true);
-        })).toBe("Root-objectCollection-1");
-
-        expect(observeResult(new Root(), (root) => {
-            const newLeaf = new Leaf();
-            // @ts-ignore
-            root.objectCollection.a = newLeaf;
-            root.objectCollection.b = newLeaf;
             expect(root.objectCollection.a instanceof Leaf).toBe(true);
-            expect(root.objectCollection.b instanceof Leaf).toBe(true);
-            expect(root.objectCollection.a === root.objectCollection.b).toBe(true);
-        })).toBe("Root-objectCollection-2");
+        })).toBe("Root-objectCollection-1");
     });
     it ("can observe changes to maps", () => {
 

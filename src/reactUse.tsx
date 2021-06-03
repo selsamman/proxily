@@ -13,8 +13,8 @@ export function useProxyContext<A>(apiIn: any, callback : (api: A) => void) {
 
 export function useProp<S>(referenceProp: (() => S)) : [S, (value: S) => void] {
     createContext();
-    referenceProp();
-    const {proxyWrapper, prop, value} = lastReference;
+    const value = referenceProp();
+    const {proxyWrapper, prop} = lastReference;
     if (proxyWrapper  === undefined || !proxyWrapper.__contexts__)
         throw new Error("Improper useProp reference - is reference a proxy retruned from useProxy?");
     if (currentContext) {

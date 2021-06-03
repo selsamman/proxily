@@ -1,7 +1,13 @@
 
 import {log, logLevel} from "../log";
 import {makeProxy, proxies, Target} from "../ProxyWrapper";
-import {DataChanged, lastReference, proxyMapOrSetElements, proxyMissing, updateObjectReference} from "./proxyCommon";
+import {
+    DataChanged,
+    propertyReferenced,
+    proxyMapOrSetElements,
+    proxyMissing,
+    updateObjectReference
+} from "./proxyCommon";
 
 
 export const proxyHandlerMap = {
@@ -28,8 +34,7 @@ export const proxyHandlerMap = {
                         proxyWrapper.__references__.set(key, value);
                     } else
                         value = targetValue.call(target, key)
-                    proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, prop));
-                    lastReference.set(proxyWrapper, key, value);
+                    propertyReferenced(proxyWrapper, key);
                     return value;
                 }
 
