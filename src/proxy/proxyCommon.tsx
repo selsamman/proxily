@@ -5,7 +5,11 @@ export function getterProps(target : Target, prop : string) {
     return props && typeof props.get === "function" ? props : false;
 }
 
-export function DataChanged(proxy : ProxyWrapper, prop : string, originalProxy : ProxyWrapper) {
+export function DataChanged(proxy : ProxyWrapper, prop : string) {
+    DataChangedInternal(proxy, prop, new Set());
+}
+
+export function DataChangedInternal(proxy : ProxyWrapper, prop : string, history : Set<ProxyWrapper>) {
 
     // Notify contexts of the change
     proxy.__contexts__.forEach(context => {
@@ -14,10 +18,11 @@ export function DataChanged(proxy : ProxyWrapper, prop : string, originalProxy :
 
     // Pass notification up the chain of references
     proxy.__parents__.forEach(parent => {
-        if (originalProxy === parent.proxy)
+        if (history.has(parent.proxy))
             return;
+        history.add(parent.proxy)
         for(const prop in parent.props)
-            DataChanged(parent.proxy, prop, originalProxy);
+            DataChangedInternal(parent.proxy, prop, history);
     });
 }
 export function proxyMissing (target : Target, prop: string) : ProxyWrapper{

@@ -22,15 +22,14 @@ export const proxyHandlerMap = {
         switch (prop) {
             case 'get':
                 return (key : any) => {
-                    let value : any = proxyWrapper.__references__.get(prop) || targetValue.call(target, key);
+                    let value : any = proxyWrapper.__references__.get(key) || targetValue.call(target, key);
                     if (typeof value === "object" && !value.__target__) {
-                        value = makeProxy(value,  prop, proxyWrapper);
-                        proxyWrapper.__references__.set(prop, value);
-                        return value;
+                        value = makeProxy(value,  key, proxyWrapper);
+                        proxyWrapper.__references__.set(key, value);
                     } else
                         value = targetValue.call(target, key)
                     proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, prop));
-                    lastReference.set(proxyWrapper, prop, value);
+                    lastReference.set(proxyWrapper, key, value);
                     return value;
                 }
 
@@ -43,7 +42,7 @@ export const proxyHandlerMap = {
                     targetValue.call(target, key, newValue);
 
                     // Notify referencing object that referenced property has changed
-                    DataChanged(proxyWrapper, prop, proxyWrapper);
+                    DataChanged(proxyWrapper, prop);
                 }
 
             case 'delete':
@@ -55,7 +54,7 @@ export const proxyHandlerMap = {
                     targetValue.call(target, key);
 
                     // Notify referencing object that referenced property has changed
-                    DataChanged(proxyWrapper, prop, proxyWrapper);
+                    DataChanged(proxyWrapper, prop);
                 }
 
             case Symbol.iterator:

@@ -24,7 +24,7 @@ describe("data structure tests of proxy", () => {
     let reactions = 0;
     let observedObj;
     let observedProp;
-    function observeResult<T>(root : T, action : (obj : T) => void, observer? : any) {
+    function observeResult<T>(root : T, action : (obj : T) => void, observer? : (obj : T) => void) {
         reactions = 0;
         observedProp = "";
         observedObj = "";
@@ -40,16 +40,20 @@ describe("data structure tests of proxy", () => {
     }
 
     it ("reacts to all simple object types", () => {
-        expect(observeResult(new Root(), (root) => {
-            expect(root.objectSingle instanceof Leaf).toBe(true);
-            const previousLeaf = root.objectSingle;
-            root.objectSingle = new Leaf();
-            expect(previousLeaf !== root.objectSingle) .toBe(true)
-            const leaf = root.objectSingle;
-            expect(leaf.num).toBe(3);
-            expect(leaf.str).toBe("foo");
-            expect(leaf.date.getTime() <= (new Date()).getTime()).toBe(true)
-        })).toBe("Root-objectSingle-1");
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                expect(root.objectSingle instanceof Leaf).toBe(true);
+                const previousLeaf = root.objectSingle;
+                root.objectSingle = new Leaf();
+                expect(previousLeaf !== root.objectSingle) .toBe(true)
+                const leaf = root.objectSingle;
+                expect(leaf.num).toBe(3);
+                expect(leaf.str).toBe("foo");
+                expect(leaf.date.getTime() <= (new Date()).getTime()).toBe(true)
+            },
+            (root) => root.objectSingle
+        )).toBe("Root-objectSingle-1");
     });
 
     it ("can observe changes to arrays", () => {
@@ -79,7 +83,7 @@ describe("data structure tests of proxy", () => {
         })).toBe("Root-arrayCollection-1");
     });
 
-    it ("can observe changes to maps", () => {
+    it ("can observe changes to objects", () => {
 
         expect(observeResult(new Root(), (root) => {
             const leaf = root.objectCollection.a;
@@ -96,8 +100,19 @@ describe("data structure tests of proxy", () => {
         expect(observeResult(new Root(), (root) => {
             // @ts-ignore
             root.objectCollection.c = new Leaf();
-            expect(root.objectCollection.a instanceof Leaf).toBe(true);
+            // @ts-ignore
+            expect(root.objectCollection.c instanceof Leaf).toBe(true);
         })).toBe("Root-objectCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            const newLeaf = new Leaf();
+            // @ts-ignore
+            root.objectCollection.a = newLeaf;
+            root.objectCollection.b = newLeaf;
+            expect(root.objectCollection.a instanceof Leaf).toBe(true);
+            expect(root.objectCollection.b instanceof Leaf).toBe(true);
+            expect(root.objectCollection.a === root.objectCollection.b).toBe(true);
+        })).toBe("Root-objectCollection-2");
     });
     it ("can observe changes to maps", () => {
 

@@ -29,11 +29,11 @@ export const proxyHandlerSet = {
                     targetValue.call(target, newValue);
 
                     // Notify referencing object that referenced property has changed
-                    DataChanged(proxyWrapper, prop, proxyWrapper);
+                    DataChanged(proxyWrapper, prop);
                 }
 
             case 'delete':
-                DataChanged(proxyWrapper, prop, proxyWrapper);
+                DataChanged(proxyWrapper, prop);
                 return targetValue.bind(target);
 
             case Symbol.iterator:

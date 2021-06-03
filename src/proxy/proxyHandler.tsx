@@ -61,7 +61,7 @@ export const proxyHandler = {
         const ret = Reflect.set(target, key, value);
 
         // Notify referencing object that referenced property has changed
-        DataChanged(proxyWrapper, key, proxyWrapper);
+        DataChanged(proxyWrapper, key);
 
         return ret;
     },
@@ -76,7 +76,7 @@ export const proxyHandler = {
         const ret = Reflect.deleteProperty(target, prop);
 
         // Notify referencing object that referenced property has changed
-        DataChanged(proxyWrapper, prop, proxyWrapper);
+        DataChanged(proxyWrapper, prop);
 
         return ret;
     }

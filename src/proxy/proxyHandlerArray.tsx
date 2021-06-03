@@ -36,7 +36,7 @@ export const proxyHandlerArray = {
                 case 'splice':
                 case 'unshift':
                     return (...args : []) => {
-                        DataChanged(proxyWrapper, prop, proxyWrapper);
+                        DataChanged(proxyWrapper, prop);
                         return (target as any)[prop].apply(target, args);
                     }
 

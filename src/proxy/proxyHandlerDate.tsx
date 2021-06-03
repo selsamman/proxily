@@ -21,7 +21,7 @@ export const proxyHandlerDate = {
         if(logLevel.propertyReference) log(`${target.constructor.name}.${prop} referenced`);
 
         if (prop.match(/^set/)) {
-            DataChanged(proxyWrapper, prop, proxyWrapper);
+            DataChanged(proxyWrapper, prop);
         }
         return targetValue.bind(target);
     }
