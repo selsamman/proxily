@@ -80,7 +80,7 @@ test('can render names', async () => {
     });
     function App () {
         renderCount['P']++;
-        const {members, sortedMembers, getSortedMembers} = useProxy<Family>(family);
+        const {members, sortedMembers, getSortedMembers} = useProxy(family);
         return  (
             <div>
                 {members.map((person, ix) =>

@@ -32,9 +32,8 @@ export const proxyHandler = {
 
         // If referencing an object that is not proxied proxy it and keep on the side for serving up
         let value : any = proxyWrapper.__references__.get(prop) || Reflect.get(target, prop, target);
-        if (typeof value === "object" && !value.__target__) {
+        if (typeof value === "object") {
             value = makeProxy(value,  prop, proxyWrapper);
-            proxyWrapper.__references__.set(prop, value);
         } else if (typeof value === "function") {
             if (isMemoized(prop, target)) {
                 const memo = createMemoization(prop, target, proxyWrapper, value)

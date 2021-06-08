@@ -7,7 +7,7 @@
   "types": "./lib/esm/index.d.ts",
   "repository": "https://gitbum.com/selsamman/proxily",
   "author": "Sam Elsamman",
-  "license": "MIT", 
+  "license": "MIT",
   "devDependencies": {
     "@testing-library/jest-dom": "^5.11.10",
     "@testing-library/react": "^11.2.6",
@@ -29,9 +29,10 @@
     "react-dom": "^16.8.0"
   },
   "scripts": {
-    "build": "yarn build:esm && yarn build:cjs",
+    "build": "yarn test && yarn build:esm && yarn build:cjs",
     "build:esm": "tsc",
     "build:cjs": "tsc --module commonjs --outDir lib/cjs",
-    "test": "jest"
+    "test": "jest",
+    "publish": "yarn build && npm publish"
   }
 }

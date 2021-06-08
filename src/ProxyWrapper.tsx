@@ -93,6 +93,7 @@ export function makeProxy(targetOrProxy : Target | typeof Proxy, parentProp? : s
 
     ConnectContext(proxyWrapper, observationContext);
     if (parentProp && parentProxyWrapper) {
+        parentProxyWrapper.__references__.set(parentProp, proxyWrapper.__target__);
         const parentProxy = proxyWrapper.__parents__.get(parentProxyWrapper);
         if (parentProxy)
             parentProxy.props[parentProp] = true;

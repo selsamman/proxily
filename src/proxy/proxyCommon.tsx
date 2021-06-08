@@ -42,26 +42,29 @@ export function propertyReferenced(proxyWrapper : ProxyWrapper, prop: any) : voi
     Handle references to objects by keeping the __references__ in the ProxyWrapper up-to-date.
     This includes removing references when
  */
-export function updateObjectReference(proxyWrapper : ProxyWrapper, prop: any, value? : any) : Target {
+export function updateObjectReference(proxyWrapper : ProxyWrapper, prop: any, value? : Target) : Target | undefined {
 
     // Get proxyWrapper for previous object referenced
     const oldObject = proxyWrapper.__references__.get(prop);
 
     // Ignore if we are replacing with same
-    if (oldObject && oldObject !== value) {
+    if (oldObject && oldObject !== value && oldObject) {
 
-        // Unlink previous object from it's parents
+        // Unlink previously referenced object parent link to this object
         const oldObjectProxyWrapper = proxies.get(oldObject);
         if (oldObjectProxyWrapper) {
             const parentProxyWrapper = oldObjectProxyWrapper.__parents__.get(proxyWrapper);
             if (parentProxyWrapper)  {
                 // Remove parent this particular prop from parent reference
                 delete parentProxyWrapper.props[prop];
-                // Remove parent referene if empty
+                // Remove parent reference if empty
                 if (Object.keys(parentProxyWrapper.props).length === 0) {
                     oldObjectProxyWrapper.__parents__.delete(proxyWrapper);
-                    if (oldObjectProxyWrapper.__parents__.size === 0)
-                        oldObjectProxyWrapper.__contexts__.forEach(context => context.disconnect(proxyWrapper))
+                    // If now parentless remove weak refererence to wrapper and disconnect from context
+                    if (oldObjectProxyWrapper.__parents__.size === 0) {
+                        proxies.delete(oldObject);
+                        oldObjectProxyWrapper.__contexts__.forEach(context => context.disconnect(oldObjectProxyWrapper))
+                    }
                 }
             }
         }
@@ -70,7 +73,6 @@ export function updateObjectReference(proxyWrapper : ProxyWrapper, prop: any, va
     // Proxify object and update reference in associated proxyWrapper
     if (typeof value === "object") {
         value = makeProxy(value,  prop, proxyWrapper)
-        proxyWrapper.__references__.set(prop, value);
     } else
         proxyWrapper.__references__.delete(prop);
 
@@ -80,9 +82,8 @@ export function updateObjectReference(proxyWrapper : ProxyWrapper, prop: any, va
 export function proxyMapOrSetElements(target : Map<any, any> | Set<any>, proxyWrapper: ProxyWrapper) {
     target.forEach( (key : any, referenceTarget : any) => {
         referenceTarget = proxyWrapper.__references__.get(key) || referenceTarget;
-        if (typeof referenceTarget === "object" && !referenceTarget.__target__) {
+        if (typeof referenceTarget === "object") {
             referenceTarget = makeProxy(referenceTarget,  key, proxyWrapper);
-            referenceTarget = proxyWrapper.__references__.set(key, referenceTarget);
         }
         proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, key));
         lastReference.set(proxyWrapper, key);

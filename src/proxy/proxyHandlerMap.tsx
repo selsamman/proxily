@@ -29,9 +29,8 @@ export const proxyHandlerMap = {
             case 'get':
                 return (key : any) => {
                     let value : any = proxyWrapper.__references__.get(key) || targetValue.call(target, key);
-                    if (typeof value === "object" && !value.__target__) {
+                    if (typeof value === "object") {
                         value = makeProxy(value,  key, proxyWrapper);
-                        proxyWrapper.__references__.set(key, value);
                     } else
                         value = targetValue.call(target, key)
                     propertyReferenced(proxyWrapper, key);
