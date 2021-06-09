@@ -2,7 +2,7 @@ import {createMemoization, isMemoized} from "../memoize";
 import {log, logLevel} from "../log";
 import {makeProxy, proxies, Target} from "../ProxyWrapper";
 import {
-    DataChanged,
+    DataChanged, deProxy,
     getterProps,
     propertyReferenced,
     proxyMissing,
@@ -56,10 +56,10 @@ export const proxyHandler = {
         if(logLevel.propertyChange) log(`${target.constructor.name}.${key} changed`);
 
         // Maintain proxyWrapper reference structure
-        value = updateObjectReference(proxyWrapper, key, value)
+        updateObjectReference(proxyWrapper, key, value)
 
         // Change the value in the target
-        const ret = Reflect.set(target, key, value);
+        const ret = Reflect.set(target, key, deProxy(value));
 
         // Notify referencing object that referenced property has changed
         DataChanged(proxyWrapper, key);

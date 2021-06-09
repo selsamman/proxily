@@ -169,7 +169,7 @@ describe('Counter Patterns',  () => {
                 sorts = sorts + 1;
                 return this.counters.slice(0).sort((a,b) => a.value - b.value) as Array<CounterClass>;
             }
-        };
+        }
         memoizeClass(State, 'sortedCounters');
         const state = new State();
 
@@ -221,7 +221,7 @@ describe('Counter Patterns',  () => {
                 sorts = sorts + 1;
                 return this.counters.slice(0).sort((a,b) => a.value - b.value) as Array<CounterClass>;
             }
-        };
+        }
         const state = new State();
 
         function Counter({counter, id} : {counter : CounterClass, id: any}) {

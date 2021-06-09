@@ -83,6 +83,41 @@ describe("data structure tests of proxy", () => {
     });
 
     it ("can observe changes to arrays", () => {
+        expect(observeResult(new Root(), (root) => {
+            const leaf = proxy(new Leaf());
+            root.arrayCollection.fill(leaf, 1)
+            expect(root.arrayCollection[1]).toBe(leaf);
+        })).toBe("Root-arrayCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            expect(root.arrayCollection.every(entry => entry.num === 3)).toBe(true);
+            const leaves = root.arrayCollection.entries();
+            const leaf = leaves.next().value[1];
+            leaf.num = 4;
+            expect(root.arrayCollection[0]).toBe(leaf);
+        })).toBe("Root-arrayCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            const leaf = proxy(new Leaf());
+            root.arrayCollection.fill(leaf, 1)
+            expect(root.arrayCollection[1]).toBe(leaf);
+        })).toBe("Root-arrayCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            const leaf = root.arrayCollection[0];
+            if (leaf)
+                leaf.num = 4;
+            expect(root.arrayCollection[0].num).toBe(4);
+        })).toBe("Root-arrayCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            expect(root.arrayCollection.pop()?.num).toBe(3);
+        })).toBe("Root-arrayCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            delete root.arrayCollection[0];
+            expect(root.arrayCollection[0]).toBe(undefined);
+        })).toBe("Root-arrayCollection-1");
 
         expect(observeResult(new Root(), (root) => {
             delete root.arrayCollection[0];
@@ -98,15 +133,14 @@ describe("data structure tests of proxy", () => {
                 expect(false).toBe(true);
         })).toBe("Root-arrayCollection-1");
 
-        expect(observeResult(new Root(), (root) => {
-            expect(root.arrayCollection.pop() instanceof Leaf).toBe(true);
-        })).toBe("Root-arrayCollection-1");
+
 
         expect(observeResult(new Root(), (root) => {
             const leaf = proxy(new Leaf());
             root.arrayCollection.fill(leaf, 1)
             expect(root.arrayCollection[1]).toBe(leaf);
         })).toBe("Root-arrayCollection-1");
+
     });
 
     it ("can observe changes to objects", () => {
@@ -151,16 +185,46 @@ describe("data structure tests of proxy", () => {
             root.mapCollection.set('3', new Leaf());
             expect(root.mapCollection.size).toBe(3);
         })).toBe("Root-mapCollection-1");
+
+        expect(observeResult(new Root(), (root) => {
+            root.mapCollection.set('3', new Leaf());
+            const leaf = root.mapCollection.get('3')
+            if (leaf) {
+                leaf.num = 4;
+            } else
+                expect(false).toBe(true);
+            expect(root.mapCollection.size).toBe(3);
+            expect(root.mapCollection.get('3')?.num).toBe(4);
+        })).toBe("Root-mapCollection-2");
+
+        expect(observeResult(new Root(), (root) => {
+            root.mapCollection.forEach((value, key) => value.num = parseInt(key));
+            const asArray = Array.from(root.mapCollection);
+            expect(asArray[0][0]).toBe("1");
+            const leafFromArray = asArray[0][1];
+            expect(leafFromArray.num).toBe(1);
+            expect(root.mapCollection.get('2')?.num).toBe(2);
+        })).toBe("Root-mapCollection-2");
     });
     it ("can observe changes to sets", () => {
 
         expect(observeResult(new Root(), (root) => {
-            root.setCollection.add(new Leaf());
+            const newLeaf = proxy(new Leaf());
+            root.setCollection.add(newLeaf);
+            newLeaf.num = 4;
+            expect(root.setCollection.has(newLeaf)).toBe(true);
             expect(root.setCollection.size).toBe(3);
-        })).toBe("Root-setCollection-1");
+        })).toBe("Root-setCollection-2");
 
         expect(observeResult(new Root(), (root) => {
-            root.setCollection.delete(Array.from(root.setCollection)[0]);
+            root.setCollection.forEach(value => value.num = 4);
+            expect(Array.from(root.setCollection)[0].num).toBe(4);
+            expect(Array.from(root.setCollection)[1].num).toBe(4);
+        })).toBe("Root-setCollection-2");
+
+        expect(observeResult(new Root(), (root) => {
+            const asArray = Array.from(root.setCollection)
+            root.setCollection.delete(asArray[0]);
             expect(root.setCollection.size).toBe(1);
         })).toBe("Root-setCollection-1");
 

@@ -1,7 +1,13 @@
 
 import {log, logLevel} from "../log";
 import {proxies, Target} from "../ProxyWrapper";
-import {DataChanged, proxyMapOrSetElements, proxyMissing, updateObjectReference} from "./proxyCommon";
+import {
+    DataChanged,
+    deProxy,
+    proxyMissing,
+    proxySet,
+    updateObjectReference
+} from "./proxyCommon";
 
 
 export const proxyHandlerSet = {
@@ -21,26 +27,29 @@ export const proxyHandlerSet = {
 
         switch (prop) {
 
-             case 'add':
+            case 'has':
+                return (value: any) => {
+                    return targetValue.call(target, deProxy(value));
+                }
+
+            case 'add':
                 return (newValue: any) => {
-                    newValue = updateObjectReference(proxyWrapper, newValue, newValue);
-
-                    // Change the value in the target
-                    targetValue.call(target, newValue);
-
-                    // Notify referencing object that referenced property has changed
+                    updateObjectReference(proxyWrapper, newValue, newValue);
                     DataChanged(proxyWrapper, prop);
+                    return targetValue.call(target, deProxy(newValue));
                 }
 
             case 'delete':
-                DataChanged(proxyWrapper, prop);
-                return targetValue.bind(target);
+                return function (key: any) {
+                    DataChanged(proxyWrapper, key);
+                    return  targetValue.call(target, deProxy(key));
+                }
 
             case Symbol.iterator:
             case 'forEach':
             case 'entries':
-
-                proxyMapOrSetElements(target as unknown as Set<any>, proxyWrapper);
+            case 'values':
+                return targetValue.bind(proxySet(target as unknown as Set<any>, proxyWrapper));
 
                 default:
                 return targetValue.bind(target)

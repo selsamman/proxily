@@ -24,7 +24,14 @@ export const proxyHandlerArray = {
             value = makeProxy(value,  prop, proxyWrapper);
             return value;
         } else if (typeof value === "function") {
+            // For mutable methods note that the array
             switch (prop) {
+                case 'forEach':
+                case 'entries':
+                case 'map':
+                case 'slice':
+                    return value.bind(getProxiedArray(target));
+
                 case 'splice':
                 case 'fill':
                 case 'pop':
@@ -40,7 +47,7 @@ export const proxyHandlerArray = {
                     }
 
                 default:
-                    return value.bind(proxyWrapper.__proxy__);
+                    return value.bind(target);
             }
         }
         propertyReferenced(proxyWrapper, prop);
@@ -53,4 +60,7 @@ export const proxyHandlerArray = {
     deleteProperty: proxyHandler.deleteProperty
 
 }
-
+function getProxiedArray (target : Target) {
+    const arr = (target as unknown as [index: any])
+    return arr.map((_elem : any, ix) => proxyHandler.get.call(null, target, ix + "", target));
+}

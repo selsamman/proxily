@@ -78,18 +78,35 @@ export function updateObjectReference(proxyWrapper : ProxyWrapper, prop: any, va
 
     return value;
 }
-
-export function proxyMapOrSetElements(target : Map<any, any> | Set<any>, proxyWrapper: ProxyWrapper) {
-    target.forEach( (key : any, referenceTarget : any) => {
-        referenceTarget = proxyWrapper.__references__.get(key) || referenceTarget;
-        if (typeof referenceTarget === "object") {
-            referenceTarget = makeProxy(referenceTarget,  key, proxyWrapper);
+export function deProxy(target : Target | undefined) : Target | undefined {
+    const proxyWrapper = proxies.get(target !== undefined ? target['__target__'] || target : target);
+    return proxyWrapper ? proxyWrapper.__target__ : target;
+}
+export function proxyMapOrSetElements(mapOrSet : Map<any, any> | Set<any>, proxyWrapper: ProxyWrapper) {
+    mapOrSet.forEach( (value : any, key : any) => {
+        value = proxyWrapper.__references__.get(key) || value;
+        if (typeof value === "object") {
+            value = makeProxy(value,  key, proxyWrapper);
+            proxyWrapper.__references__.set(key === undefined ? value : key, value)
         }
         proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, key));
         lastReference.set(proxyWrapper, key);
     });
 }
-
+export function proxySet(set : Set<any>, proxyWrapper: ProxyWrapper) {
+    const proxySet = new Set();
+    set.forEach( (value : any) => {
+        value = proxyWrapper.__references__.get(value) || value;
+        if (typeof value === "object") {
+            value = makeProxy(value,  value, proxyWrapper);
+            proxyWrapper.__references__.set(value, value)
+        }
+        proxySet.add(value);
+        proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, value));
+        lastReference.set(proxyWrapper, value);
+    });
+    return proxySet
+}
 export interface LastReference {
     prop : string;
     proxyWrapper : ProxyWrapper | undefined;

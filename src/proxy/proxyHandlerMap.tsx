@@ -2,9 +2,8 @@
 import {log, logLevel} from "../log";
 import {makeProxy, proxies, Target} from "../ProxyWrapper";
 import {
-    DataChanged,
+    DataChanged, lastReference,
     propertyReferenced,
-    proxyMapOrSetElements,
     proxyMissing,
     updateObjectReference
 } from "./proxyCommon";
@@ -40,7 +39,7 @@ export const proxyHandlerMap = {
             case 'set':
                 return (key: any, newValue: any) => {
 
-                    newValue = updateObjectReference(proxyWrapper, key, newValue);
+                    updateObjectReference(proxyWrapper, key, newValue);
 
                     // Change the value in the target
                     targetValue.call(target, key, newValue);
@@ -64,8 +63,18 @@ export const proxyHandlerMap = {
             case Symbol.iterator:
             case 'forEach':
             case 'entries':
-
-                proxyMapOrSetElements(target as unknown as Map<any, any>, proxyWrapper);
+                const proxyMap = new Map();
+                (target as unknown as Map<any, any>).forEach( (value : any, key: any) => {
+                    value = proxyWrapper.__references__.get(value) || value;
+                    if (typeof value === "object") {
+                        value = makeProxy(value,  key, proxyWrapper);
+                        proxyWrapper.__references__.set(key, value)
+                    }
+                    proxyMap.set(key, value);
+                    proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, key));
+                    lastReference.set(proxyWrapper, key);
+                });
+                return targetValue.bind(proxyMap);
 
             default:
                 return targetValue.bind(target)
