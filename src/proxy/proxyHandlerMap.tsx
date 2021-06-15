@@ -1,12 +1,6 @@
-
 import {log, logLevel} from "../log";
-import {makeProxy, proxies, Target} from "../ProxyWrapper";
-import {
-    DataChanged, lastReference,
-    propertyReferenced,
-    proxyMissing,
-    updateObjectReference
-} from "./proxyCommon";
+import {isInternalProperty, Target} from "../ProxyWrapper";
+import {DataChanged, propertyReferenced, propertyUpdated} from "./proxyCommon";
 
 
 export const proxyHandlerMap = {
@@ -16,7 +10,8 @@ export const proxyHandlerMap = {
         // Only way to get a reference to the object being proxied
         if (prop === '__target__')
             return target;
-        const proxyWrapper = proxies.get(target) || proxyMissing(target, prop);
+        if (isInternalProperty(prop))
+            return Reflect.get(target, prop, target);
 
         const targetValue = Reflect.get(target, prop, target);
         if (typeof targetValue !== "function")
@@ -26,55 +21,41 @@ export const proxyHandlerMap = {
 
         switch (prop) {
             case 'get':
-                return (key : any) => {
-                    let value : any = proxyWrapper.__references__.get(key) || targetValue.call(target, key);
-                    if (typeof value === "object") {
-                        value = makeProxy(value,  key, proxyWrapper);
-                    } else
-                        value = targetValue.call(target, key)
-                    propertyReferenced(proxyWrapper, key);
-                    return value;
-                }
+                return (key : any) => propertyReferenced(target, key, targetValue.call(target, key),
+                    (proxy) => (target as unknown as Map<any, any>).set(key, proxy));
 
             case 'set':
                 return (key: any, newValue: any) => {
 
-                    updateObjectReference(proxyWrapper, key, newValue);
+                    newValue = propertyUpdated(target, '*', newValue, (target as unknown as Map<any, any>).get(key));
 
                     // Change the value in the target
                     targetValue.call(target, key, newValue);
 
                     // Notify referencing object that referenced property has changed
-                    DataChanged(proxyWrapper, prop);
+                    DataChanged(target, prop);
                 }
 
             case 'delete':
                 return (key: any) => {
 
-                    updateObjectReference(proxyWrapper, key);
+                    propertyUpdated(target, '*', undefined, (target as unknown as Map<any, any>).get(key));
 
                     // Change the value in the target
                     targetValue.call(target, key);
 
                     // Notify referencing object that referenced property has changed
-                    DataChanged(proxyWrapper, prop);
+                    DataChanged(target, prop);
                 }
 
             case Symbol.iterator:
             case 'forEach':
             case 'entries':
-                const proxyMap = new Map();
-                (target as unknown as Map<any, any>).forEach( (value : any, key: any) => {
-                    value = proxyWrapper.__references__.get(value) || value;
-                    if (typeof value === "object") {
-                        value = makeProxy(value,  key, proxyWrapper);
-                        proxyWrapper.__references__.set(key, value)
-                    }
-                    proxyMap.set(key, value);
-                    proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, key));
-                    lastReference.set(proxyWrapper, key);
-                });
-                return targetValue.bind(proxyMap);
+                if (!target.__referenced__) {
+                    (target as unknown as Map<any, any>).forEach( (childTarget, key) =>
+                        propertyReferenced(target, key, childTarget, (proxy: any) => (target as unknown as Map<any, any>).set(key, proxy)));
+                    target.__referenced__ = true;
+                }
 
             default:
                 return targetValue.bind(target)

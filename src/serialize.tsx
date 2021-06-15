@@ -1,3 +1,4 @@
+import {isInternalProperty} from "./ProxyWrapper";
 
 const handleObject : Map<any, (obj : any, prop: string, value : any) => any> = new Map([
     [Array, (_obj : any, _prop: string, value : any) => {return value}],
@@ -13,6 +14,11 @@ export function serialize(rootObj : any) {
     return JSON.stringify(rootObj, replacer, 2)
 
     function replacer(this: any, prop : string, value : any) {
+
+        if (isInternalProperty(prop))
+            return undefined;
+        if (typeof value === "object" && value !== null && value.__target__)
+            value = value.__target__
 
         if (value === lastObj) {
             lastObj = undefined;

@@ -40,13 +40,15 @@ describe("data structure tests of proxy", () => {
     }
 
     it ("only reacts to referenced properties", () => {
+
         expect(observeResult(
             new Root(),
             (root) => {
-                root.objectSingle = new Leaf();
+                root.objectSingle.str = "Foo";
             },
             (root) => root.objectSingle
         )).toBe("Root-objectSingle-1");
+
         expect(observeResult(
             new Root(),
             (root) => {
@@ -59,7 +61,7 @@ describe("data structure tests of proxy", () => {
         expect(observeResult(
             new Root(),
             (root) => {
-                root.objectSingle.str = "Foo";
+                root.objectSingle = new Leaf();
             },
             (root) => root.objectSingle
         )).toBe("Root-objectSingle-1");
@@ -94,7 +96,8 @@ describe("data structure tests of proxy", () => {
             const leaves = root.arrayCollection.entries();
             const leaf = leaves.next().value[1];
             leaf.num = 4;
-            expect(root.arrayCollection[0]).toBe(leaf);
+            const foo = root.arrayCollection[0];
+            expect(foo).toBe(leaf);
         })).toBe("Root-arrayCollection-1");
 
         expect(observeResult(new Root(), (root) => {
@@ -203,8 +206,9 @@ describe("data structure tests of proxy", () => {
             expect(asArray[0][0]).toBe("1");
             const leafFromArray = asArray[0][1];
             expect(leafFromArray.num).toBe(1);
-            expect(root.mapCollection.get('2')?.num).toBe(2);
-        })).toBe("Root-mapCollection-2");
+            leafFromArray.num = 3
+            expect(root.mapCollection.get('1')?.num).toBe(3);
+        })).toBe("Root-mapCollection-3");
     });
     it ("can observe changes to sets", () => {
 
@@ -214,7 +218,7 @@ describe("data structure tests of proxy", () => {
             newLeaf.num = 4;
             expect(root.setCollection.has(newLeaf)).toBe(true);
             expect(root.setCollection.size).toBe(3);
-        })).toBe("Root-setCollection-2");
+        })).toBe("Root-setCollection-1");
 
         expect(observeResult(new Root(), (root) => {
             root.setCollection.forEach(value => value.num = 4);

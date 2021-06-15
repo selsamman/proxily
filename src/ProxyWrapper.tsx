@@ -9,97 +9,82 @@ import {proxyHandlerDate} from "./proxy/proxyHandlerDate";
 import {proxyHandlerArray} from "./proxy/proxyHandlerArray";
 
 export function proxy<A>(targetIn: A) : A {
-    const target  = targetIn as unknown as Target;
-    return makeProxy(target) as unknown as A;
+    if (typeof targetIn === "object" && targetIn !== null) {
+        const target  = targetIn as unknown as ProxyOrTarget;
+        const proxy =  makeProxy(target)
+        ConnectContext(proxy);
+        return proxy as unknown as A;;
+    } else
+        throw new Error("Attempt to call proxy on a non-object");
 }
 
 export function observe<T>(targetIn: T, onChange : (target : string, prop : string) => void,  observer? : (target : T) => void) : ObservationContext {
-    const observationContext = new ObservationContext(onChange);
-
-    const proxy = makeProxy(targetIn as unknown as Target, undefined, undefined, observationContext);
-    if (observer) {
-        setCurrentContext(observationContext);
-        observer(proxy as unknown as T);
-        setCurrentContext(undefined);
-    } else {
-        const proxyWrapper = proxies.get(targetIn as unknown as Target);
-        if (proxyWrapper)
-            observationContext.referenced(proxyWrapper, '*');
-    }
-    return observationContext;
+    if (typeof targetIn === "object" && targetIn !== null) {
+        const target  = targetIn as unknown as ProxyTarget;
+        const observationContext = new ObservationContext(onChange);
+        const proxy = makeProxy(target);
+        ConnectContext(proxy, observationContext);
+        if (observer) {
+            setCurrentContext(observationContext);
+            observer(proxy as unknown as T);
+            setCurrentContext(undefined);
+        } else
+            observationContext.referenced(proxy as unknown as ProxyTarget, '*');
+        return observationContext;
+    } else
+        throw new Error("Attempt to call observe on a non-object");
 }
 
-
-export interface ProxyWrapper {
-    __target__ : Target;  // The actual object that is being proxied
-    __proxy__ : any;
-    __contexts__ : Map<ObservationContext, ObservationContext>;  // A context that can communicate with the component
-    __references__ : Map<any, Target> // proxies for references to other objects in target
-    __parents__ : Map<ProxyWrapper, ParentProxy>;
-    __memoContexts__ : { [key: string] : GetterMemo}
-}
-export const proxies = new WeakMap<Target, ProxyWrapper>();
 
 // Additional properties on objects being proxied
 export interface Target {
+    __referenced__ : boolean
+    __proxy__ : ProxyTarget
     __memoizedProps__ : {[index: string] : boolean};
+    __contexts__ : Map<ObservationContext, ObservationContext>;  // A context that can communicate with the component
+    __parentReferences__ : Map<Target, { [index: string] : number }>;
+    __memoContexts__ : { [key: string] : GetterMemo}
+}
+export interface ProxyTarget {
+    __target__ : Target
+}
+export interface ProxyOrTarget {
+    __target__?: Target;
+    __proxy__? : ProxyTarget;
+}
+export function isInternalProperty (prop : any) {
+    return ['__referenced__', '__proxy__', '__target__', '__memoizedProps__', '__contexts__', '__parentReferences__',
+     '__memoContexts'].includes(prop)
 }
 
-export interface ConnectedProxy {
-    proxy: ProxyWrapper;
-    referencedProps : { [index:string] : boolean};
-}
-
-// Track both the referencing property name and the object
-export interface ParentProxy {
-    props : { [index: string] : boolean };
-    proxy : ProxyWrapper;
-}
-
-export function makeProxy(targetOrProxy : Target | typeof Proxy, parentProp? : string, parentProxyWrapper? : ProxyWrapper, observationContext? : ObservationContext) : Target {
-
-    let proxyWrapper = proxies.get((targetOrProxy as unknown as any)?.__target__ || targetOrProxy)
+export function makeProxy(proxyOrTarget : ProxyOrTarget) : ProxyTarget {
 
     // If we already have proxy return it
-    if (!proxyWrapper) {
+    if (proxyOrTarget.__proxy__)
+        return proxyOrTarget.__proxy__;
 
-        const target = targetOrProxy as Target;
+    // Create the proxy with the appropriate handler
+    let handler;
+    if (proxyOrTarget instanceof Map)
+        handler = proxyHandlerMap;
+    else if (proxyOrTarget instanceof Set)
+        handler = proxyHandlerSet;
+    else if (proxyOrTarget instanceof Date)
+        handler = proxyHandlerDate;
+    else if (proxyOrTarget instanceof Array)
+        handler = proxyHandlerArray;
+    else
+        handler = proxyHandler;
+    const proxy = new Proxy(proxyOrTarget as any, handler) as ProxyTarget;
 
-        // Create the proxy and wrap it so we can add additional properties
-        let handler;
-        if (target instanceof Map)
-            handler = proxyHandlerMap;
-        else if (target instanceof Set)
-            handler = proxyHandlerSet;
-        else if (target instanceof Date)
-            handler = proxyHandlerDate;
-        else if (target instanceof Array)
-            handler = proxyHandlerArray;
-        else
-            handler = proxyHandler;
-        const proxy = new Proxy(target, handler);
+    const target = proxyOrTarget as unknown as Target;
+    target.__parentReferences__ = new Map();
+    target.__contexts__ = new Map();
+    target.__memoContexts__ = {};
+    target.__proxy__ = proxy;  // Get to a proxy from a target
+    target.__referenced__ = false;
 
+    return proxy;
 
-        proxyWrapper = {
-            __parents__: new Map(),
-            __target__: target,
-            __proxy__: proxy,
-            __contexts__: new Map(),
-            __references__: new Map(),
-            __memoContexts__ : {}
-        }
-        proxies.set(target, proxyWrapper);
-    }
-
-    ConnectContext(proxyWrapper, observationContext);
-    if (parentProp && parentProxyWrapper) {
-        parentProxyWrapper.__references__.set(parentProp, proxyWrapper.__target__);
-        const parentProxy = proxyWrapper.__parents__.get(parentProxyWrapper);
-        if (parentProxy)
-            parentProxy.props[parentProp] = true;
-        else
-            proxyWrapper.__parents__.set(parentProxyWrapper, {proxy: parentProxyWrapper, props: {[parentProp]: true}});
-    }
-    return proxyWrapper.__proxy__;
 }
 

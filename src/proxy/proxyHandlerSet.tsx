@@ -1,14 +1,6 @@
-
 import {log, logLevel} from "../log";
-import {proxies, Target} from "../ProxyWrapper";
-import {
-    DataChanged,
-    deProxy,
-    proxyMissing,
-    proxySet,
-    updateObjectReference
-} from "./proxyCommon";
-
+import {isInternalProperty, Target} from "../ProxyWrapper";
+import {DataChanged, propertyReferenced, propertyUpdated} from "./proxyCommon";
 
 export const proxyHandlerSet = {
 
@@ -17,7 +9,8 @@ export const proxyHandlerSet = {
         // Only way to get a reference to the object being proxied
         if (prop === '__target__')
             return target;
-        const proxyWrapper = proxies.get(target) || proxyMissing(target, prop);
+        if (isInternalProperty(prop))
+            return Reflect.get(target, prop, target);
 
         const targetValue = Reflect.get(target, prop, target);
         if (typeof targetValue !== "function")
@@ -29,27 +22,37 @@ export const proxyHandlerSet = {
 
             case 'has':
                 return (value: any) => {
-                    return targetValue.call(target, deProxy(value));
+                    return targetValue.call(target, value);
                 }
 
             case 'add':
                 return (newValue: any) => {
-                    updateObjectReference(proxyWrapper, newValue, newValue);
-                    DataChanged(proxyWrapper, prop);
-                    return targetValue.call(target, deProxy(newValue));
+                    propertyUpdated(target, '*', undefined, newValue);
+                    DataChanged(target, prop);
+                    return targetValue.call(target, newValue);
                 }
 
             case 'delete':
                 return function (key: any) {
-                    DataChanged(proxyWrapper, key);
-                    return  targetValue.call(target, deProxy(key));
+                    DataChanged(target, key);
+                    return  targetValue.call(target, key);
                 }
 
             case Symbol.iterator:
             case 'forEach':
             case 'entries':
             case 'values':
-                return targetValue.bind(proxySet(target as unknown as Set<any>, proxyWrapper));
+                if (!target.__referenced__) {
+                    (target as unknown as Set<any>).forEach( childTarget =>
+                        propertyReferenced(target, childTarget, childTarget, (proxy) => {
+                            (target as unknown as Set<any>).delete(childTarget);
+                            (target as unknown as Set<any>).add(proxy);
+                        })
+                    );
+                    target.__referenced__ = true;
+                }
+
+                return targetValue.bind(target);
 
                 default:
                 return targetValue.bind(target)

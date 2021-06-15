@@ -1,128 +1,125 @@
-import {makeProxy, proxies, ProxyWrapper, Target} from "../ProxyWrapper";
-import {currentContext, currentSelectorContext} from "../ObservationContext";
+import {makeProxy, ProxyOrTarget, ProxyTarget, Target} from "../ProxyWrapper";
+import {ConnectContext, currentContext, currentSelectorContext} from "../ObservationContext";
 
 export function getterProps(target : Target, prop : string) {
     const props = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(target), prop);
     return props && typeof props.get === "function" ? props : false;
 }
 
-export function DataChanged(proxy : ProxyWrapper, prop : string) {
-    DataChangedInternal(proxy, prop, new Set());
+export function DataChanged(target : Target, prop : string) {
+    DataChangedInternal(target, prop, new Set());
 }
 
-export function DataChangedInternal(proxy : ProxyWrapper, prop : string, history : Set<ProxyWrapper>) {
+export function DataChangedInternal(target : Target, prop : string, history : Set<Target>) {
 
     // Notify contexts of the change
-    proxy.__contexts__.forEach(context => {
-        context.changed(proxy, proxy.__target__.constructor.name, prop);
+    target.__contexts__.forEach(context => {
+        context.changed(target.__proxy__,  prop);
     });
 
     // Pass notification up the chain of references
-    proxy.__parents__.forEach(parent => {
-        if (history.has(parent.proxy))
+    target.__parentReferences__.forEach((referenceProps, parentProxyTarget) => {
+        if (history.has(parentProxyTarget))
             return;
-        history.add(parent.proxy)
-        for(const prop in parent.props)
-            DataChangedInternal(parent.proxy, prop, history);
+        history.add(parentProxyTarget)
+        for (const prop in referenceProps)
+            DataChangedInternal(parentProxyTarget, prop, history);
     });
 }
-export function proxyMissing (target : Target, prop: string) : ProxyWrapper{
-    throw(new Error(`ERROR: ${target.constructor.name}.${prop} missing ProxyWrapper`));
-}
 
-
-export function propertyReferenced(proxyWrapper : ProxyWrapper, prop: any) : void {
-    if(currentContext)
-        currentContext.referenced(proxyWrapper, prop);
-    if(currentSelectorContext)
-        currentSelectorContext.referenced(proxyWrapper, prop);
-    lastReference.set(proxyWrapper, prop);
-}
 /*
-    Handle references to objects by keeping the __references__ in the ProxyWrapper up-to-date.
-    This includes removing references when
+        When a property is referenced it may need to be made into a proxy and the referencing
+        object updated with the proxy.  The property must also be registered by any contexts
+        so they can observe future changes to the property
  */
-export function updateObjectReference(proxyWrapper : ProxyWrapper, prop: any, value? : Target) : Target | undefined {
+export function propertyReferenced(target : Target, prop: any, value: any, setter?: (proxy: ProxyTarget) => void) : any {
 
-    // Get proxyWrapper for previous object referenced
-    const oldObject = proxyWrapper.__references__.get(prop);
+    if (typeof value === "object" && value !== null) {
 
-    // Ignore if we are replacing with same
-    if (oldObject && oldObject !== value && oldObject) {
-
-        // Unlink previously referenced object parent link to this object
-        const oldObjectProxyWrapper = proxies.get(oldObject);
-        if (oldObjectProxyWrapper) {
-            const parentProxyWrapper = oldObjectProxyWrapper.__parents__.get(proxyWrapper);
-            if (parentProxyWrapper)  {
-                // Remove parent this particular prop from parent reference
-                delete parentProxyWrapper.props[prop];
-                // Remove parent reference if empty
-                if (Object.keys(parentProxyWrapper.props).length === 0) {
-                    oldObjectProxyWrapper.__parents__.delete(proxyWrapper);
-                    // If now parentless remove weak refererence to wrapper and disconnect from context
-                    if (oldObjectProxyWrapper.__parents__.size === 0) {
-                        proxies.delete(oldObject);
-                        oldObjectProxyWrapper.__contexts__.forEach(context => context.disconnect(oldObjectProxyWrapper))
-                    }
-                }
-            }
+        if (!value.__target__) {
+            value = propertyUpdated(target, prop, value as unknown as ProxyOrTarget)
+            if (setter)
+                setter(value);
         }
+        ConnectContext(value);
     }
 
-    // Proxify object and update reference in associated proxyWrapper
-    if (typeof value === "object") {
-        value = makeProxy(value,  prop, proxyWrapper)
-    } else
-        proxyWrapper.__references__.delete(prop);
+    // Let context know property was referenced
+    if(currentContext)
+        currentContext.referenced(target.__proxy__, prop);
+    if(currentSelectorContext)
+        currentSelectorContext.referenced(target.__proxy__, prop);
+    lastReference.set(target, prop);
 
     return value;
 }
-export function deProxy(target : Target | undefined) : Target | undefined {
-    const proxyWrapper = proxies.get(target !== undefined ? target['__target__'] || target : target);
-    return proxyWrapper ? proxyWrapper.__target__ : target;
-}
-export function proxyMapOrSetElements(mapOrSet : Map<any, any> | Set<any>, proxyWrapper: ProxyWrapper) {
-    mapOrSet.forEach( (value : any, key : any) => {
-        value = proxyWrapper.__references__.get(key) || value;
-        if (typeof value === "object") {
-            value = makeProxy(value,  key, proxyWrapper);
-            proxyWrapper.__references__.set(key === undefined ? value : key, value)
+
+/*
+   When a property is updated it may need to be made into a proxy and have it's parentReferences added.
+   Any previous value for the property that was a proxy may also need to have the parentReferences removed.
+   Note: prop may be '*' for arrays, sets and maps in which case we keep a count of the reference
+*/
+
+export function propertyUpdated(parentTarget : Target, prop: string, child : any, oldChild? : any) : ProxyTarget | undefined {
+
+    // Remove parent references from old child
+    if (oldChild && oldChild.__target__) {
+
+        const oldChildTarget = oldChild.__target__ as Target;
+
+        // Remove old child parent reference
+        const parentReference = oldChildTarget.__parentReferences__.get(parentTarget);
+        if (parentReference) {
+            const parentReferenceCount = parentReference[prop];
+            if (parentReferenceCount !== undefined)
+                if (parentReferenceCount > 0)
+                    parentReference[prop] = parentReference[prop] - 1;
+                else {
+                    delete parentReference[prop];
+                    if (Object.keys(parentReference).length === 0) {
+                        oldChildTarget.__parentReferences__.delete(parentTarget);
+                        if (oldChildTarget.__parentReferences__.size === 0)
+                            oldChildTarget.__contexts__.forEach(context => context.disconnect(oldChildTarget.__proxy__));
+                    }
+                }
         }
-        proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, key));
-        lastReference.set(proxyWrapper, key);
-    });
-}
-export function proxySet(set : Set<any>, proxyWrapper: ProxyWrapper) {
-    const proxySet = new Set();
-    set.forEach( (value : any) => {
-        value = proxyWrapper.__references__.get(value) || value;
-        if (typeof value === "object") {
-            value = makeProxy(value,  value, proxyWrapper);
-            proxyWrapper.__references__.set(value, value)
+    }
+
+
+    // Proxify object and update reference in associated proxyWrapper
+    if (typeof child === "object" && child !== null) {
+        if (!child.__target__) {
+            child = makeProxy(child as unknown as ProxyOrTarget);
+            const parentReference = child.__parentReferences__.get(parentTarget);
+            if (parentReference) {
+                const parentReferenceCount = parentReference[prop];
+                if (parentReferenceCount !== undefined)
+                    parentReference[prop] = parentReference[prop] + 1;
+                else
+                    parentReference[prop] = 1;
+            } else
+                child.__parentReferences__.set(parentTarget, {[prop]: 1});
         }
-        proxySet.add(value);
-        proxyWrapper.__contexts__.forEach(context => context.referenced(proxyWrapper, value));
-        lastReference.set(proxyWrapper, value);
-    });
-    return proxySet
+    }
+    return child;
 }
+
 export interface LastReference {
     prop : string;
-    proxyWrapper : ProxyWrapper | undefined;
+    target : Target | undefined;
     set: (target : any, prop : string) => void;
     clear: () => void;
 }
 
 export const lastReference : LastReference = {
     prop : "",
-    proxyWrapper : undefined,
-    set: function (proxy : ProxyWrapper, prop : string) : void {
-        this.proxyWrapper = proxy;
+    target : undefined,
+    set: function (target : Target, prop : string) : void {
+        this.target = target;
         this.prop = prop;
     },
     clear: function () : void {
-        this.proxyWrapper = undefined;
+        this.target = undefined;
         this.prop = "";
     }
 }

@@ -4,18 +4,18 @@ import {
     ObservationContext,
     setCurrentSelectorContext
 } from "./ObservationContext";
-import {ProxyWrapper, Target} from "./ProxyWrapper";
+import {ProxyTarget, Target} from "./ProxyWrapper";
 
 export class GetterMemo {
-    constructor(valueFunction: () => any, proxy : ProxyWrapper) {
+    constructor(valueFunction: () => any, target : ProxyTarget) {
         this.valueFunction = valueFunction;
         this.context = new ObservationContext(()=>{
             this.dependentsChanged = true
         });
-        this.proxyWrapper = proxy;
+        this.proxyTarget = target;
     }
     lastArgumentValues = [];
-    proxyWrapper: ProxyWrapper
+    proxyTarget: ProxyTarget
     lastValue: any;
     dependentsChanged = true;
     context: ObservationContext;
@@ -40,13 +40,13 @@ export class GetterMemo {
     updateLastValue (args : any) {
         const context = currentSelectorContext as ObservationContext;
         setCurrentSelectorContext(this.context);
-        this.lastValue = this.valueFunction.apply(this.proxyWrapper.__proxy__, args);
+        this.lastValue = this.valueFunction.apply(this.proxyTarget, args);
         setCurrentSelectorContext(context);
     }
-    connectProxy(proxyWrapper : ProxyWrapper) {
+    connectProxy(proxyTarget : ProxyTarget) {
         const context = currentSelectorContext as ObservationContext;
         setCurrentSelectorContext(this.context);
-        ConnectContext(proxyWrapper);
+        ConnectContext(proxyTarget);
         setCurrentSelectorContext(context);
     }
     cleanup () {
@@ -70,16 +70,16 @@ export function memoize() {
 export function isMemoized(prop: string, target: Target) {
     return target.__memoizedProps__ && target.__memoizedProps__[prop];
 }
-export function createMemoization (prop: string, target: Target, proxyWrapper: ProxyWrapper, valueFunction: any) : GetterMemo {
+export function createMemoization (prop: string, target: Target, valueFunction: any) : GetterMemo {
     if (target.__memoizedProps__ && target.__memoizedProps__[prop] &&
-        (!proxyWrapper.__memoContexts__ || !proxyWrapper.__memoContexts__[prop]))
+        (!target.__memoContexts__ || !target.__memoContexts__[prop]))
     {
-        if (!proxyWrapper.__memoContexts__)
-            proxyWrapper.__memoContexts__ = {};
-        const memo = new GetterMemo(valueFunction, proxyWrapper);
-        memo.connectProxy(proxyWrapper);
-        proxyWrapper.__memoContexts__[prop] = memo;
+        if (!target.__memoContexts__)
+            target.__memoContexts__ = {};
+        const memo = new GetterMemo(valueFunction, target.__proxy__);
+        memo.connectProxy(target.__proxy__);
+        target.__memoContexts__[prop] = memo;
 
     }
-    return proxyWrapper.__memoContexts__[prop];
+    return target.__memoContexts__[prop];
 }
