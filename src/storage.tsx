@@ -1,5 +1,5 @@
 import {ClassHandlers, deserialize} from "./deserialize";
-import {observe, proxy} from "./ProxyWrapper";
+import {observe, proxy} from "./proxyObserve";
 import {serialize} from "./serialize";
 export interface StorageEngine {
     getItem(key : string) : any

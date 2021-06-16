@@ -1,5 +1,5 @@
 import {log, logLevel} from "../log";
-import {isInternalProperty, Target} from "../ProxyWrapper";
+import {isInternalProperty, Target} from "../proxyObserve";
 import {DataChanged, propertyReferenced, propertyUpdated} from "./proxyCommon";
 import {proxyHandler} from "./proxyHandler";
 

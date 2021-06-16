@@ -1,4 +1,4 @@
-import {ProxyTarget, Target} from "./ProxyWrapper";
+import {ProxyTarget, Target} from "./proxyObserve";
 import {log, logLevel} from "./log";
 export let currentContext : ObservationContext | undefined = undefined;
 export let currentSelectorContext : ObservationContext | undefined = undefined;
@@ -50,7 +50,7 @@ export class ObservationContext {
 /*
 Connect this proxyWrapper to the current context (in an observer).
  */
-export function ConnectContext (proxyTarget : ProxyTarget, context? : ObservationContext) {
+export function connectToContext (proxyTarget : ProxyTarget, context? : ObservationContext) {
     if(currentContext && !proxyTarget.__target__.__contexts__.has(currentContext)) {
         proxyTarget.__target__.__contexts__.set(currentContext, currentContext);
         currentContext.connect(proxyTarget);

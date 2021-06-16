@@ -1,6 +1,41 @@
-import {makeProxy, ProxyOrTarget, ProxyTarget, Target} from "../ProxyWrapper";
-import {ConnectContext, currentContext, currentSelectorContext} from "../ObservationContext";
+import {ProxyOrTarget, ProxyTarget, Target} from "../proxyObserve";
+import {connectToContext, currentContext, currentSelectorContext} from "../ObservationContext";
+import {proxyHandlerMap} from "./proxyHandlerMap";
+import {proxyHandlerSet} from "./proxyHandlerSet";
+import {proxyHandlerDate} from "./proxyHandlerDate";
+import {proxyHandlerArray} from "./proxyHandlerArray";
+import {proxyHandler} from "./proxyHandler";
 
+export function makeProxy(proxyOrTarget : ProxyOrTarget) : ProxyTarget {
+
+    // If we already have proxy return it
+    if (proxyOrTarget.__proxy__)
+        return proxyOrTarget.__proxy__;
+
+    // Create the proxy with the appropriate handler
+    let handler;
+    if (proxyOrTarget instanceof Map)
+        handler = proxyHandlerMap;
+    else if (proxyOrTarget instanceof Set)
+        handler = proxyHandlerSet;
+    else if (proxyOrTarget instanceof Date)
+        handler = proxyHandlerDate;
+    else if (proxyOrTarget instanceof Array)
+        handler = proxyHandlerArray;
+    else
+        handler = proxyHandler;
+    const proxy = new Proxy(proxyOrTarget as any, handler) as ProxyTarget;
+
+    const target = proxyOrTarget as unknown as Target;
+    target.__parentReferences__ = new Map();
+    target.__contexts__ = new Map();
+    target.__memoContexts__ = {};
+    target.__proxy__ = proxy;  // Get to a proxy from a target
+    target.__referenced__ = false;
+
+    return proxy;
+
+}
 export function getterProps(target : Target, prop : string) {
     const props = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(target), prop);
     return props && typeof props.get === "function" ? props : false;
@@ -41,7 +76,7 @@ export function propertyReferenced(target : Target, prop: any, value: any, sette
             if (setter)
                 setter(value);
         }
-        ConnectContext(value);
+        connectToContext(value);
     }
 
     // Let context know property was referenced

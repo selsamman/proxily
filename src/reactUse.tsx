@@ -1,8 +1,8 @@
-import {makeProxy, Target,ProxyOrTarget} from "./ProxyWrapper";
-import {ConnectContext, currentContext, ObservationContext, setCurrentContext} from "./ObservationContext";
+import {Target,ProxyOrTarget} from "./proxyObserve";
+import {connectToContext, currentContext, ObservationContext, setCurrentContext} from "./ObservationContext";
 import {log, logLevel} from "./log";
 import {useEffect, useRef, useState} from "react";
-import {lastReference} from "./proxy/proxyCommon";
+import {lastReference, makeProxy} from "./proxy/proxyCommon";
 
 export function useProxyContext<A>(apiIn: any, callback : (api: A) => void) {
     const api = useProxy<A>(apiIn);
@@ -37,7 +37,7 @@ export function useProxy<A>(targetIn: A) : A {
 
     const context = createContext();
     const proxy =  makeProxy(target as unknown as ProxyOrTarget);
-    ConnectContext(proxy, context);
+    connectToContext(proxy, context);
     return proxy as unknown as A;
 }
 function createContext() : ObservationContext {

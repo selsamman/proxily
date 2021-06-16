@@ -1,6 +1,6 @@
 import {createMemoization, isMemoized} from "../memoize";
 import {log, logLevel} from "../log";
-import {isInternalProperty, ProxyTarget, Target} from "../ProxyWrapper";
+import {isInternalProperty, ProxyTarget, Target} from "../proxyObserve";
 import {
     DataChanged,
     getterProps,

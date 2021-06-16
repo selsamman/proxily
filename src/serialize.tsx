@@ -1,4 +1,4 @@
-import {isInternalProperty} from "./ProxyWrapper";
+import {isInternalProperty} from "./proxyObserve";
 
 const handleObject : Map<any, (obj : any, prop: string, value : any) => any> = new Map([
     [Array, (_obj : any, _prop: string, value : any) => {return value}],

@@ -1,18 +1,14 @@
 // A wrapper for the proxy that let's us track additional information
 import {ObservationContext, setCurrentContext} from "./ObservationContext";
-import {ConnectContext} from "./ObservationContext";
-import {proxyHandler} from "./proxy/proxyHandler";
+import {connectToContext} from "./ObservationContext";
 import {GetterMemo} from "./memoize";
-import {proxyHandlerMap} from "./proxy/proxyHandlerMap";
-import {proxyHandlerSet} from "./proxy/proxyHandlerSet";
-import {proxyHandlerDate} from "./proxy/proxyHandlerDate";
-import {proxyHandlerArray} from "./proxy/proxyHandlerArray";
+import {makeProxy} from "./proxy/proxyCommon";
 
 export function proxy<A>(targetIn: A) : A {
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyOrTarget;
         const proxy =  makeProxy(target)
-        ConnectContext(proxy);
+        connectToContext(proxy);
         return proxy as unknown as A;;
     } else
         throw new Error("Attempt to call proxy on a non-object");
@@ -23,7 +19,7 @@ export function observe<T>(targetIn: T, onChange : (target : string, prop : stri
         const target  = targetIn as unknown as ProxyTarget;
         const observationContext = new ObservationContext(onChange);
         const proxy = makeProxy(target);
-        ConnectContext(proxy, observationContext);
+        connectToContext(proxy, observationContext);
         if (observer) {
             setCurrentContext(observationContext);
             observer(proxy as unknown as T);
@@ -57,34 +53,5 @@ export function isInternalProperty (prop : any) {
      '__memoContexts'].includes(prop)
 }
 
-export function makeProxy(proxyOrTarget : ProxyOrTarget) : ProxyTarget {
 
-    // If we already have proxy return it
-    if (proxyOrTarget.__proxy__)
-        return proxyOrTarget.__proxy__;
-
-    // Create the proxy with the appropriate handler
-    let handler;
-    if (proxyOrTarget instanceof Map)
-        handler = proxyHandlerMap;
-    else if (proxyOrTarget instanceof Set)
-        handler = proxyHandlerSet;
-    else if (proxyOrTarget instanceof Date)
-        handler = proxyHandlerDate;
-    else if (proxyOrTarget instanceof Array)
-        handler = proxyHandlerArray;
-    else
-        handler = proxyHandler;
-    const proxy = new Proxy(proxyOrTarget as any, handler) as ProxyTarget;
-
-    const target = proxyOrTarget as unknown as Target;
-    target.__parentReferences__ = new Map();
-    target.__contexts__ = new Map();
-    target.__memoContexts__ = {};
-    target.__proxy__ = proxy;  // Get to a proxy from a target
-    target.__referenced__ = false;
-
-    return proxy;
-
-}
 

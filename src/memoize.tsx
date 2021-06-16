@@ -1,10 +1,10 @@
 import {
-    ConnectContext,
+    connectToContext,
     currentSelectorContext,
     ObservationContext,
     setCurrentSelectorContext
 } from "./ObservationContext";
-import {ProxyTarget, Target} from "./ProxyWrapper";
+import {ProxyTarget, Target} from "./proxyObserve";
 
 export class GetterMemo {
     constructor(valueFunction: () => any, target : ProxyTarget) {
@@ -46,7 +46,7 @@ export class GetterMemo {
     connectProxy(proxyTarget : ProxyTarget) {
         const context = currentSelectorContext as ObservationContext;
         setCurrentSelectorContext(this.context);
-        ConnectContext(proxyTarget);
+        connectToContext(proxyTarget);
         setCurrentSelectorContext(context);
     }
     cleanup () {
