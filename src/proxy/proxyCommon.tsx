@@ -107,7 +107,7 @@ export function propertyUpdated(parentTarget : Target, prop: string, child : any
         if (parentReference) {
             const parentReferenceCount = parentReference[prop];
             if (parentReferenceCount !== undefined)
-                if (parentReferenceCount > 0)
+                if (parentReferenceCount > 1)
                     parentReference[prop] = parentReference[prop] - 1;
                 else {
                     delete parentReference[prop];
@@ -123,18 +123,16 @@ export function propertyUpdated(parentTarget : Target, prop: string, child : any
 
     // Proxify object and update reference in associated proxyWrapper
     if (typeof child === "object" && child !== null) {
-        if (!child.__target__) {
-            child = makeProxy(child as unknown as ProxyOrTarget);
-            const parentReference = child.__parentReferences__.get(parentTarget);
-            if (parentReference) {
-                const parentReferenceCount = parentReference[prop];
-                if (parentReferenceCount !== undefined)
-                    parentReference[prop] = parentReference[prop] + 1;
-                else
-                    parentReference[prop] = 1;
-            } else
-                child.__parentReferences__.set(parentTarget, {[prop]: 1});
-        }
+        child = makeProxy(child as unknown as ProxyOrTarget);
+        const parentReference = child.__parentReferences__.get(parentTarget);
+        if (parentReference) {
+            const parentReferenceCount = parentReference[prop];
+            if (parentReferenceCount !== undefined)
+                parentReference[prop] = parentReference[prop] + 1;
+            else
+                parentReference[prop] = 1;
+        } else
+            child.__parentReferences__.set(parentTarget, {[prop]: 1});
     }
     return child;
 }

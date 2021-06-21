@@ -12,7 +12,12 @@ export class Leaf {
     parent : Root | undefined;
 }
 export class Root {
-    arrayCollection = [new Leaf(), new Leaf()];
+    arrayCollection = [3, null];
+    arrayObjectCollection = [new Leaf(), new Leaf()];
+    arrayArrayCollection = [[new Leaf(), new Leaf()]];
+    arrayMapCollection = [new Map([['1', new Leaf()], ['2', new Leaf()]])];
+    arraySetCollection = [new Set([new Leaf(), new Leaf()])];
+
     setCollection = new Set([new Leaf(), new Leaf()]);
     mapCollection = new Map([['1', new Leaf()], ['2', new Leaf()]]);
     objectCollection = {a: new Leaf(), b: new Leaf()};

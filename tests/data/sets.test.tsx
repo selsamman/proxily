@@ -10,7 +10,7 @@ describe("data structure tests: objects", () => {
 			newLeaf.num = 4;
 			expect(root.setCollection.has(newLeaf)).toBe(true);
 			expect(root.setCollection.size).toBe(3);
-		})).toBe("Root-setCollection-1");
+		})).toBe("Root-setCollection-2");
 
 		expect(observeResult(new Root(), (root) => {
 			root.setCollection.forEach(value => value.num = 4);

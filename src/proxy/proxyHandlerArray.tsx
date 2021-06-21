@@ -27,51 +27,70 @@ export const proxyHandlerArray = {
                 case 'forEach':
                 case 'entries':
                 case 'map':
+                case 'reduce':
+                case 'reduceRight':
                 case 'slice':
                 case 'values':
+                case 'every':
+                case 'sort':
                 case Symbol.iterator:
 
                     // If this is the first time the array is referenced make proxies where needed them and update
-                    if (!target.__referenced__) {
-                        const len = (target as unknown as []).length;
-                        for (let ix = 0; ix < len; ++ix)
-                            propertyReferenced(target, '*', target[ix], (proxy: any) => target[ix] = proxy)
-                        target.__referenced__ = true;
+                    return (...args : any []) => {
+                        proxyAllElements();
+                        const val = (target as any)[prop].apply(target, args);
+                        return val;
                     }
-                    return value.bind(target);
+
+                case 'copyWithin': // Todo: Make more efficient
+                    return (...args : any []) => {
+                        deleteElementReferences(target, 0, length);
+                        const val = (target as any)[prop].apply(target, args);
+                        target.__referenced__ = false;
+                        proxyAllElements();
+                        DataChanged(target, '*');
+                        return val;
+                    }
 
                 case 'concat': // Make proxies for new array being concatenated
                     return (...args : any []) => {
-                        args = makeProxies(target, args[1]);
+                        makeProxies(target, args);
+                        const val =  (target as any)[prop].apply(target, args);
                         DataChanged(target, '*');
-                        return (target as any)[prop].apply(target, args);
+                        return val;
                     }
+
                 case 'fill': // Make proxies for new values being concatenated
                     return (...args : any []) => {
                         const first = args[1] || 0;
-                        const last = args[2] === 'undefined' ? length - 1 : Math.min(args[2], length - 1);
+                        const last = args[2] === undefined ? length - 1 : Math.min(args[2], length - 1);
                         deleteElementReferences(target, first, last);
-                        args = makeProxies(target, args.slice(0, 1), last - first + 1);
+                        makeProxies(target, args.slice(0, 1), last - first + 1);
+                        const val =  (target as any)[prop].apply(target, args);
                         DataChanged(target, '*');
-                        return (target as any)[prop].apply(target, args);
+                        return val;
                     }
+
                 case 'pop': // remove parent references from deleted entriey
                     return (...args : any []) => {
                         deleteElementReferences(target, length -  1, length - 1);
+                        const val =  (target as any)[prop].apply(target, args);
                         DataChanged(target, '*');
-                        return (target as any)[prop].apply(target, args);
+                        return val;
                     }
                 case 'push': // Make proxy for new element
                     return (...args : any []) => {
-                        args = makeProxies(target, args.slice(0, 1));
+                        makeProxies(target, args.slice(0, 1));
+                        const val =  (target as any)[prop].apply(target, args);
                         DataChanged(target, '*');
-                        return (target as any)[prop].apply(target, args);
+                        return val;
                     }
                 case 'shift': // remove parent references from deleted entriey
                     return (...args : any []) => {
                         deleteElementReferences(target, 0, 0);
+                        const val =  (target as any)[prop].apply(target, args);
                         DataChanged(target, '*');
-                        return (target as any)[prop].apply(target, args);
+                        return val;
                     }
                 case 'splice': // Make proxies for new additions & remove parent references from deleted entries
                     return (...args : any []) => {
@@ -79,21 +98,25 @@ export const proxyHandlerArray = {
                         const last = args[1] === 'undefined' ? length - 1 : first + args[1] - 1;
                         if (first < length)
                             deleteElementReferences(target, first, last);
-                        args = makeProxies(target, args.slice(2, args.length));
+                        makeProxies(target, args.slice(2, args.length));
+                        const val =  (target as any)[prop].apply(target, args);
                         DataChanged(target, '*');
-                        return (target as any)[prop].apply(target, args);
+                        return val;
                     }
 
                 case 'push': // extends array
                     return (...args : any []) => {
-                        args = makeProxies(target, args[1]);
+                        makeProxies(target, args[1]);
+                        const val =  (target as any)[prop].apply(target, args);
                         DataChanged(target, '*');
+                        return val;
                     }
                 case 'unshift': // Make proxy for new element
                     return (...args : any []) => {
-                        args = makeProxies(target, args);
+                        makeProxies(target, args);
+                        const val =  (target as any)[prop].apply(target, args);
                         DataChanged(target, '*');
-                        return (target as any)[prop].apply(target, args);
+                        return val;
                     }
 
                 default:
@@ -101,6 +124,15 @@ export const proxyHandlerArray = {
             }
         } else
             return propertyReferenced(target, '*', Reflect.get(target, prop), (value) => Reflect.set(target, prop, value));
+
+        function proxyAllElements() {
+            if (!target.__referenced__) {
+                const len = (target as unknown as []).length;
+                for (let ix = 0; ix < len; ++ix)
+                    propertyReferenced(target, '*', target[ix], (proxy: any) => target[ix] = proxy)
+                target.__referenced__ = true;
+            }
+        }
 
     },
 
@@ -110,16 +142,15 @@ export const proxyHandlerArray = {
 
 }
 
-function makeProxies(target : Target, targets : any [], count = 1) {
-    return targets.map(childTarget => {
+function makeProxies(target : Target, targets : any [], count = 1) : void {
+    targets.map((childTarget, ix) => {
         while(count--)
-            childTarget = propertyUpdated(target, '*', childTarget)
+            targets[ix] = propertyUpdated(target, '*', childTarget)
         return childTarget;
     });
-    return targets;
 }
 function deleteElementReferences(target: Target, first : number, last : number) {
-    for (let ix = first; ix < last; ++ix)
+    for (let ix = first; ix <= last; ++ix)
         propertyUpdated(target, '*', undefined, target[ix]);
 }
 

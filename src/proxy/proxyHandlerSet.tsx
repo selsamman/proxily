@@ -1,6 +1,6 @@
 import {log, logLevel} from "../log";
 import {isInternalProperty, Target} from "../proxyObserve";
-import {DataChanged, propertyReferenced, propertyUpdated} from "./proxyCommon";
+import {DataChanged, makeProxy, propertyReferenced, propertyUpdated} from "./proxyCommon";
 
 export const proxyHandlerSet = {
 
@@ -21,13 +21,16 @@ export const proxyHandlerSet = {
         switch (prop) {
 
             case 'has':
+                proxyAllElements();
                 return (value: any) => {
+                    if (typeof value === "object" && value !== null)
+                        value = makeProxy(value);
                     return targetValue.call(target, value);
                 }
 
             case 'add':
                 return (newValue: any) => {
-                    propertyUpdated(target, '*', undefined, newValue);
+                    newValue = propertyUpdated(target, '*',  newValue);
                     DataChanged(target, prop);
                     return targetValue.call(target, newValue);
                 }
@@ -42,20 +45,24 @@ export const proxyHandlerSet = {
             case 'forEach':
             case 'entries':
             case 'values':
-                if (!target.__referenced__) {
-                    (target as unknown as Set<any>).forEach( childTarget =>
-                        propertyReferenced(target, childTarget, childTarget, (proxy) => {
-                            (target as unknown as Set<any>).delete(childTarget);
-                            (target as unknown as Set<any>).add(proxy);
-                        })
-                    );
-                    target.__referenced__ = true;
-                }
+                proxyAllElements();
 
                 return targetValue.bind(target);
 
                 default:
                 return targetValue.bind(target)
         }
+        function proxyAllElements() {
+            if (!target.__referenced__) {
+                (target as unknown as Set<any>).forEach( childTarget =>
+                    propertyReferenced(target, childTarget, childTarget, (proxy) => {
+                        (target as unknown as Set<any>).delete(childTarget);
+                        (target as unknown as Set<any>).add(proxy);
+                    })
+                );
+                target.__referenced__ = true;
+            }
+        }
+
     }
 }
