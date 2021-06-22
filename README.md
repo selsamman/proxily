@@ -277,6 +277,47 @@ scheduleTask(this.task, {interval: 1000}, takeLeadingCustom);
 
 ```
 You must include redux-saga into your project and import **scheduleTask** and **cancelTask** from proxily/sagas
+# Transactions
+### Overview
+A Transaction creates a forked environment in which updates are made.  You may then commit the forked environment which makes the updates visible outside of the transaction or roll them back.  This allows you to "cancel" changes without necessarily losing other asynchronous updates such as those that are streamed from a server.
+
+When you create a transaction you get a new proxy and as you navigate through the data in that proxy the references you get are also part of the transaction.  Any code or component holding references to the original proxy will not see your updates until you commit them.  This is essentially the same paradighm that a database uses to control the updating of data.
+
+In addition to being able to roll back you can also "undo" each update or creation roll-back points to roll back to a particular point in the transaction.  Proxily tracks Updates based on calls to functions which are proxied.  Only the outer call is considered and "update" such that you never end up with intermediate states which could be invalid.
+
+When running in debug with the redux devtools extension, your main environment is also a transaction and Proxily will create roll-back points for every outer method call which corresponds to actions.  You can then time-travel using the tool to place your application in any previous state.
+
+### Use Cases
+Forking the stat is not a common feature of state management libraries so here are a few common use cases where it can simplify applications and provide features that are otherwise hard to implement:
+
+* ***Asynchronous updates*** - Often server updates take several calls before a complete set of data is available.  Rather than putting intermediate data in the store which can impact integrity most applications will store up the results and then update the state when all calls have succeded. Forking the state allows the state to be updated as the call results are received.  If an operation fails both the saga controlling the server interaction and the partial updates to state can be rolled back.
+  
+* ***Complex User Interactions*** - Sometimes a user interface requires a series of steps to complete.  Rather than updating the state at each step which is the simplist solution, components often store intermediate state locally until the steps are complete. With state forking the application doesn't need to worry about this and can use the normal process for updating the pieces of the state as the user goes along, knowing that the updates won't be visibile until the end. Examples might include:
+  * Modal dialogs that implement a cancel / OK button
+  * Creating a new chat message which must have a recipient, subject and text to be complete
+  * Filling out a form where there are required fields
+    
+* ***Undo/Redo*** - Some user interfaces require and undo/redo button.  While other libraries allow for this what Proxily can do is to limit the scope of the undo/redo to a single subject area using transactions.  Undoing an operation would not, for example, undo any data recieved from the server during the course of user interaction
+
+### Creating a Transaction
+
+A transaction is created by creating a new proxy for the root of the state where you want to begin forking the state.  This is usually the part(s) of the state graph that pertain to the specific update.  It is important that all proxy references are either references stemming from that proxy or created explicity to be part of that transaction.
+```
+function updatePrimaryAddress () {
+
+const [updateAddress] = useState(new Transaction());
+const {phones} = useProxy(customer, updateAddress);
+const phone = phones.find(a = a.type === 'primary');
+
+return (
+    <input type="text" value={phone.number} onChange={(data) => phone.updateNumber(data)} />
+    {phone.isValid ? 
+        <button label="update" onPress=updateAddress.commit() />
+    }
+)
+
+```
+Here we create the transaction and incorporate it into our proxy.  Because phone is derived from phone which is derived from customer, the proxy for phone will also be part of the transaction.  Once the isValid getter returns true, the phone number transaction can be committed.
 # Design Goals
 
 ### Similarities to MobX
