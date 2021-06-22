@@ -283,7 +283,7 @@ A Transaction creates a forked environment in which updates are made.  You may t
 
 When you create a transaction you get a new proxy and as you navigate through the data in that proxy the references you get are also part of the transaction.  Any code or component holding references to the original proxy will not see your updates until you commit them.  This is essentially the same paradigm that a database uses to control the updating of data.
 
-In addition to being able to roll back you can also "undo" each update or roll-back or roll-forward to a particular point in the transaction.  Proxily tracks Updates based on calls to functions which are proxied.  Only the outer calls are considered to be an "updates".  This way you never end up with roll-back points that represent invalid intermediate states.
+In addition to being able to roll back you can also "undo" each update or roll-back or roll-forward to a particular point in the transaction.  Proxily tracks state updates based on calls to functions which are proxied.  Only the outer calls are considered to be an update.  This way you never end up with roll-back points that represent invalid intermediate states.
 
 When running in debug with the redux devtools extension, your main environment is also a transaction and Proxily will create roll-back points for every outer method call which corresponds to actions.  You can then time-travel using the redux dev tools to place your application in any previous state.
 
