@@ -1,4 +1,4 @@
-import {ConnectedProxy, ProxyWrapper} from "./ProxyWrapper";
+import {ProxyTarget, Target} from "./proxyObserve";
 import {log, logLevel} from "./log";
 export let currentContext : ObservationContext | undefined = undefined;
 export let currentSelectorContext : ObservationContext | undefined = undefined;
@@ -8,59 +8,60 @@ export function setCurrentSelectorContext (currentSelectorContextIn : Observatio
 export function setCurrentContext (currentContextIn : ObservationContext | undefined) {
     currentContext = currentContextIn;
 }
+
 export class ObservationContext {
     constructor(onChange : (target : string, prop : string) => void) {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         this.onChange = onChange;
     }
     onChange : (target : string, prop : string) => void | undefined;
-    connectedProxies : Map<ProxyWrapper, ConnectedProxy> = new Map();
-    proxy : ProxyWrapper | undefined;
+    connectedProxyTargets : Map<ProxyTarget, {[index: string] : boolean}> = new Map();
+    target : Target | undefined;
 
-    changed(proxy: ProxyWrapper, target : string, prop : string) {
-        const connectedProxy = this.connectedProxies.get(proxy);
+    changed(proxyTarget : ProxyTarget, prop : string) {
+        const connectedProxy = this.connectedProxyTargets.get(proxyTarget);
         if (connectedProxy)
-            if (connectedProxy.referencedProps[prop as any] || connectedProxy.referencedProps['*']) {
-                if(logLevel.render) log(`${target}.${prop} forced re-render`);
-                this.onChange(target, prop);
+            if (connectedProxy[prop] || connectedProxy['*']) {
+                if(logLevel.render) log(`${proxyTarget}.${prop} forced re-render`);
+                this.onChange(proxyTarget.__target__.constructor ? proxyTarget.__target__.constructor.name :  "anonymous", prop);
             }
     };
-    referenced(proxy : ProxyWrapper, prop : string) {
-        const connectedProxy = this.connectedProxies.get(proxy)
+    referenced(proxyTarget : ProxyTarget, prop : string) {
+        const connectedProxy = this.connectedProxyTargets.get(proxyTarget)
         if (connectedProxy)
-            connectedProxy.referencedProps[prop] = true;
+            connectedProxy[prop] = true;
     };
-    connect (proxy : ProxyWrapper) {
-        this.connectedProxies.set(proxy, {proxy: proxy, referencedProps: {}});
+    connect (proxyTarget : ProxyTarget) {
+        this.connectedProxyTargets.set(proxyTarget, {});
     }
-    disconnect (proxy: ProxyWrapper) {
-        this.connectedProxies.delete(proxy);
+    disconnect (proxyTarget: ProxyTarget) {
+        this.connectedProxyTargets.delete(proxyTarget);
     }
     cleanup () {
         // Allow Context to be garbage collected
-        this.connectedProxies.forEach(connectedProxy => {
-            if (connectedProxy.proxy.__contexts__.get(this))
-                connectedProxy.proxy.__contexts__.delete(this)
+        this.connectedProxyTargets.forEach((_crap, proxyTarget) => {
+            if (proxyTarget.__target__.__contexts__.get(this))
+                proxyTarget.__target__.__contexts__.delete(this)
         });
-        this.connectedProxies = new Map();
+        this.connectedProxyTargets = new Map();
     }
 
 }
 /*
 Connect this proxyWrapper to the current context (in an observer).
  */
-export function ConnectContext (proxy : ProxyWrapper, context? : ObservationContext) {
-    if(currentContext && !proxy.__contexts__.has(currentContext)) {
-        proxy.__contexts__.set(currentContext, currentContext);
-        currentContext.connect(proxy);
+export function connectToContext (proxyTarget : ProxyTarget, context? : ObservationContext) {
+    if(currentContext && !proxyTarget.__target__.__contexts__.has(currentContext)) {
+        proxyTarget.__target__.__contexts__.set(currentContext, currentContext);
+        currentContext.connect(proxyTarget);
     }
-    if(currentSelectorContext && !proxy.__contexts__.has(currentSelectorContext)) {
-        proxy.__contexts__.set(currentSelectorContext, currentSelectorContext);
-        currentSelectorContext.connect(proxy);
+    if(currentSelectorContext && !proxyTarget.__target__.__contexts__.has(currentSelectorContext)) {
+        proxyTarget.__target__.__contexts__.set(currentSelectorContext, currentSelectorContext);
+        currentSelectorContext.connect(proxyTarget);
     }
-    if(context && !proxy.__contexts__.has(context)) {
-        proxy.__contexts__.set(context, context);
-        context.connect(proxy);
+    if(context && !proxyTarget.__target__.__contexts__.has(context)) {
+        proxyTarget.__target__.__contexts__.set(context, context);
+        context.connect(proxyTarget);
     }
 }
 

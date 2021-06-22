@@ -1,7 +1,7 @@
 
 import {log, logLevel} from "../log";
-import {proxies, Target} from "../ProxyWrapper";
-import {DataChanged, proxyMissing} from "./proxyCommon";
+import {isInternalProperty, Target} from "../proxyObserve";
+import {DataChanged} from "./proxyCommon";
 
 
 export const proxyHandlerDate = {
@@ -11,8 +11,8 @@ export const proxyHandlerDate = {
         // Only way to get a reference to the object being proxied
         if (prop === '__target__')
             return target;
-
-        const proxyWrapper = proxies.get(target) || proxyMissing(target, prop);
+        if (isInternalProperty(prop))
+            return Reflect.get(target, prop, target);
 
         const targetValue = Reflect.get(target, prop, target);
         if (typeof targetValue !== "function")
@@ -21,7 +21,7 @@ export const proxyHandlerDate = {
         if(logLevel.propertyReference) log(`${target.constructor.name}.${prop} referenced`);
 
         if (prop.match(/^set/)) {
-            DataChanged(proxyWrapper, prop);
+            DataChanged(target, prop);
         }
         return targetValue.bind(target);
     }

@@ -1,12 +1,11 @@
 import {createMemoization, isMemoized} from "../memoize";
 import {log, logLevel} from "../log";
-import {makeProxy, proxies, Target} from "../ProxyWrapper";
+import {isInternalProperty, ProxyTarget, Target} from "../proxyObserve";
 import {
-    DataChanged, deProxy,
+    DataChanged,
     getterProps,
     propertyReferenced,
-    proxyMissing,
-    updateObjectReference
+    propertyUpdated
 } from "./proxyCommon";
 export const proxyHandler = {
 
@@ -15,69 +14,56 @@ export const proxyHandler = {
         // Only way to get a reference to the object being proxied
         if (prop === '__target__')
             return target;
+        if (isInternalProperty(prop))
+            return Reflect.get(target, prop, target);
 
-        // Find proxyWrapper via WeakMap.  It should always be there
-        const proxyWrapper = proxies.get(target) || proxyMissing(target, prop) ;
         if(logLevel.propertyReference) log(`${target.constructor.name}.${prop} referenced`);
 
         // Handle case of getter which may need to be memoized
         const props : any = getterProps(target, prop);
         if (props) {
             if (isMemoized(prop, target)) {
-                const memo = createMemoization(prop, target, proxyWrapper, props.get);
+                const memo = createMemoization(prop, target, props.get);
                 return memo.getValue([]);
             } else
                 Reflect.get(target, prop, receiver);
         }
 
         // If referencing an object that is not proxied proxy it and keep on the side for serving up
-        let value : any = proxyWrapper.__references__.get(prop) || Reflect.get(target, prop, target);
-        if (typeof value === "object") {
-            value = makeProxy(value,  prop, proxyWrapper);
-        } else if (typeof value === "function") {
+        let value : any = Reflect.get(target, prop, target);
+
+        if (typeof value === "function") {
             if (isMemoized(prop, target)) {
-                const memo = createMemoization(prop, target, proxyWrapper, value)
+                const memo = createMemoization(prop, target, value)
                 if (!memo.closureFunction)
                     memo.closureFunction = (function MemoClosure (...args : any) {
                         return memo.getValue(args);
                     });
                 return memo.closureFunction;
             } else
-                return value.bind(proxyWrapper.__proxy__);
-        }
-        propertyReferenced(proxyWrapper, prop);
-        return value;
-
+                return value.bind(target.__proxy__);
+        } else
+            return propertyReferenced(target, prop, value, (value : ProxyTarget) => Reflect.set(target, prop, value));
     },
 
     set(target : Target, key: string, value: any): boolean {
 
-        const proxyWrapper = proxies.get(target) || proxyMissing(target, key);
         if(logLevel.propertyChange) log(`${target.constructor.name}.${key} changed`);
 
-        // Maintain proxyWrapper reference structure
-        updateObjectReference(proxyWrapper, key, value)
-
-        // Change the value in the target
-        const ret = Reflect.set(target, key, deProxy(value));
-
-        // Notify referencing object that referenced property has changed
-        DataChanged(proxyWrapper, key);
+        value = propertyUpdated(target, key, value, Reflect.get(target, key, target))
+        const ret = Reflect.set(target, key, value);
+        DataChanged(target, key);
 
         return ret;
     },
 
-    deleteProperty(target : Target, prop: string): boolean {
+    deleteProperty(target : Target, prop: any): boolean {
 
-        const proxyWrapper = proxies.get(target) || proxyMissing(target, prop);
         if(logLevel.propertyChange) log(`${target.constructor.name}.${prop} deleted`);
 
-        updateObjectReference(proxyWrapper, prop);
-
+        propertyUpdated(target,  prop, undefined, Reflect.get(target, prop, target));
         const ret = Reflect.deleteProperty(target, prop);
-
-        // Notify referencing object that referenced property has changed
-        DataChanged(proxyWrapper, prop);
+        DataChanged(target, prop);
 
         return ret;
     }

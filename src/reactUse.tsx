@@ -1,8 +1,8 @@
-import {makeProxy, Target, proxies} from "./ProxyWrapper";
-import {currentContext, ObservationContext, setCurrentContext} from "./ObservationContext";
+import {Target,ProxyOrTarget} from "./proxyObserve";
+import {connectToContext, currentContext, ObservationContext, setCurrentContext} from "./ObservationContext";
 import {log, logLevel} from "./log";
 import {useEffect, useRef, useState} from "react";
-import {lastReference} from "./proxy/proxyCommon";
+import {lastReference, makeProxy} from "./proxy/proxyCommon";
 
 export function useProxyContext<A>(apiIn: any, callback : (api: A) => void) {
     const api = useProxy<A>(apiIn);
@@ -13,19 +13,20 @@ export function useProxyContext<A>(apiIn: any, callback : (api: A) => void) {
 
 export function useProp<S>(referenceProp: (() => S)) : [S, (value: S) => void] {
     createContext();
+    lastReference.clear();
     const value = referenceProp();
-    const {proxyWrapper, prop} = lastReference;
-    if (proxyWrapper  === undefined || !proxyWrapper.__contexts__)
-        throw new Error("Improper useProp reference - is reference a proxy retruned from useProxy?");
+    const {target, prop} = lastReference;
+    if (!target)
+        throw new Error("Improper useProp reference - is reference a proxy returned from useProxy?");
     if (currentContext) {
-        proxyWrapper.__contexts__.set(currentContext, currentContext);
-        currentContext.connect(proxyWrapper);
-        currentContext.referenced(proxyWrapper, prop);
+        target.__contexts__.set(currentContext, currentContext);
+        currentContext.connect(target.__proxy__);
+        currentContext.referenced(target.__proxy__, prop);
     }
     lastReference.clear();
     return [
         value as S,
-        (value : any) => Reflect.set(proxyWrapper.__proxy__, prop, value)
+        (value : any) => Reflect.set(target.__proxy__, prop, value)
     ];
 }
 
@@ -35,10 +36,8 @@ export function useProxy<A>(targetIn: A) : A {
     if(logLevel.useProxy) log(`useCAPI ${target.constructor.name}`);
 
     const context = createContext();
-    const proxy =  makeProxy(target);
-    if (!context.proxy)
-        context.proxy = proxies.get(targetIn as unknown as Target);
-
+    const proxy =  makeProxy(target as unknown as ProxyOrTarget);
+    connectToContext(proxy, context);
     return proxy as unknown as A;
 }
 function createContext() : ObservationContext {
