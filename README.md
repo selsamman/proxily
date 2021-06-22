@@ -310,7 +310,7 @@ The differences are:
 ### Summary
 We build on the shoulders of giants. Redux and MobX are both very effective mechanisms for reacting to state changes.  With Redux, you can setup your parent component to reference objects that can then be passed into sub-components without them having to be redux-specific.  With MobX you really need to have sub-components be observable since higher level components will only re-render when properties they reference change.
 
-Proxily is an attempt to reproduce that more liberal reaction paradigm where children impact their parents but without the need for reducers or prescriptions on the structure of your data or patterns for updating it.  In fact Proxily goes further than MobX an make no assumptions about your data other than that the highest level must be via a proxy.  Proxily will never modify your data and does its job entirely through ES6 proxies.
+Proxily is an attempt to reproduce that more liberal reaction paradigm where children impact their parents but without the need for reducers or prescriptions on the structure of your data or patterns for updating it.  In fact Proxily goes further than MobX an make no assumptions about your data other than that the highest level must be via a proxy.  
 
 In short the main goal of proxily is to allow parts of your application to have know knowledge of the fact that they are part of a react-app.  This permits external data structures or pre-existing code to co-exist with react.  The pattern you use is up to you and while we recommend you pick a pattern and stick to it the choice is yours.
 # Roadmap
@@ -319,7 +319,7 @@ Presently Proxily is at the proof of concept phase.  The steps to a production-r
 * [x] Serialization
 * [x] redux-saga integration  
 * [x] Storage integration
-* [ ] Extensive tests for core-functionality
+* [x] Extensive tests for core-functionality
 * [ ] Patterns of Usage Example
 * [ ] Full Documentation
 * [ ] Feedback from community
