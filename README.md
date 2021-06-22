@@ -286,9 +286,9 @@ In addition to being able to roll back you can also "undo" each update or roll-b
 When running in debug with the redux devtools extension, your main environment is also a transaction and Proxily will create roll-back points for every outer method call which corresponds to actions.  You can then time-travel using the redux dev tools to place your application in any previous state.
 
 ### Use Cases
-Forking the stat is not a common feature of state management libraries so here are a few common use cases where it can simplify applications and provide features that are otherwise hard to implement:
+Forking the state is not a common feature of state management libraries.  To understand the benefits, here are a few common use cases:
 
-* ***Asynchronous updates*** - Often server updates take several calls before a complete set of data is available.  Rather than putting intermediate data in the store which can impact integrity most applications will store up the results and then update the state when all calls have succeded. Forking the state allows the state to be updated as the call results are received.  If an operation fails both the saga controlling the server interaction and the partial updates to state can be rolled back.
+* ***Asynchronous updates*** - Often updates from the server take several calls to complete and data is delivered in pieces.  Rather than putting intermediate data in the store which can impact integrity most applications will store up the results and then update the state when all calls have succeeded. Forking the state allows the state to be updated as each call to the server is completed.  If the operation as a whole fails, the saga controlling the server interaction and the partial updates can both be cancelled.
   
 * ***Complex User Interactions*** - Sometimes a user interface requires a series of steps to complete.  Rather than updating the state at each step which is the simplist solution, components often store intermediate state locally until the steps are complete. With state forking the application doesn't need to worry about this and can use the normal process for updating the pieces of the state as the user goes along, knowing that the updates won't be visibile until the end. Examples might include:
   * Modal dialogs that implement a cancel / OK button
@@ -303,9 +303,9 @@ You create a transaction by creating a new proxy for the root of the state where
 ```
 function updatePrimaryAddress () {
 
-const [updateAddress] = useState(new Transaction());
-const {phones} = useProxy(customer, updateAddress);
-const phone = phones.find(a = a.type === 'primary');
+const [updateAddressTxn] = useState(new Transaction());
+const {phones} = useProxy(customer, updateAddressTxn);
+const phone = phones.find(a => a.type === 'primary');
 
 return (
     <input type="text" value={phone.number} onChange={(data) => phone.updateNumber(data)} />
@@ -315,19 +315,19 @@ return (
 )
 
 ```
-Here we create the transaction and incorporate it into our proxy.  Because phone is derived from phone which is derived from customer, the proxy for phone will also be part of the transaction.  Once the isValid getter returns true, the phone number transaction can be committed.
+Here we create the transaction and incorporate it into our proxy.  Because phone is derived from phones which is derived from customer, the proxy for phone will also be part of the transaction.  Once the isValid getter returns true, the phone number transaction can be committed.
 
-Sometimes a transaction may span multiple components.  In that case you can either create the transaction in the highest level component and pass it down via parameters, create proxies for the data the sub-components may consume and pass them down via paramaters or use a Provider for the transaction.
+Sometimes a transaction may span multiple components.  In that case you can either create the transaction in the highest level component and pass it down via parameters, create proxies that already incorporate data consumed by the sub-components and pass them down via paramaters or use a Provider for the transaction.
 
 ### Transaction Object
 
 The transaction objected produced by new Transaction has a number of functions and properties available to it.
-* ***updateSequence*** - An update sequence number representing the current state.  It can be used roll back or forward the transaction to a specific point.  
-* ***rollTo(updateSequence : number)*** - Roll back or forward the transaction to a specific point
-* ***rollback()*** - Roll back the transaction by discarding all changes since the creation or the last rollback
-* ***commit()*** - Commit the changes in the transaction so they are visibile outside of the transaction
-* ***undo()*** - Go back to the previous sequence number that represents the state at the start of a call to the outermost function
-* ***redo()*** - Go forward to the next sequence number that represents the state at the start of a call to the outermost function
+* ***updateSequence*** - An update sequence number representing the current state.  This value can be used to remember a point in time and then you can roll back the state to that point in time using ***rollTo***.  
+* ***rollTo(updateSequence : number)*** - Roll back or forward the transaction to a specific point.
+* ***rollback()*** - Roll back the transaction by discarding all changes since the creation or the last rollback.
+* ***commit()*** - Commit the changes in the transaction so they are visibile outside of the transaction.
+* ***undo()*** - Go back to the previous sequence number that represents the state at the start of a call to the outermost function.
+* ***redo()*** - Go forward to the next sequence number that represents the state at the start of a call to the outermost function.
 
 ### How time positioning in transactions works ###
 
@@ -335,7 +335,7 @@ Time position (undo/redo/rollTo) is implemented by internally creating an array 
 * You reposition again
 * You preform a state update
 
-In the later case the current position becomes the last entry in this array be deleteing all later entires.  Thus if you ***undo*** or ***rollTo** and make further state changes you can can never go further forward in time.
+In the later case the current position becomes the last entry in this array by deleteing all later entires.  Thus if you ***undo*** or ***rollTo** and make further state changes you can can never go further forward in time.
 
 A ***rollback*** does not use the array of undo/redo functions.  Instead it simply updates all the of the target objects to the state of main store.
 
@@ -349,11 +349,9 @@ const txn = new Transaction ({TransactionOptions.TimePostioning: true});
 ```
 ### Update Conflicts ###
 
-When you change the state outside the transaction these changes are visible within the transaction unless you have already updated a property in which case the transaction sees the updated property.  It is up to you to ensure that conflicting changes do not cause a logical inconsistency in the state.  It is therefore recommended to ensure that overlapping parts of the state are not simaltaneously updated inside and outside of the transaction.
+When you change the state outside the transaction these changes are visible within the transaction unless you have already updated a property in which case the transaction sees the updated property.  It is up to you to ensure that conflicting changes do not cause a logical inconsistency in the state.  It is therefore recommended that you ensure that overlapping parts of the state are not simultaneously updated inside and outside of the transaction.
 
-Because proxily applies a very simple update mechansim that uses Object.assign to copying properties back to the original objects when you commit it is possible under some circumstances that the changes stemming from the commit will be moot.  For example if you update the address of a customer that you deleted outside the transaction, the customer will remain deleted even if you commit the changes to update the address.
-
-
+Proxily applies a very simple update mechansim when you commit.  It uses Object.assign to copying properties back to the original objects when you commit.  Therefore it is possible under some circumstances that the changes stemming from the commit will be moot.  For example if you update the address of a customer that you deleted outside the transaction, the customer will remain deleted even if you commit the changes to update the address.
 # Design Goals
 
 ### Similarities to MobX
