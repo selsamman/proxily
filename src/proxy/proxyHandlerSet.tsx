@@ -24,7 +24,7 @@ export const proxyHandlerSet = {
                 proxyAllElements();
                 return (value: any) => {
                     if (typeof value === "object" && value !== null)
-                        value = makeProxy(value);
+                        value = makeProxy(value, target.__transaction__);
                     return targetValue.call(target, value);
                 }
 

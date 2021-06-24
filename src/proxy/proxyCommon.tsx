@@ -5,12 +5,21 @@ import {proxyHandlerSet} from "./proxyHandlerSet";
 import {proxyHandlerDate} from "./proxyHandlerDate";
 import {proxyHandlerArray} from "./proxyHandlerArray";
 import {proxyHandler} from "./proxyHandler";
+import {Transaction} from "../Transaction";
 
-export function makeProxy(proxyOrTarget : ProxyOrTarget) : ProxyTarget {
+export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transaction) : ProxyTarget {
+
+    if (!transaction)
+        transaction = transaction || Transaction.defaultTransaction || Transaction.createDefaultTransaction();
 
     // If we already have proxy return it
-    if (proxyOrTarget.__proxy__)
+    if (proxyOrTarget.__proxy__ && proxyOrTarget.__target__?.__transaction__ === transaction)
         return proxyOrTarget.__proxy__;
+
+    // At this point we have a non-proxied object or proxied object with the wrong transaction
+    // For other than the default transaction we need to create a copy of the target
+    if (transaction !== Transaction.defaultTransaction)
+        proxyOrTarget = Object.create( proxyOrTarget as any);
 
     // Create the proxy with the appropriate handler
     let handler;
@@ -32,6 +41,9 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget) : ProxyTarget {
     target.__memoContexts__ = {};
     target.__proxy__ = proxy;  // Get to a proxy from a target
     target.__referenced__ = false;
+    target.__transaction__ = transaction || Transaction.createDefaultTransaction();
+
+    transaction.addProxy(proxy);
 
     return proxy;
 
@@ -123,7 +135,7 @@ export function propertyUpdated(parentTarget : Target, prop: string, child : any
 
     // Proxify object and update reference in associated proxyWrapper
     if (typeof child === "object" && child !== null) {
-        child = makeProxy(child as unknown as ProxyOrTarget);
+        child = makeProxy(child as unknown as ProxyOrTarget, parentTarget.__transaction__);
         const parentReference = child.__parentReferences__.get(parentTarget);
         if (parentReference) {
             const parentReferenceCount = parentReference[prop];
