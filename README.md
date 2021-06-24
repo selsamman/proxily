@@ -240,7 +240,7 @@ Proxily provides a wrapper around redux-saga that facilitates it's use without a
 * Only one dispatching saga is instantiated for each task/effect combination.  Note that with objects each instance of a task counts as a task.
 * The dispatching saga will run until it is cancelled by calling **cancelTask**
 * The dispatching saga takes from a channel rather than taking an action pattern.
-* After setting up the dispatching saga (if not already running), **shceduleTask** emits to the channel a value that the saga can take and process each time **scheduleTask** is called.
+* After setting up the dispatching saga (if not already running), **scheduleTask** emits to the channel a value that the saga can take and process each time **scheduleTask** is called.
 
 Sagas are object and class friendly because the sagas, which are member functions, are automatically bound by Proxily to their target object.
 ```
