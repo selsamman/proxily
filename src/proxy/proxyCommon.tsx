@@ -13,7 +13,7 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
         transaction = transaction || Transaction.defaultTransaction || Transaction.createDefaultTransaction();
 
     // If we already have proxy return it
-    if (proxyOrTarget.__proxy__ && proxyOrTarget.__target__?.__transaction__ === transaction)
+    if (proxyOrTarget.__proxy__ && (proxyOrTarget as Target).__transaction__ === transaction)
         return proxyOrTarget.__proxy__;
 
     // At this point we have a non-proxied object or proxied object with the wrong transaction
@@ -41,7 +41,7 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     target.__memoContexts__ = {};
     target.__proxy__ = proxy;  // Get to a proxy from a target
     target.__referenced__ = false;
-    target.__transaction__ = transaction || Transaction.createDefaultTransaction();
+    target.__transaction__ = transaction;
 
     transaction.addProxy(proxy);
 

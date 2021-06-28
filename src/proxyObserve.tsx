@@ -53,7 +53,7 @@ export interface ProxyOrTarget {
 }
 export function isInternalProperty (prop : any) {
     return ['__referenced__', '__proxy__', '__target__', '__memoizedProps__', '__contexts__', '__parentReferences__',
-     '__memoContexts'].includes(prop)
+     '__memoContexts__', '__transaction__', '__rootTarget__'].includes(prop)
 }
 
 
