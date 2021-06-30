@@ -70,6 +70,9 @@ export class Transaction {
             }
             recordTimePosition = true;
         }
+        this.recordUndoRedo(undo, redo);
+    }
+    recordUndoRedo(undo : () => void, redo: () => void) {
         this.undoredoIntermediate.push(undo);
         this.undoredoIntermediate.push(redo);
         if (!this.withinProxy)

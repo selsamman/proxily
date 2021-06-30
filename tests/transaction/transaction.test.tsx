@@ -1,6 +1,7 @@
 import {Transaction} from "../../src";
 import {proxy} from "../../src";
 import {Target} from "../../src/proxyObserve";
+import {Leaf} from "../data/classes";
 
 describe("transation unit tests", () => {
 
@@ -66,9 +67,8 @@ describe("transation unit tests", () => {
         transaction.rollTo(end);
         expect(target.prop).toBe("four");
     });
+
     it ("can undo, redo and rollback values using proxy", () => {
-
-
         const transaction = new Transaction({timePositioning: true});
         class Test {
             outerProp : string    = "initial";
@@ -109,4 +109,124 @@ describe("transation unit tests", () => {
         expect(test.outerProp).toBe("change2");
         expect(test.innerProp).toBe("change2");
     });
+
+    it ("can undo, redo and rollTo values using proxy", () => {
+        const transaction = new Transaction({timePositioning: true});
+        class Test {
+            outerProp = {prop: "initial"};
+            innerProp = {prop: "initial"};
+            set (val1 : string, val2: string) {
+                this.outerProp = {prop: "temp"};
+                this.innerSet(val2);
+                this.outerProp = {prop: val1};
+            }
+            innerSet (val : string) {
+                this.innerProp = {prop: val};
+            }
+        }
+        const test = proxy(new Test(), transaction);
+
+        const start = transaction.updateSequence;
+
+        test.set("change1", "change1");
+        test.set("change2", "change2");
+
+        const end = transaction.updateSequence;
+        transaction.undo();
+        expect(test.outerProp.prop).toBe("change1");
+        expect(test.innerProp.prop).toBe("change1");
+        transaction.undo();
+        expect(test.outerProp.prop).toBe("initial");
+        expect(test.innerProp.prop).toBe("initial");
+        transaction.redo();
+        expect(test.outerProp.prop).toBe("change1");
+        expect(test.innerProp.prop).toBe("change1");
+        transaction.redo();
+        expect(test.outerProp.prop).toBe("change2");
+        expect(test.innerProp.prop).toBe("change2");
+        transaction.rollTo(start);
+        expect(test.outerProp.prop).toBe("initial");
+        expect(test.innerProp.prop).toBe("initial");
+        transaction.rollTo(end);
+        expect(test.outerProp.prop).toBe("change2");
+        expect(test.innerProp.prop).toBe("change2");
+    });
+
+    it ("can undo, redo values using proxy array", () => {
+        const transaction = new Transaction({timePositioning: true});
+        class Test {
+            arr = [new Leaf(1), new Leaf(2), new Leaf(3)];
+          }
+        const test = proxy(new Test(), transaction);
+
+        test.arr.sort((a, b) => b.num - a.num);
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(3)
+        expect(test.arr[1].num).toBe(2)
+        expect(test.arr[2].num).toBe(1)
+        transaction.undo();
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(2);
+        expect(test.arr[2].num).toBe(3);
+        transaction.redo();
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(3);
+        expect(test.arr[1].num).toBe(2);
+        expect(test.arr[2].num).toBe(1);
+        transaction.undo();
+
+        test.arr.copyWithin(0,2,3);
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(3);
+        expect(test.arr[1].num).toBe(2);
+        expect(test.arr[2].num).toBe(3);
+        transaction.undo();
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(2);
+        expect(test.arr[2].num).toBe(3);
+        transaction.redo();
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(3);
+        expect(test.arr[1].num).toBe(2);
+        expect(test.arr[2].num).toBe(3);
+        transaction.undo();
+
+        test.arr.splice(0, 1);
+        expect(test.arr.length).toBe(2);
+        expect(test.arr[0].num).toBe(2);
+        expect(test.arr[1].num).toBe(3);
+        transaction.undo();
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(2);
+        expect(test.arr[2].num).toBe(3);
+        transaction.redo();
+        expect(test.arr.length).toBe(2);
+        expect(test.arr[0].num).toBe(2);
+        expect(test.arr[1].num).toBe(3);
+        transaction.undo();
+
+        test.arr.fill(new Leaf(7), 1, 3);
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(7);
+        expect(test.arr[2].num).toBe(7);
+        transaction.undo();
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(2);
+        expect(test.arr[2].num).toBe(3);
+        transaction.redo();
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(7);
+        expect(test.arr[2].num).toBe(7);
+        transaction.undo();
+
+
+
+    });
+
 });

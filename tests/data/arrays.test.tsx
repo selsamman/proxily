@@ -308,10 +308,11 @@ describe("data structure tests: objects", () => {
             const newRoot = new Root();
             const newArray = root.arrayObjectCollection.concat( newRoot.arrayObjectCollection);
             expect(newArray.length).toBe(4);
-            expect(newArray[3]).toBe(proxy(newRoot.arrayObjectCollection[1]));
-            const leaf = proxy(newRoot.arrayObjectCollection[0]) || new Leaf();
-            leaf.num = 5;
-        })).toBe("Root-arrayObjectCollection-2");
+            expect(newArray[0]).toBe(proxy(root.arrayObjectCollection[0]));
+            expect(newArray[3]).toBe(newRoot.arrayObjectCollection[1]);
+            newArray[0].num = 5;
+            newArray[3].num = 5; // not proxied
+        })).toBe("Root-arrayObjectCollection-1");
 
         expect(observeResult(new Root(), (root) => {
             const newArray = root.arrayObjectCollection.map((leaf, ix) => {
