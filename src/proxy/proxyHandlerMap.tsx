@@ -18,34 +18,42 @@ export const proxyHandlerMap = {
             return targetValue;
 
         if(logLevel.propertyReference) log(`${target.constructor.name}.${prop} referenced`);
-
+        const map = target as unknown as Map<any, any>
         switch (prop) {
             case 'get':
                 return (key : any) => propertyReferenced(target, key, targetValue.call(target, key),
-                    (proxy) => (target as unknown as Map<any, any>).set(key, proxy));
+                    (proxy) => map.set(key, proxy));
 
             case 'set':
                 return (key: any, newValue: any) => {
 
-                    newValue = propertyUpdated(target, '*', newValue, (target as unknown as Map<any, any>).get(key));
+                    const oldValue = map.get(key);
+                    newValue = propertyUpdated(target, '*', newValue,oldValue);
 
                     // Change the value in the target
                     targetValue.call(target, key, newValue);
 
                     // Notify referencing object that referenced property has changed
+                    if (target.__transaction__.timePositioning)
+                        target.__transaction__.recordUndoRedo(()=>map.set(key, oldValue), ()=>map.set(key, newValue));
                     DataChanged(target, prop);
                 }
 
             case 'delete':
                 return (key: any) => {
 
-                    propertyUpdated(target, '*', undefined, (target as unknown as Map<any, any>).get(key));
+                    const oldValue = map.get(key);
+                    propertyUpdated(target, '*', undefined, oldValue);
 
                     // Change the value in the target
                     targetValue.call(target, key);
 
+                    if (target.__transaction__.timePositioning)
+                        target.__transaction__.recordUndoRedo(()=>map.set(key, oldValue), ()=>map.delete(key));
+
                     // Notify referencing object that referenced property has changed
                     DataChanged(target, prop);
+
                 }
 
             case Symbol.iterator:

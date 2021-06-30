@@ -302,5 +302,90 @@ describe("transation unit tests", () => {
         transaction.undo();
 
     });
+    it ("can undo, redo values using proxy date", () => {
+        const transaction = new Transaction({timePositioning: true});
+        class Test {
+            date = new Date("2020/01/01");
+        }
+        const test = proxy(new Test(), transaction);
+
+        expect(test.date.getMonth()).toBe(0);
+        test.date.setMonth(-1);
+        expect(test.date.getMonth()).toBe(11);
+        transaction.undo();
+        expect(test.date.getMonth()).toBe(0);
+        transaction.redo();
+        expect(test.date.getMonth()).toBe(11);
+        transaction.undo();
+
+    });
+    it ("can undo, redo values using proxy map", () => {
+        const transaction = new Transaction({timePositioning: true});
+        class Test {
+            map = new Map([[1, new Leaf(1)], [2, new Leaf(2)]]);
+        }
+        const test = proxy(new Test(), transaction);
+        expect(test.map.get(1)?.num).toBe(1);
+        expect(test.map.get(2)?.num).toBe(2);
+
+        test.map.set(2, new Leaf(-2));
+        expect(test.map.size).toBe(2);
+        expect(test.map.get(1)?.num).toBe(1);
+        expect(test.map.get(2)?.num).toBe(-2);
+        transaction.undo();
+        expect(test.map.size).toBe(2);
+        expect(test.map.get(1)?.num).toBe(1);
+        expect(test.map.get(2)?.num).toBe(2);
+        transaction.redo();
+        expect(test.map.size).toBe(2);
+        expect(test.map.get(1)?.num).toBe(1);
+        expect(test.map.get(2)?.num).toBe(-2);
+        transaction.undo();
+
+        test.map.delete(1);
+        expect(test.map.size).toBe(1);
+        expect(test.map.get(1)?.num).toBe(undefined);
+        expect(test.map.get(2)?.num).toBe(2);
+        transaction.undo();
+        expect(test.map.size).toBe(2);
+        expect(test.map.get(1)?.num).toBe(1);
+        expect(test.map.get(2)?.num).toBe(2);
+        transaction.redo();
+        expect(test.map.size).toBe(1);
+        expect(test.map.get(1)?.num).toBe(undefined);
+        expect(test.map.get(2)?.num).toBe(2);
+        transaction.undo();
+    });
+
+    it ("can undo, redo values using proxy set", () => {
+        const transaction = new Transaction({timePositioning: true});
+        const leaf1 = new Leaf(1);
+        const leaf2 = new Leaf(2);
+        const leaf3 = new Leaf(3)
+        class Test {
+            set = new Set([leaf1, leaf2]);
+        }
+        const test = proxy(new Test(), transaction);
+        expect(test.set.has(leaf1)).toBe(true);
+        expect(test.set.has(leaf2)).toBe(true);
+
+        test.set.add(leaf3);
+        expect(test.set.size).toBe(3);
+        expect(test.set.has(leaf1)).toBe(true);
+        expect(test.set.has(leaf2)).toBe(true);
+        expect(test.set.has(leaf3)).toBe(true);
+        transaction.undo();
+        expect(test.set.size).toBe(2);
+        expect(test.set.has(leaf1)).toBe(true);
+        expect(test.set.has(leaf2)).toBe(true);
+        expect(test.set.has(leaf3)).toBe(false);
+        transaction.redo();
+        expect(test.set.size).toBe(3);
+        expect(test.set.has(leaf1)).toBe(true);
+        expect(test.set.has(leaf2)).toBe(true);
+        expect(test.set.has(leaf3)).toBe(true);
+        transaction.undo();
+
+    });
 
 });

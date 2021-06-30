@@ -13,22 +13,22 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
         transaction = transaction || Transaction.defaultTransaction || Transaction.createDefaultTransaction();
 
     // If we already have proxy return it
-    if (proxyOrTarget.__proxy__ && (proxyOrTarget as Target).__transaction__ === transaction)
-        return proxyOrTarget.__proxy__;
-
-    // At this point we have a non-proxied object or proxied object with the wrong transaction
-    // For other than the default transaction we need to create a copy of the target
-    if (transaction !== Transaction.defaultTransaction) {
-        if (proxyOrTarget instanceof Map)
-            proxyOrTarget = new Map(proxyOrTarget as unknown as Map<any, any>) as unknown as ProxyOrTarget;
-        else if (proxyOrTarget instanceof Set)
-            proxyOrTarget = new Set(proxyOrTarget as unknown as Set<any>) as unknown as ProxyOrTarget;
-        else if (proxyOrTarget instanceof Date)
-            proxyOrTarget = new Date(proxyOrTarget) as unknown as ProxyOrTarget;
-        else if (proxyOrTarget instanceof Array)
-            proxyOrTarget = Array.from(proxyOrTarget) as unknown as ProxyOrTarget;
-        else
-            proxyOrTarget = Object.create( proxyOrTarget as any);
+    if (proxyOrTarget.__proxy__)
+        if ((proxyOrTarget as Target).__transaction__ === transaction)
+            return proxyOrTarget.__proxy__;
+        else {
+            // At this point we have a non-proxied object or proxied object with the wrong transaction
+            // For other than the default transaction we need to create a copy of the target
+            if (proxyOrTarget instanceof Map)
+                proxyOrTarget = new Map(proxyOrTarget as unknown as Map<any, any>) as unknown as ProxyOrTarget;
+            else if (proxyOrTarget instanceof Set)
+                proxyOrTarget = new Set(proxyOrTarget as unknown as Set<any>) as unknown as ProxyOrTarget;
+            else if (proxyOrTarget instanceof Date)
+                proxyOrTarget = new Date(proxyOrTarget) as unknown as ProxyOrTarget;
+            else if (proxyOrTarget instanceof Array)
+                proxyOrTarget = Array.from(proxyOrTarget) as unknown as ProxyOrTarget;
+            else
+                proxyOrTarget = Object.create( proxyOrTarget as any);
     }
 
     // Create the proxy with the appropriate handler
