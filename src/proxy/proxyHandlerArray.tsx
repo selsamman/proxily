@@ -97,7 +97,7 @@ export const proxyHandlerArray = {
                         makeProxies(target, args.slice(0, 1));
                         const val =  (target as any)[prop].apply(target, args);
                         if (target.__transaction__.timePositioning)
-                            target.__transaction__.recordUndoRedo( ()=>{for (let ix = 0; ix < args.length; ++ix) arr.pop()}, ()=>arr.push(args))
+                            target.__transaction__.recordUndoRedo( ()=>{for (let ix = 0; ix < args.length; ++ix) arr.pop()}, ()=>arr.push(...args))
                         DataChanged(target, '*');
                         return val;
                     }
@@ -126,10 +126,10 @@ export const proxyHandlerArray = {
 
                 case 'unshift': // Make proxy for new element
                     return (...args : any []) => {
-                        makeProxies(target, args);
+                        makeProxies(target, args.slice(0, 1));
                         const val =  (target as any)[prop].apply(target, args);
                         if (target.__transaction__.timePositioning)
-                            target.__transaction__.recordUndoRedo( ()=>{for (let ix = 0; ix < args.length; ++ix);arr.shift()}, ()=>arr.unshift(args), )
+                            target.__transaction__.recordUndoRedo( ()=>{for (let ix = 0; ix < args.length; ++ix) arr.shift()}, ()=>arr.unshift(...args), )
                         DataChanged(target, '*');
                         return val;
                     }
