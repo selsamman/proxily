@@ -224,9 +224,25 @@ describe("transation unit tests", () => {
         expect(test.arr[1].num).toBe(7);
         expect(test.arr[2].num).toBe(7);
         transaction.undo();
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(2);
+        expect(test.arr[2].num).toBe(3);
 
-
-
+        test.arr.pop();
+        expect(test.arr.length).toBe(2);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(2);
+        transaction.undo();
+        expect(test.arr.length).toBe(3);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(2);
+        expect(test.arr[2].num).toBe(3);
+        transaction.redo();
+        expect(test.arr.length).toBe(2);
+        expect(test.arr[0].num).toBe(1);
+        expect(test.arr[1].num).toBe(2);
+        transaction.undo();
     });
 
 });
