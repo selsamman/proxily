@@ -1,4 +1,5 @@
 import {ProxyTarget, Target} from "./proxyObserve";
+import {makeProxy} from "./proxy/proxyCommon";
 
 export interface TransactionOptions {
     timePositioning: boolean
@@ -134,8 +135,8 @@ export class Transaction {
         if (this === Transaction.defaultTransaction)
             throw new Error(`Attempt to rollback the default transaction`);
         this.proxies.forEach(proxy => {
-            const target = proxy.__target__;
-            const newKeys = Object.getOwnPropertyNames(target);
+            const target = makeProxy(proxy).__target__;
+            const newKeys = Object.keys(target).filter(p => target.hasOwnProperty(p));
             newKeys.forEach(key => delete target[key])
         });
     }
@@ -145,14 +146,14 @@ export class Transaction {
         if (this === Transaction.defaultTransaction)
             throw new Error(`Attempt to commit the default transaction`);
         this.proxies.forEach(proxy => {
-            const target = proxy.__target__;
-            const rootTarget = target.__parentTarget__;
-            const newKeys = Object.getOwnPropertyNames(target);
+            const target = makeProxy(proxy).__target__;
+            const rootProxy = makeProxy(Object.getPrototypeOf(target));
+            const newKeys = Object.keys(target).filter(p => target.hasOwnProperty(p));
             newKeys.forEach(key => {
                 if (target[key] === undefined)
-                    delete rootTarget[key];
+                    delete rootProxy[key];
                 else
-                    rootTarget[key] = target[key];
+                    rootProxy[key] = target[key];
             });
         });
     }
