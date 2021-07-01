@@ -73,3 +73,51 @@ describe("transation unit tests plane objects", () => {
         )).toBe("--0");
     });
 });
+describe("transation unit tests arrays", () => {
+
+    it ("can isolate changes", () => {
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                const transaction = new Transaction();
+                const tRoot = proxy(root, transaction)
+                tRoot.arrayObjectCollection[0].str = "Foo";
+                root.arrayObjectCollection[1].str = "Foo";
+                expect(root.arrayObjectCollection[0].str).toBe("foo");
+                expect(tRoot.arrayObjectCollection[1].str).toBe("Foo");
+            }
+        )).toBe("Root-arrayObjectCollection-1");
+    });
+    it ("can commit changes", () => {
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                const transaction = new Transaction();
+                const tRoot = proxy(root, transaction)
+                tRoot.arrayObjectCollection[0].str = "Foo";
+                root.arrayObjectCollection[1].str = "Foo";
+                expect(root.arrayObjectCollection[0].str).toBe("foo");
+                expect(tRoot.arrayObjectCollection[1].str).toBe("Foo");
+                transaction.commit();
+                expect(root.arrayObjectCollection[0].str).toBe("Foo");
+                expect(root.arrayObjectCollection[1].str).toBe("Foo");
+                expect(tRoot.arrayObjectCollection[0].str).toBe("Foo");
+                expect(tRoot.arrayObjectCollection[1].str).toBe("Foo");
+            }
+        )).toBe("Root-arrayObjectCollection-2");
+    });
+
+    it ("can rollback changes", () => {
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                const transaction = new Transaction();
+                const tRoot = proxy(root, transaction)
+                tRoot.arrayObjectCollection[0].str = "Foo";
+                expect(tRoot.arrayObjectCollection[0].str).toBe("Foo");
+                transaction.rollback();
+                expect(tRoot.arrayObjectCollection[0].str).toBe("foo");
+            }
+        )).toBe("--0");
+    });
+});

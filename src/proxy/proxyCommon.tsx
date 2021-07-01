@@ -57,7 +57,8 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     Object.defineProperty(target, '__referenced__', {writable: true, enumerable: false, value: false});
     Object.defineProperty(target, '__transaction__', {writable: true, enumerable: false, value: transaction});
 
-    transaction.addProxy(proxy);
+    if (handler === proxyHandler)
+        transaction.addProxy(proxy);
 
     return proxy;
 
