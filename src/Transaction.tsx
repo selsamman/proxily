@@ -1,17 +1,16 @@
 import {ProxyTarget, Target} from "./proxyObserve";
-import {makeProxy} from "./proxy/proxyCommon";
 
 export interface TransactionOptions {
     timePositioning: boolean
 }
 let recordTimePosition = true;
+
 export class Transaction {
 
     constructor(options? : TransactionOptions) {
         if (options)
             this.options = options;
-
-    }
+     }
 
     static defaultTransaction : Transaction | undefined;
     static defaultTransactionOptions : Partial<TransactionOptions> = {};
@@ -25,7 +24,7 @@ export class Transaction {
 
     // Private data
     private options: Partial<TransactionOptions> = {};
-    private proxies : Map<ProxyTarget, ProxyTarget> = new Map();
+    private proxies : Map<ProxyTarget, Set<any>> = new Map();
     private undoredo: Array<Array<() => void>> = [];
     private _updateSequence = -1;
     private undoredoIntermediate : Array<() => void> = [];
@@ -35,12 +34,16 @@ export class Transaction {
     get timePositioning () {
         return this.options.timePositioning;
     }
+
+
     withinProxy = false;
     withinUndoRedo = false;
+
     startTopLevelCall () {
         this.undoredoIntermediate = [];
         this.withinProxy = true;
     }
+
     endTopLevelCall () {
         if (this.undoredoIntermediate.length > 0)
             this.addPosition(this.undoredoIntermediate);
@@ -49,19 +52,17 @@ export class Transaction {
     }
 
     recordTimePosition(target : Target, key : any, oldValue: any, newValue : any) {
-
         if (!recordTimePosition || !this.timePositioning)
             return;
-
         function undo () {
             target[key] = oldValue;
         }
-
         function redo () {
             target[key] = newValue
         }
         this.recordUndoRedo(undo, redo);
     }
+
     recordUndoRedo(undo : () => void, redo: () => void) {
         if (!this.withinUndoRedo) {
             this.undoredoIntermediate.push(undo);
@@ -127,34 +128,58 @@ export class Transaction {
     // Add a new proxy to this transaction
     addProxy (proxy : ProxyTarget) {
         if (this !== Transaction.defaultTransaction)
-            this.proxies.set(proxy, proxy);
+            this.proxies.set(proxy, new Set());
     }
 
+    setDirty (proxy : ProxyTarget, key : any) {
+        if (this !== Transaction.defaultTransaction) {
+            const keys = this.proxies.get(proxy);
+            if (keys)
+                keys.add(key);
+        }
+    }
+/*
     // Rollback changes by deleteing own properties of target restoring it to the base
     rollback () {
         if (this === Transaction.defaultTransaction)
             throw new Error(`Attempt to rollback the default transaction`);
-        this.proxies.forEach(proxy => {
+        this.proxies.forEach(proxy  => {
             const target = makeProxy(proxy).__target__;
             const newKeys = Object.keys(target).filter(p => target.hasOwnProperty(p));
             newKeys.forEach(key => delete target[key])
         });
     }
-
+*/
     // Rollback changes by deleteing own properties of target restoring it to the base
     commit () {
         if (this === Transaction.defaultTransaction)
             throw new Error(`Attempt to commit the default transaction`);
-        this.proxies.forEach(proxy => {
-            const target = makeProxy(proxy).__target__;
-            const rootProxy = makeProxy(Object.getPrototypeOf(target));
-            const newKeys = Object.keys(target).filter(p => target.hasOwnProperty(p));
-            newKeys.forEach(key => {
-                if (target[key] === undefined)
-                    delete rootProxy[key];
-                else
-                    rootProxy[key] = target[key];
-            });
+        this.proxies.forEach((keys, proxy) => {
+            const rootProxy = proxy.__target__.__parentTarget__.__proxy__;
+            if (keys.size) {
+                if (proxy instanceof Map) {
+                    (rootProxy as unknown as Map<any, any>).clear();
+                    (proxy as unknown as Map<any, any>).forEach( (value, key) =>
+                        (rootProxy.__target__ as unknown as Map<any, any>).set(key, value));
+                } else if (proxy instanceof Set) {
+                    (rootProxy as unknown as Set<any>).clear();
+                    (proxy as unknown as Set<any>).forEach( key =>
+                        (rootProxy.__target__ as unknown as Set<any>).add(key));
+                } else if (proxy instanceof Date)
+                    (rootProxy as unknown as Date).setTime((proxy as unknown as Date).getTime());
+                else if (proxy instanceof Array) {
+                    (rootProxy as unknown as Array<any>).splice(0, (rootProxy as unknown as Array<any>).length);
+                    for (var ix = 0; ix < (proxy as unknown as Array<any>).length; ++ix)
+                        (rootProxy.__target__ as unknown as Array<any>)[ix] = (proxy as unknown as Array<any>)[ix];
+                } else
+                    keys.forEach(key => {
+                        if (proxy[key] === undefined)
+                            delete rootProxy[key];
+                        else
+                            rootProxy[key] = proxy[key];
+
+                    });
+            }
         });
     }
 }

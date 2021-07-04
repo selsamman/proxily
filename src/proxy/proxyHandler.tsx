@@ -97,7 +97,7 @@ export const proxyHandler = {
         const oldValue = Reflect.get(target, key, target);
         propertyUpdated(target,  key, undefined, oldValue);
         let ret;
-        if (target.__transaction__ !== Transaction.defaultTransaction)
+        if (target.__transaction__ === Transaction.defaultTransaction)
             ret = Reflect.deleteProperty(target, key);
         else
             ret = Reflect.set(target, key, undefined);

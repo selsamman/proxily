@@ -36,7 +36,7 @@ export const proxyHandlerMap = {
                     // Notify referencing object that referenced property has changed
                     if (target.__transaction__.timePositioning)
                         target.__transaction__.recordUndoRedo(()=>map.set(key, oldValue), ()=>map.set(key, newValue));
-                    DataChanged(target, prop);
+                    DataChanged(target, key);
                 }
 
             case 'delete':
@@ -59,10 +59,22 @@ export const proxyHandlerMap = {
             case Symbol.iterator:
             case 'forEach':
             case 'entries':
-                if (!target.__referenced__) {
-                    (target as unknown as Map<any, any>).forEach( (childTarget, key) =>
-                        propertyReferenced(target, key, childTarget, (proxy: any) => (target as unknown as Map<any, any>).set(key, proxy)));
-                    target.__referenced__ = true;
+
+                return (...args : any []) => {
+                    if (!target.__referenced__) {
+                        (target as unknown as Map<any, any>).forEach( (childTarget, key) =>
+                            propertyReferenced(target, key, childTarget, (proxy: any) => (target as unknown as Map<any, any>).set(key, proxy)));
+                        target.__referenced__ = true;
+                    }
+                    return (target as any)[prop].apply(target, args);
+                }
+
+            case 'clear':
+
+                return (...args : any []) => {
+                    const val =  (target as any)[prop].apply(target, args);
+                    DataChanged(target, "*");
+                    return val;
                 }
 
             default:

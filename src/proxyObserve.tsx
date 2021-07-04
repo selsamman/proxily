@@ -36,9 +36,9 @@ export function observe<T>(targetIn: T, onChange : (target : string, prop : stri
 // Additional properties on objects being proxied
 export interface Target {
     __transaction__ : Transaction;
-    __parentTarget__ : Target;
     __referenced__ : boolean
     __proxy__ : ProxyTarget
+    __parentTarget__ : Target
     __memoizedProps__ : {[index: string] : boolean};
     __contexts__ : Map<ObservationContext, ObservationContext>;  // A context that can communicate with the component
     __parentReferences__ : Map<Target, { [index: string] : number }>;
@@ -53,7 +53,7 @@ export interface ProxyOrTarget {
 }
 export function isInternalProperty (prop : any) {
     return ['__referenced__', '__proxy__', '__target__', '__memoizedProps__', '__contexts__', '__parentReferences__',
-     '__memoContexts__', '__transaction__', '__rootTarget__'].includes(prop)
+     '__memoContexts__', '__transaction__', '__parentTarget__'].includes(prop)
 }
 
 

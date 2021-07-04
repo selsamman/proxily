@@ -10,11 +10,11 @@ export function setCurrentContext (currentContextIn : ObservationContext | undef
 }
 
 export class ObservationContext {
-    constructor(onChange : (target : string, prop : string) => void) {
+    constructor(onChange : (target : string, prop : string, targetProxy : ProxyTarget) => void) {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         this.onChange = onChange;
     }
-    onChange : (target : string, prop : string) => void | undefined;
+    onChange : (target : string, prop : string, targetProxy : ProxyTarget) => void | undefined;
     connectedProxyTargets : Map<ProxyTarget, {[index: string] : boolean}> = new Map();
     target : Target | undefined;
 
@@ -23,7 +23,7 @@ export class ObservationContext {
         if (connectedProxy)
             if (connectedProxy[prop] || connectedProxy['*']) {
                 if(logLevel.render) log(`${proxyTarget}.${prop} forced re-render`);
-                this.onChange(proxyTarget.__target__.constructor ? proxyTarget.__target__.constructor.name :  "anonymous", prop);
+                this.onChange(proxyTarget.__target__.constructor ? proxyTarget.__target__.constructor.name :  "anonymous", prop, proxyTarget);
             }
     };
     referenced(proxyTarget : ProxyTarget, prop : string) {

@@ -49,11 +49,22 @@ export const proxyHandlerSet = {
             case 'forEach':
             case 'entries':
             case 'values':
-                proxyAllElements();
 
-                return targetValue.bind(target);
+                return (...args : any []) => {
+                    proxyAllElements();
+                    return (target as any)[prop].apply(target, args);
+                }
 
-                default:
+            case 'clear':
+
+                return (...args : any []) => {
+                    const val =  (target as any)[prop].apply(target, args);
+                    DataChanged(target, "*");
+                    return val;
+                }
+
+            default:
+
                 return targetValue.bind(target)
         }
         function proxyAllElements() {

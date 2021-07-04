@@ -22,7 +22,9 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
         proxyOrTarget = proxyOrTarget.__target__ as ProxyOrTarget;
 
     // For other than the default transaction we need to create a copy of the target
+    let parentTarget = undefined;
     if (transaction !== Transaction.defaultTransaction) {
+        parentTarget = proxyOrTarget;
         if (proxyOrTarget instanceof Map)
             proxyOrTarget = new Map(proxyOrTarget as unknown as Map<any, any>) as unknown as ProxyOrTarget;
         else if (proxyOrTarget instanceof Set)
@@ -33,6 +35,7 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
             proxyOrTarget = Array.from(proxyOrTarget) as unknown as ProxyOrTarget;
         else
             proxyOrTarget = Object.create( proxyOrTarget as any);
+
     }
 
     // Create the proxy with the appropriate handler
@@ -56,8 +59,9 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     Object.defineProperty(target, '__proxy__', {writable: true, enumerable: false, value: proxy});  // Get to a proxy from a target
     Object.defineProperty(target, '__referenced__', {writable: true, enumerable: false, value: false});
     Object.defineProperty(target, '__transaction__', {writable: true, enumerable: false, value: transaction});
+    Object.defineProperty(target, '__parentTarget__', {writable: true, enumerable: false, value: parentTarget});
 
-    if (handler === proxyHandler)
+    if (parentTarget)
         transaction.addProxy(proxy);
 
     return proxy;
@@ -70,6 +74,8 @@ export function getterProps(target : Target, prop : string) {
 
 export function DataChanged(target : Target, prop : string) {
     DataChangedInternal(target, prop, new Set());
+    if (target.__transaction__)
+        target.__transaction__.setDirty(target.__proxy__, prop);
 }
 
 export function DataChangedInternal(target : Target, prop : string, history : Set<Target>) {
@@ -99,6 +105,9 @@ export function propertyReferenced(target : Target, prop: any, value: any, sette
     if (typeof value === "object" && value !== null) {
 
         if (!value.__target__  || value.__transaction__ !== target.__transaction__) {
+            // In case target is for a transaction but child is not, first setup reference for default transaction
+            if (target.__parentTarget__)
+                propertyReferenced(target.__parentTarget__, prop, value)
             value = propertyUpdated(target, prop, value as unknown as ProxyOrTarget)
             if (setter)
                 setter(value);
