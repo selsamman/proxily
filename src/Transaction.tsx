@@ -34,6 +34,9 @@ export class Transaction {
     get timePositioning () {
         return this.options.timePositioning;
     }
+    isDefault () {
+        return this === Transaction.defaultTransaction;
+    }
 
 
     withinProxy = false;
@@ -125,37 +128,52 @@ export class Transaction {
             this.undo();
     }
 
-    // Add a new proxy to this transaction
-    addProxy (proxy : ProxyTarget) {
-        if (this !== Transaction.defaultTransaction)
-            this.proxies.set(proxy, new Set());
-    }
-
     setDirty (proxy : ProxyTarget, key : any) {
         if (this !== Transaction.defaultTransaction) {
-            const keys = this.proxies.get(proxy);
-            if (keys)
-                keys.add(key);
+            let keys = this.proxies.get(proxy);
+            if (!keys) {
+                keys = new Set();
+                this.proxies.set(proxy, keys);
+            }
+            keys.add(key);
         }
     }
-/*
     // Rollback changes by deleteing own properties of target restoring it to the base
     rollback () {
         if (this === Transaction.defaultTransaction)
-            throw new Error(`Attempt to rollback the default transaction`);
-        this.proxies.forEach(proxy  => {
-            const target = makeProxy(proxy).__target__;
-            const newKeys = Object.keys(target).filter(p => target.hasOwnProperty(p));
-            newKeys.forEach(key => delete target[key])
+            throw new Error(`Attempt to commit the default transaction`);
+        this.proxies.forEach((keys, proxy) => {
+            const rootProxy = proxy.__target__.__parentTarget__.__proxy__;
+            if (keys.size) {
+                if (proxy instanceof Map) {
+                    (proxy as unknown as Map<any, any>).clear();
+                    (rootProxy as unknown as Map<any, any>).forEach( (value, key) =>
+                        (proxy.__target__ as unknown as Map<any, any>).set(key, value));
+                } else if (proxy instanceof Set) {
+                    (proxy as unknown as Set<any>).clear();
+                    (rootProxy as unknown as Set<any>).forEach( key =>
+                        (proxy.__target__ as unknown as Set<any>).add(key));
+                } else if (rootProxy instanceof Date)
+                    (proxy as unknown as Date).setTime((rootProxy as unknown as Date).getTime());
+                else if (proxy instanceof Array) {
+                    (proxy as unknown as Array<any>).splice(0, (proxy as unknown as Array<any>).length);
+                    for (var ix = 0; ix < (proxy as unknown as Array<any>).length; ++ix)
+                        (proxy.__target__ as unknown as Array<any>)[ix] = (rootProxy as unknown as Array<any>)[ix];
+                } else
+                    keys.forEach(key => {
+                        proxy[key] = rootProxy[key];
+                    });
+            }
         });
+        this.proxies = new Map();
     }
-*/
     // Rollback changes by deleteing own properties of target restoring it to the base
     commit () {
         if (this === Transaction.defaultTransaction)
             throw new Error(`Attempt to commit the default transaction`);
         this.proxies.forEach((keys, proxy) => {
             const rootProxy = proxy.__target__.__parentTarget__.__proxy__;
+            if (!rootProxy) throw new Error("Hissy Fit");
             if (keys.size) {
                 if (proxy instanceof Map) {
                     (rootProxy as unknown as Map<any, any>).clear();
@@ -181,5 +199,6 @@ export class Transaction {
                     });
             }
         });
+        this.proxies = new Map();
     }
 }

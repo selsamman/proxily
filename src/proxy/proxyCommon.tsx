@@ -9,33 +9,34 @@ import {Transaction} from "../Transaction";
 
 export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transaction) : ProxyTarget {
 
+    // No transaction passed?  Make sure we have the default one
     if (!transaction)
         transaction = transaction || Transaction.defaultTransaction || Transaction.createDefaultTransaction();
 
-
-    // If we already have proxy return it
+    // If we already have proxy with correct transaction, return it
     if (proxyOrTarget.__proxy__ && (proxyOrTarget as Target).__transaction__ === transaction)
         return proxyOrTarget.__proxy__;
 
-    // Extract the target in case this is just a proxy with the wrong transaction
-    if (proxyOrTarget.__target__)
-        proxyOrTarget = proxyOrTarget.__target__ as ProxyOrTarget;
+    // Either unproxied or different proxy
 
-    // For other than the default transaction we need to create a copy of the target
-    let parentTarget = undefined;
-    if (transaction !== Transaction.defaultTransaction) {
-        parentTarget = proxyOrTarget;
-        if (proxyOrTarget instanceof Map)
-            proxyOrTarget = new Map(proxyOrTarget as unknown as Map<any, any>) as unknown as ProxyOrTarget;
-        else if (proxyOrTarget instanceof Set)
-            proxyOrTarget = new Set(proxyOrTarget as unknown as Set<any>) as unknown as ProxyOrTarget;
-        else if (proxyOrTarget instanceof Date)
-            proxyOrTarget = new Date(proxyOrTarget) as unknown as ProxyOrTarget;
-        else if (proxyOrTarget instanceof Array)
-            proxyOrTarget = Array.from(proxyOrTarget) as unknown as ProxyOrTarget;
-        else
-            proxyOrTarget = Object.create( proxyOrTarget as any);
+    let target : any =  proxyOrTarget.__target__ || proxyOrTarget;
+    let originalTarget = target;
 
+    // If transactions are different we need to duplicate the object.  This can also be the case where
+    // new objects were added in the course of a commit and are now being referenced on the default transaction
+    if (!transaction.isDefault()) {
+        if (target instanceof Map)
+            target = new Map(target as Map<any, any>);
+        else if (target instanceof Set)
+            target = new Set(target as Set<any>);
+        else if (target instanceof Date)
+            target = new Date(target);
+        else if (target instanceof Array)
+            target = Array.from(target);
+        else {
+            const emptyObject = Object.create(Object.getPrototypeOf(target));
+            target = Object.assign(emptyObject, target);
+        }
     }
 
     // Create the proxy with the appropriate handler
@@ -50,19 +51,18 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
         handler = proxyHandlerArray;
     else
         handler = proxyHandler;
-    const proxy = new Proxy(proxyOrTarget as any, handler) as ProxyTarget;
+    const proxy = new Proxy(target as any, handler) as ProxyTarget;
 
-    const target = proxyOrTarget as unknown as Target;
     Object.defineProperty(target, '__parentReferences__', {writable: true, enumerable: false, value: new Map()});
     Object.defineProperty(target, '__contexts__', {writable: true, enumerable: false, value: new Map()});
     Object.defineProperty(target, '__memoContexts__', {writable: true, enumerable: false, value: {}});
     Object.defineProperty(target, '__proxy__', {writable: true, enumerable: false, value: proxy});  // Get to a proxy from a target
     Object.defineProperty(target, '__referenced__', {writable: true, enumerable: false, value: false});
     Object.defineProperty(target, '__transaction__', {writable: true, enumerable: false, value: transaction});
-    Object.defineProperty(target, '__parentTarget__', {writable: true, enumerable: false, value: parentTarget});
+    Object.defineProperty(target, '__parentTarget__', {writable: true, enumerable: false, value: transaction.isDefault()? null : originalTarget});
 
-    if (parentTarget)
-        transaction.addProxy(proxy);
+    //if (target !== originalTarget && !originalTarget.__transaction__.isDefault())
+    //    originalTarget.__parentTarget__ = target;
 
     return proxy;
 
@@ -105,9 +105,13 @@ export function propertyReferenced(target : Target, prop: any, value: any, sette
     if (typeof value === "object" && value !== null) {
 
         if (!value.__target__  || value.__transaction__ !== target.__transaction__) {
-            // In case target is for a transaction but child is not, first setup reference for default transaction
+            // In case non-default transaction referencing a new child we need to create child on default transaction
             if (target.__parentTarget__)
                 propertyReferenced(target.__parentTarget__, prop, value)
+            else if (value.__parentTarget__) {
+                console.log("some magic");
+                //value = value.__parentTarget__.__proxy__ ||  value.__parentTarget__;
+            }
             value = propertyUpdated(target, prop, value as unknown as ProxyOrTarget)
             if (setter)
                 setter(value);

@@ -42,7 +42,7 @@ describe("transation unit tests plane objects", () => {
             }
         )).toBe("Root-objectSingle-1");
     });
-    /*
+
    it ("can rollback changes", () => {
        expect(observeResult(
            new Root(),
@@ -75,7 +75,7 @@ describe("transation unit tests plane objects", () => {
            }
        )).toBe("--0");
    });
-    */
+
 });
 describe("transation unit tests arrays", () => {
 
@@ -110,7 +110,7 @@ describe("transation unit tests arrays", () => {
             }
         )).toBe("Root-arrayObjectCollection-2");
     });
-/*
+
     it ("can rollback changes", () => {
         expect(observeResult(
             new Root(),
@@ -124,7 +124,7 @@ describe("transation unit tests arrays", () => {
             }
         )).toBe("--0");
     });
- */
+
 });
 
 describe("transation unit tests maps", () => {
@@ -146,19 +146,50 @@ describe("transation unit tests maps", () => {
             new Root(),
             (root) => {
                 const transaction = new Transaction();
-                const tRoot = proxy(root, transaction)
-                tRoot.mapCollection.set('1', new Leaf(99));
-                expect(root.mapCollection.get('1')?.num).toBe(3);
-                expect(tRoot.mapCollection.get('1')?.num).toBe(99);
+                const tRoot = proxy(root, transaction);
+                root.mapCollection.delete('1'); // 1
+
+                // Create new string of objects to hang off txn
+                const newLeaf = new Leaf(99);
+                newLeaf.parent = new Root();
+                newLeaf.parent.objectSingle.num = 98;
+                tRoot.mapCollection.set('1', newLeaf);
+
+                expect(root.mapCollection.get('1')?.num).toBe(undefined);
+
+                transaction.commit(); // 2
+
+                expect(root.mapCollection.get('1')?.parent?.objectSingle.num).toBe(98);
+
+                let rootLeaf = root.mapCollection.get('1');
+                if (rootLeaf) {
+                    rootLeaf.num = 89; // 3
+                    let rootParent = rootLeaf.parent;
+                    if (rootParent)
+                        rootParent.objectSingle.num = 88; // 4
+                }
+
+                expect(root.mapCollection.get('1')?.parent?.objectSingle.num).toBe(88);
+                expect(tRoot.mapCollection.get('1')?.parent?.objectSingle.num).toBe(88);
+
+                let tRootLeaf = tRoot.mapCollection.get('1');
+                if (tRootLeaf) {
+                    tRootLeaf.num = 79; // 4
+                    let tRootParent = tRootLeaf.parent;
+                    if (tRootParent)
+                        tRootParent.objectSingle.num = 78; // 5
+                }
+                expect(root.mapCollection.get('1')?.parent?.objectSingle.num).toBe(88);
+                expect(tRoot.mapCollection.get('1')?.parent?.objectSingle.num).toBe(78);
+
                 transaction.commit();
-                expect(root.mapCollection.get('1')?.num).toBe(99);
-                const leaf = root.mapCollection.get('1');
-                if (leaf)
-                    leaf.num = 88;
+
+                expect(tRoot.mapCollection.get('1')?.parent?.objectSingle.num).toBe(78);
+                expect(root.mapCollection.get('1')?.parent?.objectSingle.num).toBe(78);
             }
-        )).toBe("Root-mapCollection-2");
+        )).toBe("Root-mapCollection-6");
     });
-/*
+
     it ("can rollback changes", () => {
         expect(observeResult(
             new Root(),
@@ -170,11 +201,11 @@ describe("transation unit tests maps", () => {
                 expect(tRoot.mapCollection.get('1')?.num).toBe(99);
                 transaction.rollback();
                 expect(tRoot.mapCollection.get('1')?.num).toBe(3);
-                expect(root.mapCollection.get('1')?.num).toBe(99);
+                expect(root.mapCollection.get('1')?.num).toBe(3);
             }
         )).toBe("--0");
     });
- */
+
 });
 describe("transation unit tests dates", () => {
 
@@ -207,7 +238,7 @@ describe("transation unit tests dates", () => {
             }
         )).toBe("Root-objectSingle-2");
     });
-/*
+
     it ("can rollback changes", () => {
         expect(observeResult(
             new Root(),
@@ -222,8 +253,7 @@ describe("transation unit tests dates", () => {
                 expect(root.objectSingle.date.getMonth()).toBe(0);
                 expect(tRoot.objectSingle.date.getMonth()).toBe(0);
             }
-        )).toBe("--0");
+        )).toBe("Root-objectSingle-1");
     });
- */
 });
 
