@@ -399,13 +399,15 @@ Proxily is an attempt to reproduce that more liberal reaction paradigm where chi
 
 In short the main goal of proxily is to allow parts of your application to have know knowledge of the fact that they are part of a react-app.  This permits external data structures or pre-existing code to co-exist with react.  The pattern you use is up to you and while we recommend you pick a pattern and stick to it the choice is yours.
 # Roadmap
-Presently Proxily is at the proof of concept phase.  The steps to a production-ready library are as follows:
+Presently Proxily is at the stage of functional completeness with good test coverage.  The steps to a production-ready library are as follows:
 * [x] Addition of annotations for memoization
 * [x] Serialization
 * [x] redux-saga integration  
 * [x] Storage integration
-* [ ] Storage integration
+* [x] Transactions & state forking
 * [x] Extensive tests for core-functionality
+* [ ] Sample App
+* [ ] Publish on NPM  
 * [ ] Patterns of Usage Example
 * [ ] Full Documentation
 * [ ] Feedback from community
