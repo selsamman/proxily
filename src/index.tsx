@@ -8,5 +8,5 @@ export {serialize} from "./serialize";
 export {deserialize} from "./deserialize";
 export {persist, migrate, StorageEngine, PersistConfig} from "./storage"
 export {scheduleTask, cancelTask} from "./sagas";
-
+export {Transaction} from "./Transaction";
 

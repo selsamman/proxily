@@ -5,12 +5,40 @@ import {proxyHandlerSet} from "./proxyHandlerSet";
 import {proxyHandlerDate} from "./proxyHandlerDate";
 import {proxyHandlerArray} from "./proxyHandlerArray";
 import {proxyHandler} from "./proxyHandler";
+import {Transaction} from "../Transaction";
 
-export function makeProxy(proxyOrTarget : ProxyOrTarget) : ProxyTarget {
+export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transaction) : ProxyTarget {
 
-    // If we already have proxy return it
-    if (proxyOrTarget.__proxy__)
+    // No transaction passed?  Make sure we have the default one
+    if (!transaction)
+        transaction = transaction || Transaction.defaultTransaction || Transaction.createDefaultTransaction();
+
+    // If we already have proxy with correct transaction, return it
+    if (proxyOrTarget.__proxy__ && (proxyOrTarget as Target).__transaction__ === transaction)
         return proxyOrTarget.__proxy__;
+
+    // Either unproxied or different proxy
+
+    let target : any =  proxyOrTarget.__target__ || proxyOrTarget;
+    let parentTarget = null;
+
+    // If transactions are different we need to duplicate the object.  This can also be the case where
+    // new objects were added in the course of a commit and are now being referenced on the default transaction
+    if (!transaction.isDefault() && proxyOrTarget.__proxy__) {
+        parentTarget = target;
+        if (target instanceof Map)
+            target = new Map(target as Map<any, any>);
+        else if (target instanceof Set)
+            target = new Set(target as Set<any>);
+        else if (target instanceof Date)
+            target = new Date(target);
+        else if (target instanceof Array)
+            target = Array.from(target);
+        else {
+            const emptyObject = Object.create(Object.getPrototypeOf(target));
+            target = Object.assign(emptyObject, target);
+        }
+    }
 
     // Create the proxy with the appropriate handler
     let handler;
@@ -24,14 +52,18 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget) : ProxyTarget {
         handler = proxyHandlerArray;
     else
         handler = proxyHandler;
-    const proxy = new Proxy(proxyOrTarget as any, handler) as ProxyTarget;
+    const proxy = new Proxy(target as any, handler) as ProxyTarget;
 
-    const target = proxyOrTarget as unknown as Target;
-    target.__parentReferences__ = new Map();
-    target.__contexts__ = new Map();
-    target.__memoContexts__ = {};
-    target.__proxy__ = proxy;  // Get to a proxy from a target
-    target.__referenced__ = false;
+    Object.defineProperty(target, '__parentReferences__', {writable: true, enumerable: false, value: new Map()});
+    Object.defineProperty(target, '__contexts__', {writable: true, enumerable: false, value: new Map()});
+    Object.defineProperty(target, '__memoContexts__', {writable: true, enumerable: false, value: {}});
+    Object.defineProperty(target, '__proxy__', {writable: true, enumerable: false, value: proxy});  // Get to a proxy from a target
+    Object.defineProperty(target, '__referenced__', {writable: true, enumerable: false, value: false});
+    Object.defineProperty(target, '__transaction__', {writable: true, enumerable: false, value: transaction});
+    Object.defineProperty(target, '__parentTarget__', {writable: true, enumerable: false, value: parentTarget});
+
+    //if (target !== originalTarget && !originalTarget.__transaction__.isDefault())
+    //    originalTarget.__parentTarget__ = target;
 
     return proxy;
 
@@ -43,6 +75,8 @@ export function getterProps(target : Target, prop : string) {
 
 export function DataChanged(target : Target, prop : string) {
     DataChangedInternal(target, prop, new Set());
+    if (target.__transaction__)
+        target.__transaction__.setDirty(target.__proxy__, prop);
 }
 
 export function DataChangedInternal(target : Target, prop : string, history : Set<Target>) {
@@ -71,7 +105,14 @@ export function propertyReferenced(target : Target, prop: any, value: any, sette
 
     if (typeof value === "object" && value !== null) {
 
-        if (!value.__target__) {
+        if (!value.__target__  || value.__transaction__ !== target.__transaction__) {
+            // In case non-default transaction referencing a new child we need to create child on default transaction
+            if (target.__parentTarget__)
+                propertyReferenced(target.__parentTarget__, prop, value)
+            else if (value.__parentTarget__) {
+                console.log("some magic");
+                //value = value.__parentTarget__.__proxy__ ||  value.__parentTarget__;
+            }
             value = propertyUpdated(target, prop, value as unknown as ProxyOrTarget)
             if (setter)
                 setter(value);
@@ -123,7 +164,7 @@ export function propertyUpdated(parentTarget : Target, prop: string, child : any
 
     // Proxify object and update reference in associated proxyWrapper
     if (typeof child === "object" && child !== null) {
-        child = makeProxy(child as unknown as ProxyOrTarget);
+        child = makeProxy(child as unknown as ProxyOrTarget, parentTarget.__transaction__);
         const parentReference = child.__parentReferences__.get(parentTarget);
         if (parentReference) {
             const parentReferenceCount = parentReference[prop];

@@ -3,11 +3,12 @@ import {ObservationContext, setCurrentContext} from "./ObservationContext";
 import {connectToContext} from "./ObservationContext";
 import {GetterMemo} from "./memoize";
 import {makeProxy} from "./proxy/proxyCommon";
+import {Transaction} from "./Transaction";
 
-export function proxy<A>(targetIn: A) : A {
+export function proxy<A>(targetIn: A, transaction? : Transaction) : A {
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyOrTarget;
-        const proxy =  makeProxy(target)
+        const proxy =  makeProxy(target, transaction)
         connectToContext(proxy);
         return proxy as unknown as A;;
     } else
@@ -34,8 +35,10 @@ export function observe<T>(targetIn: T, onChange : (target : string, prop : stri
 
 // Additional properties on objects being proxied
 export interface Target {
+    __transaction__ : Transaction;
     __referenced__ : boolean
     __proxy__ : ProxyTarget
+    __parentTarget__ : Target
     __memoizedProps__ : {[index: string] : boolean};
     __contexts__ : Map<ObservationContext, ObservationContext>;  // A context that can communicate with the component
     __parentReferences__ : Map<Target, { [index: string] : number }>;
@@ -50,7 +53,7 @@ export interface ProxyOrTarget {
 }
 export function isInternalProperty (prop : any) {
     return ['__referenced__', '__proxy__', '__target__', '__memoizedProps__', '__contexts__', '__parentReferences__',
-     '__memoContexts'].includes(prop)
+     '__memoContexts__', '__transaction__', '__parentTarget__'].includes(prop)
 }
 
 

@@ -153,8 +153,6 @@ class State {
 };
 ```
 # Serialization
-> Note:  Serialization may be moved out of Proxily into it's own library
-
 In the real world state graphs have to be serialized either to kept in local storage or session storage.  With Redux this is straight forward since it used plane old javascript objects that work with JSON.stringify and JSON.parse.  Since Proxily makes it easy to uses classes having a way to serialize them is essential.
 
 There are libraries out there which can help with this like serializr which is often used with MobX.  Supertype, from haven-life also serializes complex objects.  Both require you to describe your schema.  Proxily does not.
@@ -277,6 +275,93 @@ scheduleTask(this.task, {interval: 1000}, takeLeadingCustom);
 
 ```
 You must include redux-saga into your project and import **scheduleTask** and **cancelTask** from proxily/sagas
+# Transactions & State Forking
+### Overview
+A Transaction creates a forked environment in which updates are made.  You may then commit the forked environment which makes the updates visible outside of the transaction or roll them back.  This allows you to "cancel" changes without necessarily losing other asynchronous updates such as those that are streamed from a server.
+
+When you create a transaction you get a new proxy and as you navigate through the data in that proxy the references you get are also part of the transaction.  Any code or component holding references to the original proxy will not see your updates until you commit them.  This is essentially the same paradigm that a database uses to control the updating of data.
+
+In addition to being able to roll back you can also "undo" each update or roll-back or roll-forward to a particular point in the transaction.  Proxily tracks state updates based on calls to functions which are proxied.  Only the outer calls are considered to be an update.  This way you never end up with roll-back points that represent invalid intermediate states.
+
+When running in debug with the redux devtools extension, your main environment is also a transaction and Proxily will create roll-back points for every outer method call which corresponds to actions.  You can then time-travel using the redux dev tools to place your application in any previous state.
+
+### Use Cases
+Forking the state is not a common feature of state management libraries.  To understand the benefits, here are a few common use cases:
+
+* ***Asynchronous updates*** - Often updates from the server take several calls to complete and data is delivered in pieces.  Rather than putting intermediate data in the store which can impact integrity most applications will store up the results and then update the state when all calls have succeeded. Forking the state allows the state to be updated as each call to the server is completed.  If the operation as a whole fails, the saga controlling the server interaction and the partial updates can both be cancelled.
+  
+* ***Complex User Interactions*** - Sometimes a user interface requires a series of steps to complete.  Rather than updating the state at each step which is the simplist solution, components often store intermediate state locally until the steps are complete. With state forking the application doesn't need to worry about this and can use the normal process for updating the pieces of the state as the user goes along, knowing that the updates won't be visibile until the end. Examples might include:
+  * Modal dialogs that implement a cancel / OK button
+  * Creating a new chat message which must have a recipient, subject and text to be complete
+  * Filling out a form where there are required fields
+    
+* ***Undo/Redo*** - Some user interfaces require an undo/redo button.  While other libraries allow for this as well, what Proxily can do is to limit the scope of the undo/redo to a single subject area using transactions.  Undoing an operation would not, for example, undo any data received from the server during the course of user interaction.
+
+### Creating a Transaction
+
+You create a transaction by creating a new proxy for the root of the state where you want to begin forking the state.  This is usually the part(s) of the state graph that pertain to the specific update.  It is important that all proxy references are either references stemming from that proxy or created explicity to be part of that transaction.
+```
+function updatePrimaryAddress () {
+
+const [updateAddressTxn] = useState(new Transaction());
+const {phones} = useProxy(customer, updateAddressTxn);
+const phone = phones.find(a => a.type === 'primary');
+
+return (
+    <input type="text" value={phone.number} onChange={(data) => phone.updateNumber(data)} />
+    {phone.isValid ? 
+        <button label="update" onPress=updateAddress.commit() />
+    }
+)
+
+```
+Here we create the transaction and incorporate it into our proxy.  Because phone is derived from phones which is derived from customer, the proxy for phone will also be part of the transaction.  Once the isValid getter returns true, the phone number transaction can be committed.
+
+Sometimes a transaction may span multiple components.  In that case you can either create the transaction in the highest level component and pass it down via parameters, create proxies that already incorporate data consumed by the sub-components and pass them down via paramaters or use a Provider for the transaction.
+
+### Transaction Object
+
+The transaction objected produced by new Transaction has a number of functions and properties available to it.
+* ***updateSequence*** - An update sequence number representing the current state.  This value can be used to remember a point in time and then you can roll back the state to that point in time using ***rollTo***.  
+* ***rollTo(updateSequence : number)*** - Roll back or forward the transaction to a specific point.
+* ***rollback()*** - Roll back the transaction by discarding all changes since the creation or the last rollback.
+* ***commit()*** - Commit the changes in the transaction so they are visibile outside of the transaction.
+* ***undo()*** - Go back to the previous sequence number that represents the state at the start of a call to the outermost function.
+* ***redo()*** - Go forward to the next sequence number that represents the state at the start of a call to the outermost function.
+* ***canUndo*** - returns true if the undo function can be executed
+* ***canRedo*** - returns true if the redo function can be executed
+
+### How time positioning in transactions works ###
+
+Time position (undo/redo/rollTo) is implemented by internally creating an array of function pairs that can undo/redo each update.  The current position in that array (normally the last entry) is the ***updateSequence** property in the Transaction object.  When you position backwards (undo() or rollback() to a lower number), Proxily executes the functions one at a time until you reach the desired sequence number.  At that point one of two things can happen:
+* You reposition again
+* You preform a state update
+
+In the later case the current position becomes the last entry in this array by deleteing all later entires.  Thus if you ***undo*** or ***rollTo** and make further state changes you can can never go further forward in time.
+
+A ***rollback*** does not use the array of undo/redo functions.  Instead it simply updates all the of the target objects to the state of main store.
+
+### Requesting incremental time positioning
+
+Since implementing the internal undo/redo list has a performance impact on memory it is not turned on by default.  To enable it you create a transaction with TimePositioning as an option:
+```
+import {Transaction, TransactionOptions} from 'proxily';
+
+const txn = new Transaction ({TransactionOptions.TimePostioning: true});
+```
+### Update Anomalies ###
+
+When you commit you override any changes made outside the transaction that are made during the timespan between creating the transaction and commiting.  This applies, however, only to data (objects) that you reference in the transaction.  Therefore we recommend that you ensure that overlapping parts of the state are not simultaneously updated inside and outside of the transaction.
+
+Proxily applies a very simple forking mechanism to transactions.  
+* Proxily makes a copy of each object (using Object.create and Object.assign) as you reference it.  This includes built-ins such as Array, Map, Set and Date.  This copy becomes your new proxy during the course of the transaction.
+* When you commit it copies the data back to the original
+* When you rollback it copies the data from the original to the transaction copy
+  
+While this works in most circumstances there are some anomalies to be aware of:
+* Under some circumstances changes stemming from the commit will be moot.  For example if you update the address of a customer that you deleted outside the transaction, the customer will remain deleted even if you commit the changes to update its address.
+* Since Proxily copes the entirety of an Array, Map, Set and Date objects, any element updated in a transaction will overwrite any other changes in that object made outside of the transaction.
+* Changes made outside the transaction are isolated from the transaction as long they occur after the data has been referenced in the transaction.  This general works well since one usually creates the transaction in the course of the first render.  
 # Design Goals
 
 ### Similarities to MobX
@@ -310,16 +395,19 @@ The differences are:
 ### Summary
 We build on the shoulders of giants. Redux and MobX are both very effective mechanisms for reacting to state changes.  With Redux, you can setup your parent component to reference objects that can then be passed into sub-components without them having to be redux-specific.  With MobX you really need to have sub-components be observable since higher level components will only re-render when properties they reference change.
 
-Proxily is an attempt to reproduce that more liberal reaction paradigm where children impact their parents but without the need for reducers or prescriptions on the structure of your data or patterns for updating it.  In fact Proxily goes further than MobX an make no assumptions about your data other than that the highest level must be via a proxy.  
+Proxily is an attempt to reproduce that more liberal reaction paradigm where children impact their parents.  It does this without the need for reducers or prescriptions on the structure of your data or patterns for updating it.  In fact Proxily goes further than MobX an make no assumptions about your data other than that the highest level must be via a proxy.  Rather than having to annotate the structure of your data, Poxily infers it from how the data is referenced.  The only annotation required is to indicate which functions should be memoized.
 
 In short the main goal of proxily is to allow parts of your application to have know knowledge of the fact that they are part of a react-app.  This permits external data structures or pre-existing code to co-exist with react.  The pattern you use is up to you and while we recommend you pick a pattern and stick to it the choice is yours.
 # Roadmap
-Presently Proxily is at the proof of concept phase.  The steps to a production-ready library are as follows:
+Presently Proxily is at the stage of functional completeness with good test coverage.  The steps to a production-ready library are as follows:
 * [x] Addition of annotations for memoization
 * [x] Serialization
 * [x] redux-saga integration  
 * [x] Storage integration
+* [x] Transactions & state forking
 * [x] Extensive tests for core-functionality
+* [ ] Sample App
+* [ ] Publish on NPM  
 * [ ] Patterns of Usage Example
 * [ ] Full Documentation
 * [ ] Feedback from community

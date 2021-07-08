@@ -17,26 +17,30 @@ export const proxyHandlerSet = {
             return targetValue;
 
         if(logLevel.propertyReference) log(`${target.constructor.name}.${typeof prop === 'string' ? prop : '?'} referenced`);
-
+        const set = target as unknown as Set<any>;
         switch (prop) {
 
             case 'has':
-                proxyAllElements();
                 return (value: any) => {
+                    proxyAllElements();
                     if (typeof value === "object" && value !== null)
-                        value = makeProxy(value);
+                        value = makeProxy(value, target.__transaction__);
                     return targetValue.call(target, value);
                 }
 
             case 'add':
                 return (newValue: any) => {
                     newValue = propertyUpdated(target, '*',  newValue);
+                    if (target.__transaction__.timePositioning)
+                        target.__transaction__.recordUndoRedo(()=>set.delete(newValue), ()=>set.add(newValue));
                     DataChanged(target, prop);
                     return targetValue.call(target, newValue);
                 }
 
             case 'delete':
                 return function (key: any) {
+                    if (target.__transaction__.timePositioning)
+                        target.__transaction__.recordUndoRedo(()=>set.add(key), ()=>set.delete(key));
                     DataChanged(target, key);
                     return  targetValue.call(target, key);
                 }
@@ -45,11 +49,22 @@ export const proxyHandlerSet = {
             case 'forEach':
             case 'entries':
             case 'values':
-                proxyAllElements();
 
-                return targetValue.bind(target);
+                return (...args : any []) => {
+                    proxyAllElements();
+                    return (target as any)[prop].apply(target, args);
+                }
 
-                default:
+            case 'clear':
+
+                return (...args : any []) => {
+                    const val =  (target as any)[prop].apply(target, args);
+                    DataChanged(target, "*");
+                    return val;
+                }
+
+            default:
+
                 return targetValue.bind(target)
         }
         function proxyAllElements() {

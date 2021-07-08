@@ -3,6 +3,7 @@ import {connectToContext, currentContext, ObservationContext, setCurrentContext}
 import {log, logLevel} from "./log";
 import {useEffect, useRef, useState} from "react";
 import {lastReference, makeProxy} from "./proxy/proxyCommon";
+import {Transaction} from "./Transaction";
 
 export function useProxyContext<A>(apiIn: any, callback : (api: A) => void) {
     const api = useProxy<A>(apiIn);
@@ -31,12 +32,12 @@ export function useProp<S>(referenceProp: (() => S)) : [S, (value: S) => void] {
 }
 
 
-export function useProxy<A>(targetIn: A) : A {
+export function useProxy<A>(targetIn: A, transaction? : Transaction) : A {
     const target  = targetIn as unknown as Target;
     if(logLevel.useProxy) log(`useCAPI ${target.constructor.name}`);
 
     const context = createContext();
-    const proxy =  makeProxy(target as unknown as ProxyOrTarget);
+    const proxy =  makeProxy(target as unknown as ProxyOrTarget, transaction);
     connectToContext(proxy, context);
     return proxy as unknown as A;
 }
