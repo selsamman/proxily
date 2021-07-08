@@ -20,11 +20,12 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     // Either unproxied or different proxy
 
     let target : any =  proxyOrTarget.__target__ || proxyOrTarget;
-    let originalTarget = target;
+    let parentTarget = null;
 
     // If transactions are different we need to duplicate the object.  This can also be the case where
     // new objects were added in the course of a commit and are now being referenced on the default transaction
-    if (!transaction.isDefault()) {
+    if (!transaction.isDefault() && proxyOrTarget.__proxy__) {
+        parentTarget = target;
         if (target instanceof Map)
             target = new Map(target as Map<any, any>);
         else if (target instanceof Set)
@@ -59,7 +60,7 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     Object.defineProperty(target, '__proxy__', {writable: true, enumerable: false, value: proxy});  // Get to a proxy from a target
     Object.defineProperty(target, '__referenced__', {writable: true, enumerable: false, value: false});
     Object.defineProperty(target, '__transaction__', {writable: true, enumerable: false, value: transaction});
-    Object.defineProperty(target, '__parentTarget__', {writable: true, enumerable: false, value: transaction.isDefault()? null : originalTarget});
+    Object.defineProperty(target, '__parentTarget__', {writable: true, enumerable: false, value: parentTarget});
 
     //if (target !== originalTarget && !originalTarget.__transaction__.isDefault())
     //    originalTarget.__parentTarget__ = target;

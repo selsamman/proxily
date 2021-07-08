@@ -328,6 +328,8 @@ The transaction objected produced by new Transaction has a number of functions a
 * ***commit()*** - Commit the changes in the transaction so they are visibile outside of the transaction.
 * ***undo()*** - Go back to the previous sequence number that represents the state at the start of a call to the outermost function.
 * ***redo()*** - Go forward to the next sequence number that represents the state at the start of a call to the outermost function.
+* ***canUndo*** - returns true if the undo function can be executed
+* ***canRedo*** - returns true if the redo function can be executed
 
 ### How time positioning in transactions works ###
 
@@ -347,11 +349,19 @@ import {Transaction, TransactionOptions} from 'proxily';
 
 const txn = new Transaction ({TransactionOptions.TimePostioning: true});
 ```
-### Update Conflicts ###
+### Update Anomalies ###
 
-When you change the state outside the transaction these changes are visible within the transaction unless you have already updated a property in which case the transaction sees the updated property.  It is up to you to ensure that conflicting changes do not cause a logical inconsistency in the state.  It is therefore recommended that you ensure that overlapping parts of the state are not simultaneously updated inside and outside of the transaction.
+When you commit you override any changes made outside the transaction that are made during the timespan between creating the transaction and commiting.  This applies, however, only to data (objects) that you reference in the transaction.  Therefore we recommend that you ensure that overlapping parts of the state are not simultaneously updated inside and outside of the transaction.
 
-Proxily applies a very simple update mechansim when you commit.  It uses Object.assign to copying properties back to the original objects when you commit.  Therefore it is possible under some circumstances that the changes stemming from the commit will be moot.  For example if you update the address of a customer that you deleted outside the transaction, the customer will remain deleted even if you commit the changes to update the address.
+Proxily applies a very simple forking mechanism to transactions.  
+* Proxily makes a copy of each object (using Object.create and Object.assign) as you reference it.  This includes built-ins such as Array, Map, Set and Date.  This copy becomes your new proxy during the course of the transaction.
+* When you commit it copies the data back to the original
+* When you rollback it copies the data from the original to the transaction copy
+  
+While this works in most circumstances there are some anomalies to be aware of:
+* Under some circumstances changes stemming from the commit will be moot.  For example if you update the address of a customer that you deleted outside the transaction, the customer will remain deleted even if you commit the changes to update its address.
+* Since Proxily copes the entirety of an Array, Map, Set and Date objects, any element updated in a transaction will overwrite any other changes in that object made outside of the transaction.
+* Changes made outside the transaction are isolated from the transaction as long they occur after the data has been referenced in the transaction.  This general works well since one usually creates the transaction in the course of the first render.  
 # Design Goals
 
 ### Similarities to MobX
@@ -385,7 +395,7 @@ The differences are:
 ### Summary
 We build on the shoulders of giants. Redux and MobX are both very effective mechanisms for reacting to state changes.  With Redux, you can setup your parent component to reference objects that can then be passed into sub-components without them having to be redux-specific.  With MobX you really need to have sub-components be observable since higher level components will only re-render when properties they reference change.
 
-Proxily is an attempt to reproduce that more liberal reaction paradigm where children impact their parents.  It does this without the need for reducers or prescriptions on the structure of your data or patterns for updating it.  In fact Proxily goes further than MobX an make no assumptions about your data other than that the highest level must be via a proxy.  
+Proxily is an attempt to reproduce that more liberal reaction paradigm where children impact their parents.  It does this without the need for reducers or prescriptions on the structure of your data or patterns for updating it.  In fact Proxily goes further than MobX an make no assumptions about your data other than that the highest level must be via a proxy.  Rather than having to annotate the structure of your data, Poxily infers it from how the data is referenced.  The only annotation required is to indicate which functions should be memoized.
 
 In short the main goal of proxily is to allow parts of your application to have know knowledge of the fact that they are part of a react-app.  This permits external data structures or pre-existing code to co-exist with react.  The pattern you use is up to you and while we recommend you pick a pattern and stick to it the choice is yours.
 # Roadmap

@@ -125,31 +125,49 @@ describe("transation unit tests", () => {
             }
         }
         const test = proxy(new Test(), transaction);
-
+        expect(transaction.canUndo).toBe(false);
+        expect(transaction.canRedo).toBe(false);
         const start = transaction.updateSequence;
 
         test.set("change1", "change1");
         test.set("change2", "change2");
 
         const end = transaction.updateSequence;
+        expect(transaction.canUndo).toBe(true);
+        expect(transaction.canRedo).toBe(false);
         transaction.undo();
+        expect(transaction.canUndo).toBe(true);
+        expect(transaction.canRedo).toBe(true);
         expect(test.outerProp.prop).toBe("change1");
         expect(test.innerProp.prop).toBe("change1");
         transaction.undo();
+        expect(transaction.canUndo).toBe(false);
+        expect(transaction.canRedo).toBe(true);
         expect(test.outerProp.prop).toBe("initial");
         expect(test.innerProp.prop).toBe("initial");
         transaction.redo();
+        expect(transaction.canUndo).toBe(true);
+        expect(transaction.canRedo).toBe(true);
         expect(test.outerProp.prop).toBe("change1");
         expect(test.innerProp.prop).toBe("change1");
         transaction.redo();
+        expect(transaction.canUndo).toBe(true);
+        expect(transaction.canRedo).toBe(false);
         expect(test.outerProp.prop).toBe("change2");
         expect(test.innerProp.prop).toBe("change2");
         transaction.rollTo(start);
+        expect(transaction.canUndo).toBe(false);
+        expect(transaction.canRedo).toBe(true);
         expect(test.outerProp.prop).toBe("initial");
         expect(test.innerProp.prop).toBe("initial");
         transaction.rollTo(end);
+        expect(transaction.canUndo).toBe(true);
+        expect(transaction.canRedo).toBe(false);
         expect(test.outerProp.prop).toBe("change2");
         expect(test.innerProp.prop).toBe("change2");
+        transaction.clearUndoRedo();
+        expect(transaction.canUndo).toBe(false);
+        expect(transaction.canRedo).toBe(false);
     });
 
     it ("can undo, redo values using proxy array", () => {

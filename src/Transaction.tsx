@@ -102,6 +102,7 @@ export class Transaction {
             throw new Error(`Cannot undo -  - updateSequence: ${this._updateSequence}`);
         --this._updateSequence;
     }
+    get canUndo () {return !!this.undoredo[this._updateSequence]}
 
     // Redo last state change (if previously undo executed) by executing redos until top level or end reached
     redo () {
@@ -119,6 +120,12 @@ export class Transaction {
         } else
             throw new Error(`Cannot redo -  - updateSequence: ${this._updateSequence}`);
     }
+    get canRedo () {return !!this.undoredo[this._updateSequence + 1]}
+
+    clearUndoRedo () {
+        this.undoredo = new Array<Array<() => void>>();
+        this._updateSequence = -1;
+    }
 
     // Roll to specific sequence by undoing redoing until point reached.
     rollTo(updateSequence : number) {
@@ -128,6 +135,7 @@ export class Transaction {
             this.undo();
     }
 
+    // Used internally to indicate a property of an object has been changed
     setDirty (proxy : ProxyTarget, key : any) {
         if (this !== Transaction.defaultTransaction) {
             let keys = this.proxies.get(proxy);
@@ -166,6 +174,7 @@ export class Transaction {
             }
         });
         this.proxies = new Map();
+        this.clearUndoRedo();
     }
     // Rollback changes by deleteing own properties of target restoring it to the base
     commit () {
@@ -200,5 +209,6 @@ export class Transaction {
             }
         });
         this.proxies = new Map();
+        this.clearUndoRedo();
     }
 }
