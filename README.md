@@ -222,7 +222,7 @@ The first parameter to persist is the intial state which is any structure suppor
 
 The default migration logic will merge initial and persistent states giving preference to the persistent state.  It will merge multiple levels up to but not including properties of built-in objects or Arrays.
 ```
-import {migrate, perist} from 'proxily';
+import {migrate, persist} from 'proxily';
 const stateProxy = persist(state, {classes: [Class1, Class2], migrate: myMigrate});
 function myMigrate (persist, initial) {
     persist.activeWidgetCount = persist.widgets.filter(w => w.active).length
@@ -230,15 +230,36 @@ function myMigrate (persist, initial) {
 }
 ```
 # Sagas
-Asynchronous behavior is an important part of many React applications.  In Redux you have thunks and in Proxily any method can be async and make use of promises.  Sometimes organizing complex behavior can be simplified by using generators and redux-saga has a rich tool-kit for doing so.  Fortunately it can be used without Redux itself using the channel API.
+Asynchronous behavior is an important part of many React applications.  In Redux, you have thunks and in Proxily any method can be async and make use of promises.  Sometimes organizing complex behavior can be simplified by using generators and redux-saga has a rich tool-kit for doing so.  Fortunately it can be used without Redux itself using the channel API.
 
-Proxily provides a wrapper around redux-saga that facilitates it's use without a redux store.  While Redux is based on "listening" for actions, Proxily is oriented towards a top-down call structure where generator tasks are scheduled. **scheduleTask** accomplishes this by:
+Proxily provides a wrapper around redux-saga that facilitates it's use without a redux store.  While Redux is based on "listening" for actions, with Proxily you start with a generator function that can have multiple yields for each asynchronous step of the task.  This represents a type of task that can be scheduled 
+```
+  function *worker({interval, type} : {interval : number, type : string}) {
+      yield delay(interval);
+      // Do something
+  }
+```
+You then schedule an instance of that task
+```
+  scheduleTask(worker, {interval: 150, type: 'A'}, takeEvery);
+```
+The parameters are passed as an object and our received in the task function.
+
+When you schedule it you chose one of the take helpers such as takeEvery, takeLeading, debounce, throttle to indicate how the scheduling should deal with concurrent invocation of the task.  See the redux-saga documentation on how these work in detail.  The high level summary is:
+
+* **takeEvery** - Allow concurrent execution of the task as it scheduled
+* **takeLeading** - Ignore requests to schedule the task while first instance of the task is in process
+* **takeLatest** - Cancel any running task instance of the task when a new instance is scheduled
+* **debounce** - Wait x milliseconds before running ignoring any others scheduled in that interval
+
+**scheduleTask** just uses redux-saga functions to schedule the task by
 * Calling runSaga on a dispatching saga for your task
-* You choose the effect (takeEvery, takeLeading, takeMaybe, debounce, throttle). 
-* Only one dispatching saga is instantiated for each task/effect combination.  Note that with objects each instance of a task counts as a task.
+* The dispatching saga then yields on the helper passing it the generator task itself. 
+* It then yields waiting to be cancelled. 
+* There is one dispatching saga for each generator function and effect combination.
 * The dispatching saga will run until it is cancelled by calling **cancelTask**
 * The dispatching saga takes from a channel rather than taking an action pattern.
-* After setting up the dispatching saga (if not already running), **scheduleTask** emits to the channel a value that the saga can take and process each time **scheduleTask** is called.
+* The dispatching saga uses Channels and EventEmitters to feed the take helper
 
 Sagas are object and class friendly because the sagas, which are member functions, are automatically bound by Proxily to their target object.
 ```
@@ -247,7 +268,7 @@ class Container {
         yield delay(interval);
     }
     invokeTask () {
-        scheduleTask(this.task,{interval: 1000}, takeLeading); //sequentialize
+        scheduleTask(this.task, {interval: 1000}, takeLeading); //sequentialize
     }
 }
 const container = proxy(new Container());
@@ -257,11 +278,11 @@ If using an effect that takes a time parameter like throttle or debounce you can
 ```
 scheduleTask(this.task, {interval: 1000}, debounce, 500);
 ```
-If you wish to cancel a task's dispatching saga you can do so like this:
+You can cancel a task if you don't want it to run for the duration of your application.  You must pass the same take helper since this is used to locate the task:
 ```
  cancelTask(this.task, takeLeading);
 ```
-And if you want a more exotic use of sagas just pass in your own effect.  Here is the example for takeEvery
+And if you want a more exotic use of sagas just pass in your own take effect.  Here is the example for takeEvery
 ```
 const takeLeadingCustom = (patternOrChannel:any, saga:any, ...args:any) => fork(function*() {
     while (true) {
@@ -274,7 +295,7 @@ const takeLeadingCustom = (patternOrChannel:any, saga:any, ...args:any) => fork(
 scheduleTask(this.task, {interval: 1000}, takeLeadingCustom);
 
 ```
-You must include redux-saga into your project and import **scheduleTask** and **cancelTask** from proxily/sagas
+You must add redux-saga to your project and import **scheduleTask** and **cancelTask** from proxily/lib/cjs/sagas.
 # Transactions & State Forking
 ### Overview
 A Transaction creates a forked environment in which updates are made.  You may then commit the forked environment which makes the updates visible outside of the transaction or roll them back.  This allows you to "cancel" changes without necessarily losing other asynchronous updates such as those that are streamed from a server.

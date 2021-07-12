@@ -1,12 +1,13 @@
 import EventEmitter from "events";
-import {EventChannel, Saga} from "redux-saga";
+import {buffers, EventChannel, Saga, Task} from "redux-saga";
 import {eventChannel, runSaga} from "@redux-saga/core";
-import {takeEvery, cancel} from "@redux-saga/core/effects";
+import {takeEvery, cancel, take} from "@redux-saga/core/effects";
 
 const sagaContainers : Map<any, Map<any, SagaContainer>> = new Map();
 interface SagaContainer {
-    task : any,
+    task : Task,
     emitter: EventEmitter
+    cancelEmitter: EventEmitter
 }
 
 /*
@@ -26,35 +27,47 @@ export function scheduleTask<T> (task : (parameter: T)=>void, parameter : T, tak
 export function cancelTask (task : any, taker?: any) : void {
     const sagaContainer = getSagaContainer(task,taker || takeEvery);
     if (sagaContainer) {
-        cancel(sagaContainer.task);
+        sagaContainer.cancelEmitter.emit('call', "cancel");
         sagaContainers.get(task)?.delete(taker || takeEvery);
         if(sagaContainers.get(task)?.size === 0)
             sagaContainers.delete(task);
     }
 }
+
 function getSagaContainer(task : any, taker : any, ...takerArgs : any) {
-    let sagaWorker = sagaContainers.get(task);
+    const taskKey = task.__original__ || task;
+    let sagaWorker = sagaContainers.get(taskKey);
     if (!sagaWorker) {
         sagaWorker = new Map();
-        sagaContainers.set(task, sagaWorker);
+        sagaContainers.set(taskKey, sagaWorker);
     }
     let sagaContainer = sagaWorker.get(taker);
     if (sagaContainer)
         return sagaContainer;
     const emitter = new EventEmitter();
+    const cancelEmitter = new EventEmitter();
+    const options = {
+        channel : eventChannel((emit : any) => {
+            cancelEmitter.on('call', emit);
+            return () => {console.log("channel closed")}
+            }, buffers.fixed(10))
+    };
     sagaContainer = {
         emitter,
-        task: runSaga({}, dispatcher as Saga, emitter, taker, task, ...takerArgs)
+        cancelEmitter,
+        task: runSaga(options, dispatcher as Saga, emitter, options.channel, taker, task, ...takerArgs),
     }
     sagaWorker.set(taker, sagaContainer);
     return sagaContainer;
 }
 
-function* dispatcher(emitter : EventEmitter, taker : any, worker : any, ...takerArgs : any) {
+function* dispatcher(emitter : EventEmitter, cancelChannel : EventChannel<any>, taker : any, worker : any, ...takerArgs : any) : any{
     const channel : EventChannel<any> = yield eventChannel<any>((emit : any) => {
-        emitter.on('call', emit);
-        return () => {console.log("channel closed")}
-    });
-    yield taker(...takerArgs, channel, worker);
+            emitter.on('call', emit);
+            return () => {console.log("channel closed")}
+        }, buffers.fixed(10));
+    const task = yield taker(...takerArgs, channel, worker);
+    yield take(cancelChannel)
+    yield cancel(task);
 }
 

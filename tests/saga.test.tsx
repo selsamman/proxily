@@ -4,29 +4,24 @@ import {
     call,
     takeEvery,
     takeLeading,
+    takeLatest,
     debounce,
     cancelled,
     take,
     fork,
     put
 } from "@redux-saga/core/effects";
-/*
-const takeLeading = (patternOrChannel:any, saga:any, ...args:any) => fork(function*() {
-    while (true) {
-        const action : any = yield take(patternOrChannel);
-        yield call(saga, ...args.concat(action));
-        console.log("foo");
-    }
-})
-*/
+
 import {proxy} from "../src";
 // @ts-ignore
 import EventEmitter from "events";
 import type { EventChannel } from 'redux-saga';
 import type { Saga } from 'redux-saga';
-import {scheduleTask, cancelTask} from "../src";
+import {scheduleTask, cancelTask} from "../src/sagas";
 
-describe("scheduling with redux-saga", () => {
+const wait = (time : number) => new Promise((res : any) =>setTimeout(()=>res(), time));
+
+describe("schedule with redux-saga", () => {
     it("can start a saga via channel", async () => {
         let resolver : any;
         const createSagaIO = (emitter : any) => {
@@ -49,14 +44,14 @@ describe("scheduling with redux-saga", () => {
                 let counter = 0;
                 const id = setInterval(() => {
                     emit(counter++);
-                }, 1000);
+                }, 150);
 
                 return () => clearInterval(id);
             });
         }
 
         function* putReceipt() {
-            yield delay(500);
+            yield delay(200);
             yield put({ type: "RECEIPT" });
         }
 
@@ -69,10 +64,7 @@ describe("scheduling with redux-saga", () => {
 
                     yield fork(putReceipt);
 
-                    const response : unknown = yield take("*") as unknown;
-                    if (response) {
-                        console.log("look im here!", response);
-                    }
+                    yield take("*") as unknown;
                 }
                 resolver();
             } finally {
@@ -81,13 +73,11 @@ describe("scheduling with redux-saga", () => {
                 }
             }
         }
-    console.log("Start");
         const emitter = new EventEmitter();
         await new Promise((resolve) => {
             runSaga(createSagaIO(emitter), someSaga as Saga);
             resolver = resolve;
-        });
-    console.log("End");
+        })
     });
     it("can start a saga and feed it", async () => {
         let resolver : any;
@@ -95,7 +85,6 @@ describe("scheduling with redux-saga", () => {
         const emitter = new EventEmitter();
 
         function* worker(interval : number) {
-            console.log("delaying " + interval);
             yield delay(interval);
             ++count;
             if (count > 1)
@@ -110,29 +99,87 @@ describe("scheduling with redux-saga", () => {
             yield effect(channel, worker);
         }
         runSaga({}, dispatcher as Saga, emitter, takeEvery, worker);
-        emitter.emit('call', 1000);
-        emitter.emit('call', 1000);
+        emitter.emit('call', 150);
+        emitter.emit('call', 150);
         await new Promise((resolve) => {resolver = resolve});
     });
-    it("can start a saga and feed it with API", async () => {
-        let resolver : any;
-        let count = 0;
+});
+describe("It can schedule with Proxily Sagas", () => {
 
-        function* worker(interval : number) {
-            console.log("delaying " + interval);
+    it("debounce", async () => {
+        let trace = "";
+        let elapsed = 0
+        const first = new Date().getTime();
+
+        function *worker({interval, type} : {interval : number, type : string}) {
+                yield delay(interval);
+                trace += type;
+                elapsed = new Date().getTime() - first
+            }
+        scheduleTask(worker,{interval: 50, type: 'A'}, debounce, 50);
+        await wait(10);
+        scheduleTask(worker,{interval: 50, type: 'A'}, debounce, 50);
+        await wait(10);
+        scheduleTask(worker,{interval: 50, type: 'A'}, debounce, 50);
+        await wait(450)
+        expect(trace).toBe("A");
+        console.log(elapsed);
+        expect(elapsed > 0 && elapsed < 200).toBe(true);
+    });
+
+    it("takeEvery", async () => {
+        let trace = "";
+        let elapsed = 0
+        const first = new Date().getTime();
+
+        function *worker({interval, type} : {interval : number, type : string}) {
             yield delay(interval);
-            ++count;
-            if (count > 1)
-                resolver();
+            trace += type;
+            elapsed = new Date().getTime() - first
         }
+        scheduleTask(worker,{interval: 150, type: 'A'}, takeEvery);
+        scheduleTask(worker,{interval: 150, type: 'B'}, takeEvery);
+        scheduleTask(worker,{interval: 150, type: 'C'}, takeEvery);
+        await wait(200)
+        expect(trace).toBe("ABC");
+        console.log(elapsed);
+        expect(elapsed > 0 && elapsed < 200).toBe(true);
+    });
+    it("takeLeading", async () => {
+        let trace = "";
+        let elapsed = 0
+        const first = new Date().getTime();
 
-        console.log("Start");
-        const delay = (time : number) => new Promise((res : any) =>setTimeout(()=>res(), time));
-        scheduleTask(worker,1000, debounce, 500);
-        await delay(600);
-        scheduleTask(worker,1000, debounce, 500);
-        await new Promise((resolve) => {resolver = resolve});
-        console.log("End");
+        function *worker({interval, type} : {interval : number, type : string}) {
+            yield delay(interval);
+            trace += type;
+            elapsed = new Date().getTime() - first
+        }
+        scheduleTask(worker,{interval: 150, type: 'A'}, takeLeading);
+        scheduleTask(worker,{interval: 150, type: 'B'}, takeLeading);  // ignored
+        scheduleTask(worker,{interval: 150, type: 'C'}, takeLeading);  // ignored
+        await wait(200)
+        expect(trace).toBe("A");
+        console.log(elapsed);
+        expect(elapsed > 0 && elapsed < 200).toBe(true);
+    });
+    it("takeLatest", async () => {
+        let trace = "";
+        let elapsed = 0
+        const first = new Date().getTime();
+
+        function *worker({interval, type} : {interval : number, type : string}) {
+            yield delay(interval);
+            trace += type;
+            elapsed = new Date().getTime() - first
+        }
+        scheduleTask(worker,{interval: 150, type: 'A'}, takeLatest);
+        scheduleTask(worker,{interval: 150, type: 'B'}, takeLatest);  // ignored
+        scheduleTask(worker,{interval: 150, type: 'C'}, takeLatest);  // ignored
+        await wait(200)
+        expect(trace).toBe("C");
+        console.log(elapsed);
+        expect(elapsed > 0 && elapsed < 200).toBe(true);
     });
     it("can do it with class", async () => {
         let resolver : any;
@@ -146,7 +193,7 @@ describe("scheduling with redux-saga", () => {
                     resolver();
             }
             invokeWorker () {
-                scheduleTask(this.task,{interval: 1000});
+                scheduleTask(this.task,{interval: 150});
             }
         }
         const container = proxy(new Container());
@@ -155,18 +202,19 @@ describe("scheduling with redux-saga", () => {
         await new Promise((resolve) => {resolver = resolve});
 
     });
-    it("can cancel with class", async () => {
-        let resolver : any;
+    it("can cancel with takeLeading", async () => {
+        let trace = "";
+        let elapsed = 0
+        const first = new Date().getTime();
 
         class Container {
-            *task({interval} : {interval : number}) {
+            *task({interval, type} : {interval : number, type : string}) {
                 yield delay(interval);
-                ++this.count;
-                if (this.count > 1)
-                    resolver();
+                trace += type;
+                elapsed = new Date().getTime() - first
             }
-            doTask () {
-                scheduleTask(this.task,{interval: 1000}, takeLeading);
+            doTask (t : string) {
+                scheduleTask(this.task,{interval: 50, type: t}, takeLeading);
             }
             cancelTask() {
                 cancelTask(this.task, takeLeading);
@@ -174,14 +222,46 @@ describe("scheduling with redux-saga", () => {
             count = 0;
         }
         const container = proxy(new Container());
-        const start = (new Date().getTime());
-        container.doTask();
-        container.doTask();
-        await new Promise((resolve) => {resolver = resolve});
-        const elapsed = (new Date().getTime()) - start;
-        setInterval(() => container.cancelTask(), 800);
-        expect (elapsed >= 800).toBe(true)
+        container.doTask('a');
+        container.doTask('b');
+        setTimeout(() => container.cancelTask(), 75);
+        await wait(200);
+        expect(trace).toBe("a");
+        expect(elapsed > 0 && elapsed < 75).toBe(true);
 
+    });
+    it("can cancel with class and custom taker", async () => {
 
+        let trace = "";
+        let elapsed = 0
+        const first = new Date().getTime();
+
+        const takeLeadingCustom = (patternOrChannel:any, saga:any, ...args:any) => fork(function*() {
+            while (true) {
+                const action : any = yield take(patternOrChannel);
+                yield call(saga, ...args.concat(action));
+            }
+        })
+        class Container {
+            *task({interval, type} : {interval : number, type : string}) {
+                yield delay(interval);
+                trace += type;
+                elapsed = new Date().getTime() - first
+            }
+            doTask (t : string) {
+                scheduleTask(this.task,{interval: 50, type: t}, takeLeadingCustom);
+            }
+            cancelTask() {
+                cancelTask(this.task, takeLeadingCustom);
+            }
+            count = 0;
+        }
+        const container = proxy(new Container());
+        container.doTask('a');
+        container.doTask('b');
+        setTimeout(() => container.cancelTask(), 75);
+        await wait(200);
+        expect(trace).toBe("a");
+        expect(elapsed > 0 && elapsed < 75).toBe(true);
     });
 });

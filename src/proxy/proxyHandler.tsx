@@ -55,7 +55,7 @@ export const proxyHandler = {
                     }
                 }
             } else {
-                return (...args : any) => {
+                const proxyFunction = (...args : any) => {
                     if (callLevel === 0)
                         target.__transaction__.startTopLevelCall();
                     callLevel++
@@ -72,6 +72,8 @@ export const proxyHandler = {
                         throw (e);
                     }
                 }
+                proxyFunction.__original__ = value;
+                return proxyFunction;
             }
         }
         return propertyReferenced(target, prop, value, (value : ProxyTarget) => Reflect.set(target, prop, value));

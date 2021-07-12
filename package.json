@@ -5,7 +5,7 @@
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
   "types": "./lib/esm/index.d.ts",
-  "repository": "https://gitbum.com/selsamman/proxily",
+  "repository": "https://github.com/selsamman/proxily",
   "author": "Sam Elsamman",
   "license": "MIT",
   "devDependencies": {
