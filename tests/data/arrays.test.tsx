@@ -30,13 +30,13 @@ describe("data structure tests: objects", () => {
             expect(root.arrayObjectCollection.some(l => l === leafProxy1)).toBe(true);
 
             expect(root.arrayObjectCollection.includes(leafProxy1)).toBe(true);
-            expect(root.arrayObjectCollection.includes(leaf1)).toBe(false);
+            expect(root.arrayObjectCollection.includes(leaf1)).toBe(true);
 
             expect(root.arrayObjectCollection.indexOf(leafProxy1)).toBe(1);
-            expect(root.arrayObjectCollection.indexOf(leaf1)).toBe(-1);
+            expect(root.arrayObjectCollection.indexOf(leaf1)).toBe(1);
 
             expect(root.arrayObjectCollection.lastIndexOf(leafProxy1)).toBe(1);
-            expect(root.arrayObjectCollection.lastIndexOf(leaf1)).toBe(-1);
+            expect(root.arrayObjectCollection.lastIndexOf(leaf1)).toBe(1);
 
             expect(root.arrayObjectCollection.findIndex(l => l === leafProxy1)).toBe(1);
             expect(root.arrayObjectCollection.findIndex(l => l === leaf1)).toBe(-1);
@@ -48,8 +48,6 @@ describe("data structure tests: objects", () => {
 
         })).toBe("Root-arrayObjectCollection-1");
     });
-
-
 
     // Array.prototype.entries() - Returns a new Array Iterator object that contains the key/value pairs for each index in the array.
     // Array.prototype.values() - Returns a new Array Iterator object that contains the values for each index in the array.
@@ -231,19 +229,27 @@ describe("data structure tests: objects", () => {
 
         expect(observeResult(new Root(), (root) => {
             const leaf = new Leaf();
+            const leaf2 = new Leaf();
             expect(root.arrayObjectCollection.push(leaf)).toBe(3); // 1
-            expect(root.arrayObjectCollection.length).toBe(3);
+            expect(root.arrayObjectCollection.push(leaf2)).toBe(4); // 2
+            expect(root.arrayObjectCollection.length).toBe(4);
             expect(root.arrayObjectCollection[2]).toBe(proxy(leaf));
-            root.arrayObjectCollection[2].num = 5; // leaf an orphan now
-        })).toBe("Root-arrayObjectCollection-2");
+            expect(root.arrayObjectCollection.indexOf(proxy(leaf2))).toBe(3);
+            expect(root.arrayObjectCollection.indexOf(leaf2)).toBe(3);
+            root.arrayObjectCollection[2].num = 5; // 3
+        })).toBe("Root-arrayObjectCollection-3");
 
         expect(observeResult(new Root(), (root) => {
             const leaf = new Leaf();
-            expect(root.arrayObjectCollection.unshift(leaf)).toBe(3); // 1
-            expect(root.arrayObjectCollection.length).toBe(3);
+            const leaf2 = new Leaf();
+            expect(root.arrayObjectCollection.unshift(leaf2)).toBe(3); // 1
+            expect(root.arrayObjectCollection.unshift(leaf)).toBe(4); // 2
+            expect(root.arrayObjectCollection.length).toBe(4);
             expect(root.arrayObjectCollection[0]).toBe(proxy(leaf));
-            root.arrayObjectCollection[0].num = 5; // leaf an orphan now
-        })).toBe("Root-arrayObjectCollection-2");
+            expect(root.arrayObjectCollection.indexOf(proxy(leaf2))).toBe(1);
+            expect(root.arrayObjectCollection.indexOf(leaf2)).toBe(1);
+            root.arrayObjectCollection[0].num = 3; // 3
+        })).toBe("Root-arrayObjectCollection-3");
 
         expect(observeResult(new Root(), (root) => {
             const leaf = new Leaf();

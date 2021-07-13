@@ -1,6 +1,6 @@
 import {log, logLevel} from "../log";
 import {isInternalProperty, Target} from "../proxyObserve";
-import {DataChanged, propertyReferenced, propertyUpdated} from "./proxyCommon";
+import {DataChanged, propertyReferenced, propertyUpdated, makeProxy} from "./proxyCommon";
 import {proxyHandler} from "./proxyHandler";
 
 export const proxyHandlerArray = {
@@ -42,6 +42,27 @@ export const proxyHandlerArray = {
                         const val = (target as any)[prop].apply(target, args);
                         return val;
                     }
+                case 'indexOf':
+                case 'lastIndexOf':
+                case 'includes':
+
+                    return (obj : any) => {
+                        obj = makeProxy(obj, target.__transaction__);
+                        proxyAllElements();
+                        const val = (target as any)[prop].call(target, obj);
+                        return val;
+                    }
+                case 'some':
+                case 'every':
+                case 'find':
+                case 'findIndex':
+                case 'filter':
+
+                    return (callBack : any) => {
+                        proxyAllElements();
+                        const val = (target as any)[prop].call(target, callBack);
+                        return val;
+                    }
                 case 'sort':
 
                     // If this is the first time the array is referenced make proxies where needed them and update
@@ -76,7 +97,7 @@ export const proxyHandlerArray = {
                         const first = args[1] || 0;
                         const last = args[2] === undefined ? length - 1 : Math.min(args[2], length - 1);
                         deleteElementReferences(target, first, last);
-                        makeProxies(target, args.slice(0, 1), last - first + 1);
+                        makeProxies(target, args, 0, 0,last - first + 1);
                         const val =  (target as any)[prop].apply(target, args);
                         recordAfter(target, before);
                         DataChanged(target, '*');
@@ -94,7 +115,7 @@ export const proxyHandlerArray = {
                     }
                 case 'push': // Make proxy for new element
                     return (...args : any []) => {
-                        makeProxies(target, args.slice(0, 1));
+                        makeProxies(target, args, 0, 0);
                         const val =  (target as any)[prop].apply(target, args);
                         if (target.__transaction__.timePositioning)
                             target.__transaction__.recordUndoRedo( ()=>{for (let ix = 0; ix < args.length; ++ix) arr.pop()}, ()=>arr.push(...args))
@@ -117,7 +138,7 @@ export const proxyHandlerArray = {
                         const last = args[1] === 'undefined' ? length - 1 : first + args[1] - 1;
                         if (first < length)
                             deleteElementReferences(target, first, last);
-                        makeProxies(target, args.slice(2, args.length));
+                        makeProxies(target, args,2, args.length - 1);
                         const val =  (target as any)[prop].apply(target, args);
                         recordAfter(target, before);
                         DataChanged(target, '*');
@@ -126,7 +147,7 @@ export const proxyHandlerArray = {
 
                 case 'unshift': // Make proxy for new element
                     return (...args : any []) => {
-                        makeProxies(target, args.slice(0, 1));
+                        makeProxies(target, args, 0, 0);
                         const val =  (target as any)[prop].apply(target, args);
                         if (target.__transaction__.timePositioning)
                             target.__transaction__.recordUndoRedo( ()=>{for (let ix = 0; ix < args.length; ++ix) arr.shift()}, ()=>arr.unshift(...args), )
@@ -157,10 +178,11 @@ export const proxyHandlerArray = {
 
 }
 
-function makeProxies(target : Target, targets : any [], count = 1) : void {
+function makeProxies(target : Target, targets : any [], first  : number, last : number, count = 1) : void {
     targets.map((childTarget, ix) => {
-        while(count--)
-            targets[ix] = propertyUpdated(target, '*', childTarget)
+        if (ix >= first && ix <= last)
+            while(count--)
+                targets[ix] = propertyUpdated(target, '*', childTarget)
         return childTarget;
     });
 }
