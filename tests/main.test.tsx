@@ -1,8 +1,9 @@
 import * as React from 'react';
 import {Family, Person, Preference} from "./family";
 import { render, screen} from '@testing-library/react';
-import {setLogLevel, useProp, useProxy, memoizeObject} from "../src/index";
+import {setLogLevel, memoizeObject, proxy} from "../src/index";
 import "@testing-library/jest-dom/extend-expect";
+import {useObservable, useObservables} from "../src/reactUse";
 
 setLogLevel({});
 
@@ -61,15 +62,16 @@ test( 'memoizer', () => {
 
 test('can render names', async () => {
 
-    const family = new Family({members: [
+    const family = proxy(new Family({members: [
             new Person({name: "Sam"}),
             new Person({name: "Karen", age: 53, preferences: [new Preference({name: "food", value: 1})]})
-        ]});
+        ]}));
     memoizeObject(family, 'getSortedMembers');
     const renderCount : any = {C0: 0, C1: 0, C2: 0, P: 0};
 
     const PersonComponent = React.memo(({person, id} : {person: Person, id : number}) => {
-        const [name, setName] = useProp(()=>person.name);
+        useObservables();
+        const [name, setName] = useObservable(person.name);
         renderCount['C' + id]++;
         return (
             <>
@@ -79,8 +81,9 @@ test('can render names', async () => {
         );
     });
     function App () {
+        useObservables()
         renderCount['P']++;
-        const {members, sortedMembers, getSortedMembers} = useProxy(family);
+        const {members, sortedMembers, getSortedMembers} = family;
         return  (
             <div>
                 {members.map((person, ix) =>

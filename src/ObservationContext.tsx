@@ -27,12 +27,15 @@ export class ObservationContext {
             }
     };
     referenced(proxyTarget : ProxyTarget, prop : string) {
-        const connectedProxy = this.connectedProxyTargets.get(proxyTarget)
-        if (connectedProxy)
-            connectedProxy[prop] = true;
+        let connectedProxy = this.connectedProxyTargets.get(proxyTarget)
+        if (!connectedProxy) {
+            connectedProxy ={}
+            this.connectedProxyTargets.set(proxyTarget, connectedProxy)
+        }
+        connectedProxy[prop] = true;
     };
-    connect (proxyTarget : ProxyTarget) {
-        this.connectedProxyTargets.set(proxyTarget, {});
+    connect (_proxyTarget : ProxyTarget) {
+        //this.connectedProxyTargets.set(proxyTarget, {});
     }
     disconnect (proxyTarget: ProxyTarget) {
         this.connectedProxyTargets.delete(proxyTarget);
