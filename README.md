@@ -2,22 +2,31 @@
 > Note:  This project is being actively developped and as such has not yet been published on NPM.  See the road map towards a release at the end. In the mean time it is subject to change.
 ## Global State Management for React
 
-Proxily is a simple un-opinionated library for managing state across multiple React components.  It re-renders components as state data is changed in a fashion identical to the immutable data pattern.  It does this without any specific requirements on how the state is updated organized or annotated and without relying on redux or immutable patterns. Core features include:
-* First class support for Typescript, classes and objects
-* Serialization of complex object graphs that may use classes
-* Asynchronous semantics through redux-sagas via channels (redux itself not used)
-### Call useProxy in a Component
-useProxy will track any changes in state and re-render your component.
-```javascript
-import React from 'react';
-import {useProxy} from 'proxily';
+Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state data is changed. While eliminating the complexity of managing immutable state it provides many of the same benefits such as rendering components dependent on parent objects when child objects are updated. There is no need to annotate or describe the state shape as Proxisly will discover it as navigate through the state hierarchy. Core features include:
 
-const state = {
+* Serialization of state
+* Asynchronous semantics through redux-sagas via channels (redux itself not used)
+* Time travel (undo, redo) in applications (and soon using redux debugger plugin)
+* State forking allowing a separate fork of the state to be committed upon completion
+* First class support for Typescript, classes and objects
+
+### Usage
+Make the top level object in your state observable with **makeObservable**:
+```javascript
+import {makeObservable} from 'proxily';
+
+export const state = makeObservable({
   counter: {value: 0}
-};
+});
+```
+Place **useObservables** in your component:
+```javascript
+import {useObservables} from 'proxily';
+import {state} from 'myState';
 
 function App() {
-    const  {counter} = useProxy(state);
+    useObservables();
+    const  {counter} = state;
     return (
         <div>
             <span>Count: {counter.value}</span>
@@ -25,47 +34,33 @@ function App() {
         </div>
     );
 }
-
-export default App;
 ```
-### Call proxy elsewhere
-If you are updating data outside of the component you must do the updates on a proxy for the data.  This will detect changes and re-render any components that are using useProxy and referencing the data.
-```
-import {proxy} from 'proxily';
+Proxily will track references to your observable state that occur during the render (counter.value) and re-render the component when they change.  
 
-    setTimeout(()=> {
-        proxy(state).counter.value++
-    }, 1000);
-```
-### Use of ES6 
+### How does it work?
 
-proxy and useProxy create and return an ES6 proxy for the object your component uses. This proxy will rerender the component when any property referenced in the render function changes or any child property of the referenced property changes.  The proxy traps all references so it can:
+Although you don't need to know all of the details it is important to understand that Proxily performs it's magic using ES6 proxies.  makeObservable creates a proxy for the highest level object in your state.  Then as you reference further into your state object heirarchy, Proxily will replace references to deeper objects with references to a proxy for the referenced object. This way you don't need to annotate all of the objects as proxily will "discover" the relationships as you refernce the heirarchy.  The proxies will notify any components that contain **useObserverables** when properties they reference change.
 
-* Note any properties referenced during the course of rendering and re-render when that property changes.
-* As child properties are referenced a proxy is substituted so that this behavior is passed down to all child properties.  
-* A parent child hierarchy is created such that modifying child properties causes re-rendering of any component referencing parent properties, thus emulating the familiar rules of immutable object reference and shallow comparison as used in redux.
 
-As such Proxily does not support Internet Explorer and requires 0.69 of React-Native
+Because it's use of ES6 Proxily does not support Internet Explorer and requires 0.69 of React-Native.  In fact Proxily is written in Typescript and targets ES6. 
 ## Usage Patterns
 
 ### Moving State Management out of Components
 The first example demonstrated that you change your state directly in your component.  Just because you **can** do so does not mean that you **should** do so.
 
-Best practices are to keep state management separate from the component which represents the presentation of that state.  Most frameworks require this through actions. Proxily does not prescribe any specific method of doing this but it is easily achieved by reorganizing state with an object like this:
+Best practices are to keep state management separate from the component which represents the presentation of that state.  Logic such as incrementing the counter should be kept in the counter component itself:
 
 ```javascript
-const counter = {
+const counter = makeObservable({
     value : 0,
-    increment () {this.value++}
-}
-const state = {
-    counter: Object.create(counter)
-};
+    increment () { this.counter++ }
+});
 ```
 Now the Counter component can assume nothing about the implementation of the counter:
 ```javascript
 function Counter({counter}) {
-    const {value, increment} = useProxy(counter);
+    useObservables();
+    const {value, increment} = counter;
     return (
         <div>
             <span>Count: {value}</span>
@@ -75,31 +70,32 @@ function Counter({counter}) {
 }
 function App () {
     return (
-        <Counter counter={state.counter}/>
+        <Counter counter={counter}/>
     );
 }
 ```
 ### Object Destructuring
 Notice that destructuring **increment** from counter worked properly. 
 ```
-const {value, increment} = useProxy(counter);
+const {value, increment} = counter;
 ```
 
-That is because Proxily binds all functions to the target.  Now you can use objects without the consumer having to be aware of the object implementation.
+That is because Proxily binds all functions to the target on observable data.  Now you can use objects without the consumer having to be aware of the object implementation.
 
 ### Classes
-Proxily doesn't care whether you use prototypical delegation or classes or pure functions to update your data.  Since it only tracks the data (rather than mutating it) it leaves the creation of objects up to you.
+Proxily doesn't care whether you use prototypical delegation or classes or pure functions to update your data.  Since it only tracks the data (rather than mutating it) it leaves the creation of objects up to you.  However Proxily does have full support for Typescript enabling you to create a type safe store.  With classes you can enforce the fact that state is never updated outside of the classes the manage the state.
 ```
 class CounterState {
-    value = 0;
+    private value = 0;
     increment () {this.value++}
 }
-const state = {
+const state = makeObservable({
     counter: new CounterState()
-};
+});
 
 function Counter({counter} : {counter : CounterState}) {
-    const {value, increment} = useProxy(counter);
+    useObservables();
+    const {value, increment} = counter;
     return (
         <div>
             <span>Count: {value}</span>
@@ -229,6 +225,7 @@ function myMigrate (persist, initial) {
     return migrate(persist, initial);
 }
 ```
+Note:  persist will also make the state returned observable so there is no need to additionally call makeObservable.
 # Sagas
 Asynchronous behavior is an important part of many React applications.  In Redux, you have thunks and in Proxily any method can be async and make use of promises.  Sometimes organizing complex behavior can be simplified by using generators and redux-saga has a rich tool-kit for doing so.  Fortunately it can be used without Redux itself using the channel API.
 
@@ -271,7 +268,7 @@ class Container {
         scheduleTask(this.task, {interval: 1000}, takeLeading); //sequentialize
     }
 }
-const container = proxy(new Container());
+const container = makeObservable(new Container());
 container.invokeTask();
 ```
 If using an effect that takes a time parameter like throttle or debounce you can pass it in:
@@ -323,9 +320,9 @@ Forking the state is not a common feature of state management libraries.  To und
 You create a transaction by creating a new proxy for the root of the state where you want to begin forking the state.  This is usually the part(s) of the state graph that pertain to the specific update.  It is important that all proxy references are either references stemming from that proxy or created explicity to be part of that transaction.
 ```
 function updatePrimaryAddress () {
-
-const [updateAddressTxn] = useState(new Transaction());
-const {phones} = useProxy(customer, updateAddressTxn);
+useObservables();
+const [updateAddressTxn] = useState(() => new Transaction);
+const {phones} = makeTransactable(customer, updateAddressTxn);
 const phone = phones.find(a => a.type === 'primary');
 
 return (
