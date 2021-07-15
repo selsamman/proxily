@@ -39,6 +39,7 @@ export const proxyHandlerSet = {
 
             case 'delete':
                 return function (key: any) {
+                    proxyAllElements();
                     if (target.__transaction__.timePositioning)
                         target.__transaction__.recordUndoRedo(()=>set.add(key), ()=>set.delete(key));
                     DataChanged(target, key);

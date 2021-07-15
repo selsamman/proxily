@@ -36,7 +36,7 @@ export const proxyHandler = {
 
         if (typeof value === "function") {
             if (isMemoized(prop, target)) {
-                const memo = createMemoization(prop, target, value);
+                let memo = createMemoization(prop, target, value);
                 return (...args : any) => {
                     if (callLevel === 0)
                         target.__transaction__.startTopLevelCall();
