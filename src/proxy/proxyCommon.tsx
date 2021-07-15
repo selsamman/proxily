@@ -1,5 +1,5 @@
 import {ProxyOrTarget, ProxyTarget, Target} from "../proxyObserve";
-import {connectToContext, currentContext, currentSelectorContext} from "../ObservationContext";
+import {currentContext, currentSelectorContext} from "../ObservationContext";
 import {proxyHandlerMap} from "./proxyHandlerMap";
 import {proxyHandlerSet} from "./proxyHandlerSet";
 import {proxyHandlerDate} from "./proxyHandlerDate";
@@ -117,7 +117,6 @@ export function propertyReferenced(target : Target, prop: any, value: any, sette
             if (setter)
                 setter(value);
         }
-        connectToContext(value);
     }
 
     // Let context know property was referenced

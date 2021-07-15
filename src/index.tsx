@@ -2,8 +2,8 @@
 
 export {memoizeClass, memoizeObject, memoize} from "./memoize";
 export {setLogLevel, LogLevels} from "./log";
-export {useProxy, useProp} from "./reactUse";
-export {proxy, observe} from "./proxyObserve"
+export {useProxy, useProp, useObservable, useObservables} from "./reactUse";
+export {proxy, proxy as makeObservable, observe} from "./proxyObserve"
 export {serialize} from "./serialize";
 export {deserialize} from "./deserialize";
 export {persist, migrate, StorageEngine, PersistConfig} from "./storage"

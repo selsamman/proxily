@@ -1,17 +1,25 @@
 import * as React from 'react';
 import { render, screen} from '@testing-library/react';
-import {memoizeClass, memoizeObject, setLogLevel, useProxy, memoize, proxy} from '../../src';
+import {
+    memoizeClass,
+    memoizeObject,
+    setLogLevel,
+    memoize,
+    useObservables,
+    makeObservable
+} from '../../src';
 import "@testing-library/jest-dom/extend-expect";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
     it( 'Can modify data directly in events', async () => {
-        const state = {
+        const state = makeObservable({
             counter: {value: 0}
-        };
+        });
 
         function App() {
-            const  {counter} = useProxy(state);
+            useObservables();
+            const  {counter} = state;
             return (
                 <div>
                     <span>Count: {counter.value}</span>
@@ -24,18 +32,19 @@ describe('Counter Patterns',  () => {
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Can modify data anywhere', async () => {
-        const state = {
+        const state = makeObservable({
             counter: {value: 0}
-        };
+        });
 
         setTimeout(()=> {
-            const pstate = proxy(state);
+            const pstate = state;
             pstate.counter.value++
             console.log(pstate.counter.value);
         }, 750);
 
         function App() {
-            const  {counter} = useProxy(state);
+            useObservables();
+            const  {counter} = state;
             return (
                 <div>
                     <span>Count: {counter.value}</span>
@@ -52,13 +61,14 @@ describe('Counter Patterns',  () => {
             value : 0,
             increment () {this.value++}
         }
-        const state = {
+        const state = makeObservable({
             counter: Object.create(counter)
-        };
+        });
 
         // @ts-ignore
         function Counter({counter}) {
-            const {value, increment} = useProxy(counter);
+            useObservables();
+            const {value, increment} = counter;
             return (
                 <div>
                     <span>Count: {value}</span>
@@ -83,12 +93,13 @@ describe('Counter Patterns',  () => {
             }
             increment () {this._value++}
         }
-        const state = {
+        const state = makeObservable({
             counter: new CounterState()
-        };
+        });
 
         function Counter({counter} : {counter : CounterState}) {
-            const {value, increment} = useProxy(counter);
+            useObservables();
+            const {value, increment} = counter;
             return (
                 <div>
                     <span>Count: {value}</span>
@@ -114,16 +125,17 @@ describe('Counter Patterns',  () => {
                 this.value++
             }
         }
-        const state = {
+        const state = makeObservable({
             counters: [Object.assign({},counter), Object.assign({},counter)],
             sortedCounters: function () {
                 ++sorts;
                 return this.counters.slice(0).sort((a,b) => a.value - b.value);
             }
-        };
+        });
         // @ts-ignore
         function Counter({counter, id}) {
-            const {value, increment} = useProxy(counter);
+            useObservables();
+            const {value, increment} = counter;
             return (
                 <div>
                     <span>Count{id}: {value}</span>
@@ -132,7 +144,8 @@ describe('Counter Patterns',  () => {
             );
         }
         function App () {
-            const {sortedCounters} = useProxy(state);
+            useObservables();
+            const {sortedCounters} = state;
             return (
                 <>
                     {sortedCounters().map((c, i) =>
@@ -171,10 +184,10 @@ describe('Counter Patterns',  () => {
             }
         }
         memoizeClass(State, 'sortedCounters');
-        const state = new State();
+        const state = makeObservable(new State());
 
         function Counter({counter, id} : {counter : CounterClass, id: any}) {
-            const {value, increment} = useProxy(counter);
+            const {value, increment} = counter;
             return (
                 <div>
                     <span>Count{id}: {value}</span>
@@ -184,7 +197,8 @@ describe('Counter Patterns',  () => {
         }
 
         function App () {
-            const {sortedCounters} = useProxy(state);
+            useObservables();
+            const {sortedCounters} = state;
             return (
                 <>
                     {sortedCounters().map((c, i) =>
@@ -222,10 +236,11 @@ describe('Counter Patterns',  () => {
                 return this.counters.slice(0).sort((a,b) => a.value - b.value) as Array<CounterClass>;
             }
         }
-        const state = new State();
+        const state = makeObservable(new State());
 
         function Counter({counter, id} : {counter : CounterClass, id: any}) {
-            const {value, increment} = useProxy(counter);
+            useObservables();
+            const {value, increment} = counter;
             return (
                 <div>
                     <span>Count{id}: {value}</span>
@@ -235,7 +250,8 @@ describe('Counter Patterns',  () => {
         }
 
         function App () {
-            const {sortedCounters} = useProxy(state);
+            useObservables();
+            const {sortedCounters} = state;
             return (
                 <>
                     {sortedCounters().map((c, i) =>

@@ -16,6 +16,8 @@ export class ObservationContext {
     }
     onChange : (target : string, prop : string, targetProxy : ProxyTarget) => void | undefined;
     connectedProxyTargets : Map<ProxyTarget, {[index: string] : boolean}> = new Map();
+    pendingProxyTargets : Array<[ProxyTarget, string]> = new Array();
+
     target : Target | undefined;
 
     changed(proxyTarget : ProxyTarget, prop : string) {
@@ -27,16 +29,22 @@ export class ObservationContext {
             }
     };
     referenced(proxyTarget : ProxyTarget, prop : string) {
+        this.pendingProxyTargets.push([proxyTarget, prop]);
+    };
+    processPendingReferences() {
+        this.pendingProxyTargets.forEach(([target, prop]) => this.processPendingReference(target, prop))
+        this.pendingProxyTargets = new Array();
+    }
+    processPendingReference(proxyTarget : ProxyTarget, prop : string) {
         let connectedProxy = this.connectedProxyTargets.get(proxyTarget)
         if (!connectedProxy) {
-            connectedProxy ={}
-            this.connectedProxyTargets.set(proxyTarget, connectedProxy)
+            connectedProxy = {}
+            this.connectedProxyTargets.set(proxyTarget, connectedProxy);
+            proxyTarget.__target__.__contexts__.set(this, this);
         }
         connectedProxy[prop] = true;
     };
-    connect (_proxyTarget : ProxyTarget) {
-        //this.connectedProxyTargets.set(proxyTarget, {});
-    }
+
     disconnect (proxyTarget: ProxyTarget) {
         this.connectedProxyTargets.delete(proxyTarget);
     }
@@ -50,21 +58,3 @@ export class ObservationContext {
     }
 
 }
-/*
-Connect this proxyWrapper to the current context (in an observer).
- */
-export function connectToContext (proxyTarget : ProxyTarget, context? : ObservationContext) {
-    if(currentContext && !proxyTarget.__target__.__contexts__.has(currentContext)) {
-        proxyTarget.__target__.__contexts__.set(currentContext, currentContext);
-        currentContext.connect(proxyTarget);
-    }
-    if(currentSelectorContext && !proxyTarget.__target__.__contexts__.has(currentSelectorContext)) {
-        proxyTarget.__target__.__contexts__.set(currentSelectorContext, currentSelectorContext);
-        currentSelectorContext.connect(proxyTarget);
-    }
-    if(context && !proxyTarget.__target__.__contexts__.has(context)) {
-        proxyTarget.__target__.__contexts__.set(context, context);
-        context.connect(proxyTarget);
-    }
-}
-

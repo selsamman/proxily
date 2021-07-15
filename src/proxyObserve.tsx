@@ -1,6 +1,5 @@
 // A wrapper for the proxy that let's us track additional information
 import {ObservationContext, setCurrentContext} from "./ObservationContext";
-import {connectToContext} from "./ObservationContext";
 import {GetterMemo} from "./memoize";
 import {makeProxy} from "./proxy/proxyCommon";
 import {Transaction} from "./Transaction";
@@ -9,7 +8,6 @@ export function proxy<A>(targetIn: A, transaction? : Transaction) : A {
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyOrTarget;
         const proxy =  makeProxy(target, transaction)
-        connectToContext(proxy);
         return proxy as unknown as A;;
     } else
         throw new Error("Attempt to call proxy on a non-object");
@@ -20,13 +18,13 @@ export function observe<T>(targetIn: T, onChange : (target : string, prop : stri
         const target  = targetIn as unknown as ProxyTarget;
         const observationContext = new ObservationContext(onChange);
         const proxy = makeProxy(target);
-        connectToContext(proxy, observationContext);
         if (observer) {
             setCurrentContext(observationContext);
             observer(proxy as unknown as T);
             setCurrentContext(undefined);
         } else
             observationContext.referenced(proxy as unknown as ProxyTarget, '*');
+        observationContext.processPendingReferences();
         return observationContext;
     } else
         throw new Error("Attempt to call observe on a non-object");
