@@ -4,7 +4,7 @@
 
 Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state changes. While Proxily does not use immutable state it provides many of the same benefits. There is no need to annotate or describe the state shape as Proxily will discover it as navigates through the state hierarchy. Core features include:
 
-* Same dependency pattern as immutable state (a change to a child are considered a change to its parent for re-rendering purposes).
+* Same re-rendering dependency pattern as immutable state (a change to a child is considered a change to its parent).
 * Serialization of complex state including cyclic data and classes
 * Asynchronous semantics through redux-sagas generators and take helpers
 * Time travel (undo, redo) in applications (and soon using redux debugger plugin)
@@ -36,14 +36,15 @@ function App() {
     );
 }
 ```
-Proxily will track references to your observable state that occur during the render (counter.value) and re-render the component when they change.  
+Proxily will track references to your observable state that occur during the render (counter.value) and re-render the component values change.  
 
 ### How does it work?
 
-Although you don't need to know all of the details Proxily performs it's magic using ES6 proxies.  makeObservable creates a proxy for the highest level object in your state.  Then as you reference further into your state object heirarchy, Proxily will replace references to deeper objects with references to a proxy for the referenced object. This way you don't need to annotate all of the objects as proxily will "discover" the relationships as you reference the heirarchy.  The proxies will notify any components that contain **useObserverables** when properties they reference change.  Other parts of your application outside of components may also observe changes to your state.
+Although you don't need to know all the details, Proxily performs its magic using ES6 proxies.  **makeObservable** creates a proxy for an object.  Then when you use that proxy to reference further into your state object hierarchy, Proxily will replace references to deeper objects with references to a proxy.  You entire state will end up being proxied as you reference it. 
 
+As this happens the shape of your state is noted such that you don'e need to annotate relationships.  The proxies will notify any components that contain **useObserverables** when properties they reference change. The relationship information is used to ensure that parent components are also notified when child data changes as is the case for the immutable pattern. Other parts of your application outside of components may also make and observe changes to your state.
 
-Because it's use of ES6 Proxily does not support Internet Explorer and requires 0.69 of React-Native.  Proxily is written in Typescript and targets ES6. Therefore, you might as well target ES6 in your applications that use ES6.  This results in far less transpilation and makes debugging easier.
+Because of it's use of ES6, Proxily does not support Internet Explorer and requires 0.69 or higher of React-Native.  Proxily is written in Typescript and targets ES6. Therefore, it is advisable to target ES6 in your applications that use ES6.  This results in far less transpilation and makes debugging easier.
 
 ## Function Binding
 The first example demonstrated that you change your state directly in your component.  Just because you **can** do so does not mean that you **should** do so. Best practices are to keep logic separate from the component.  One option is in the state itself by including an increment function
