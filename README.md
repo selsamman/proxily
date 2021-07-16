@@ -4,12 +4,12 @@
 
 Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state changes. While Proxily does not use immutable state it provides many of the same benefits. There is no need to annotate or describe the state shape as Proxily will discover it as navigates through the state hierarchy. Core features include:
 
-* Follows the same dependency pattern as immutable state in that a change to a child object constitutes a change to its parent.
+* Same dependency pattern as immutable state (a change to a child are considered a change to its parent for re-rendering purposes).
 * Serialization of complex state including cyclic data and classes
 * Asynchronous semantics through redux-sagas generators and take helpers
 * Time travel (undo, redo) in applications (and soon using redux debugger plugin)
-* State forking allowing a separate fork of the state to be committed upon completion
-* First class support for Typescript, classes and objects
+* Transactions that allow asynchronous changes to be committed or rolled back
+* Full support for Typescript, classes and objects including automatic function binding
 
 ## Usage
 Make the top level object in your state observable with **makeObservable**:
