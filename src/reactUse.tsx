@@ -65,12 +65,24 @@ export function useProp<S>(referenceProp: (() => S)) : [S, (value: S) => void] {
 
 export function useProxy<A>(targetIn: A, transaction? : Transaction) : A {
     const target  = targetIn as unknown as Target;
-    if(logLevel.useProxy) log(`useCAPI ${target.constructor.name}`);
+    if(logLevel.useProxy) log(`useProxy ${target.constructor.name}`);
 
     createContext();
     const proxy =  makeProxy(target as unknown as ProxyOrTarget, transaction);
     return proxy as unknown as A;
 }
+
+export function useTransactable<A>(targetIn: A, transaction? : Transaction) : A {
+    const transactableRef : any = useRef();
+    if (transactableRef.current)
+        return transactableRef.current;
+    const target  = targetIn as unknown as Target;
+    if(logLevel.useProxy) log(`makeTransactable ${target.constructor.name}`);
+    const proxy =  makeProxy(target as unknown as ProxyOrTarget, transaction);
+    transactableRef.current = proxy;
+    return proxy as unknown as A;
+}
+
 function createContext() : ObservationContext {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [,setSeq] = useState(0);

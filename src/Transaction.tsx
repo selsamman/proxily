@@ -38,7 +38,6 @@ export class Transaction {
         return this === Transaction.defaultTransaction;
     }
 
-
     withinProxy = false;
     withinUndoRedo = false;
 

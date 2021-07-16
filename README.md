@@ -2,15 +2,15 @@
 > Note:  This project is being actively developped and as such has not yet been published on NPM.  See the road map towards a release at the end. In the mean time it is subject to change.
 ## Global State Management for React
 
-Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state data is changed. While eliminating the complexity of managing immutable state it provides many of the same benefits such as rendering components dependent on parent objects when child objects are updated. There is no need to annotate or describe the state shape as Proxisly will discover it as navigate through the state hierarchy. Core features include:
+Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state data is changed. While eliminating the complexity of managing immutable state it provides many of the same benefits such as rendering components dependent on parent objects when child objects are updated. There is no need to annotate or describe the state shape as Proxisly will discover it as navigates through the state hierarchy. Core features include:
 
-* Serialization of state
-* Asynchronous semantics through redux-sagas via channels (redux itself not used)
+* Serialization of complex state including cyclic data and classes
+* Asynchronous semantics through redux-sagas generators and take helpers
 * Time travel (undo, redo) in applications (and soon using redux debugger plugin)
 * State forking allowing a separate fork of the state to be committed upon completion
 * First class support for Typescript, classes and objects
 
-### Usage
+## Usage
 Make the top level object in your state observable with **makeObservable**:
 ```javascript
 import {makeObservable} from 'proxily';
@@ -19,7 +19,7 @@ export const state = makeObservable({
   counter: {value: 0}
 });
 ```
-Place **useObservables** in your component:
+Place **useObservables** at the start of your component's render:
 ```javascript
 import {useObservables} from 'proxily';
 import {state} from 'myState';
@@ -39,16 +39,13 @@ Proxily will track references to your observable state that occur during the ren
 
 ### How does it work?
 
-Although you don't need to know all of the details it is important to understand that Proxily performs it's magic using ES6 proxies.  makeObservable creates a proxy for the highest level object in your state.  Then as you reference further into your state object heirarchy, Proxily will replace references to deeper objects with references to a proxy for the referenced object. This way you don't need to annotate all of the objects as proxily will "discover" the relationships as you refernce the heirarchy.  The proxies will notify any components that contain **useObserverables** when properties they reference change.
+Although you don't need to know all of the details Proxily performs it's magic using ES6 proxies.  makeObservable creates a proxy for the highest level object in your state.  Then as you reference further into your state object heirarchy, Proxily will replace references to deeper objects with references to a proxy for the referenced object. This way you don't need to annotate all of the objects as proxily will "discover" the relationships as you reference the heirarchy.  The proxies will notify any components that contain **useObserverables** when properties they reference change.  Other parts of your application outside of components may also observe changes to your state.
 
 
-Because it's use of ES6 Proxily does not support Internet Explorer and requires 0.69 of React-Native.  In fact Proxily is written in Typescript and targets ES6. 
-## Usage Patterns
+Because it's use of ES6 Proxily does not support Internet Explorer and requires 0.69 of React-Native.  Proxily is written in Typescript and targets ES6. Therefore, you might as well target ES6 in your applications that use ES6.  This results in far less transpilation and makes debugging easier.
 
-### Moving State Management out of Components
-The first example demonstrated that you change your state directly in your component.  Just because you **can** do so does not mean that you **should** do so.
-
-Best practices are to keep state management separate from the component which represents the presentation of that state.  Logic such as incrementing the counter should be kept in the counter component itself:
+## Function Binding
+The first example demonstrated that you change your state directly in your component.  Just because you **can** do so does not mean that you **should** do so. Best practices are to keep logic separate from the component.  One option is in the state itself by including an increment function
 
 ```javascript
 const counter = makeObservable({
@@ -69,24 +66,25 @@ function Counter({counter}) {
     );
 }
 function App () {
+    useObservables();
     return (
         <Counter counter={counter}/>
     );
 }
 ```
-### Object Destructuring
 Notice that destructuring **increment** from counter worked properly. 
 ```
 const {value, increment} = counter;
 ```
+That is because Proxily binds all functions to the target on observable objects.  Now you can use objects without the consumer having to be aware of the object implementation.  Having to bind object functions to the objectis a key pain-point with using objects and classes which Proxily eliminates.
 
-That is because Proxily binds all functions to the target on observable data.  Now you can use objects without the consumer having to be aware of the object implementation.
+## Classes
+Proxily doesn't care whether you use prototypical delegation or classes or pure functions to update your data.  Since it only tracks the data (rather than mutating it) it leaves the creation of objects up to you.  However, Proxily does have full support for Typescript enabling you to create a type safe store.  All of the custom hooks are fully type aware such that types are inferred.
 
-### Classes
-Proxily doesn't care whether you use prototypical delegation or classes or pure functions to update your data.  Since it only tracks the data (rather than mutating it) it leaves the creation of objects up to you.  However Proxily does have full support for Typescript enabling you to create a type safe store.  With classes you can enforce the fact that state is never updated outside of the classes the manage the state.
+Typescript give you a mechanism to create your own rules such as never allowing state to be updated outside of the store.
 ```
 class CounterState {
-    private value = 0;
+    private value = 0;  // Can't update value directly
     increment () {this.value++}
 }
 const state = makeObservable({
@@ -109,9 +107,8 @@ function App () {
     );
 }
 ```
-Proxily itself is written in Typescript and it's API is fully type-aware.
 ## Memoization
-Anyone using redux for state management can take advantage of memoization which reduces costly recalculation of derived state information every time you reference the derived state.  Proxily make it easy to do memoization in any function using **memoizeObject** and **memoizeClass**. using the memo function:
+Memoization which reduces costly recalculations based on your state by saving the result and only re-running the calculation when dependent state is changed.  Both getters (akin to selectors) and functions with arguments are supported:  You need only annotate an object function with **memoizeObject** and **memoizeClass**.
 ```
 const state = {
     counters: [counter1, counter2],
@@ -134,7 +131,7 @@ class State {
 };
 memoizeClass(State, 'sortedCounters');
 ```
-or with Typescript decorators
+or with Typescript decorators (with "experimentalDecorators": true in your tsconfig file)
 ```
 class State {
     constructor () {
@@ -148,12 +145,10 @@ class State {
     }
 };
 ```
-# Serialization
-In the real world state graphs have to be serialized either to kept in local storage or session storage.  With Redux this is straight forward since it used plane old javascript objects that work with JSON.stringify and JSON.parse.  Since Proxily makes it easy to uses classes having a way to serialize them is essential.
+## Serialization
+What is the point of state if you can't keep it around.  With Redux this is straight forward since you are limited to plane old javascript objects that work with JSON.stringify and JSON.parse.  Proxily allows complex objects including classes to be serialized.
 
-There are libraries out there which can help with this like serializr which is often used with MobX.  Supertype, from haven-life also serializes complex objects.  Both require you to describe your schema.  Proxily does not.
-
-Proxily **serialize** converts the object graph to JSON, discovering any objects discovered in the process and noting their constructor in the JSON.  When you call **deserialize**, Proxily does the opposite and re-instantiates the object by class.  You must provide a list of the classes used so that Proxily can call new on the class.  Here is an example structure used by Michel Westrate when serializr was first introduced:
+Proxily **serialize** converts the object graph to JSON, discovering any objects discovered in the process and noting their constructor in the JSON.  When you call **deserialize**, Proxily does the opposite and re-instantiates the object graph.  With classes you must provide a list of the classes used so that Proxily can call new on the class.  Here is an example structure:
 ```
 class Box {
     uuid = generateUUID();
@@ -206,8 +201,10 @@ You can serialize anything that JSON.stringify/JSON.parse support plus:
 * Classes - deserialize will instantiate the class with an empty constructor and then copy over the properties.  Therefore the class must be able to be created with an empty constructor
 
 If you want to manually control the creation of objects or have classes that require specific parameters in the constructor you can also pass a hash of class names and an associated function that will be passed the serialized data from the object and is expected to return the instantiated object.  This hash is the third (optional) parameter.
-# Storage Integration
-Proxily will integrate with any storage object that supports getItem and setItem.  Specifically this includes localStorage and sessionStorage.  To integrate with storage use persist to read from storage, merge with an initial state, setup a proxy and observe any changes to the proxy and write back to storage
+
+serialize cannot process objects containing functions unless they use classes as there is no way to know how to reconstitute them.
+## Storage Integration
+Proxily will integrate with any storage object that supports getItem and setItem.  Specifically this includes localStorage and sessionStorage.  To integrate with storage use **persist** to read from storage, merge with an initial state, set up a proxy and observe any changes to the proxy and write back to storage
 ```
 const stateProxy = persist(state, {classes: [Class1, Class2]});
 ```
@@ -226,7 +223,7 @@ function myMigrate (persist, initial) {
 }
 ```
 Note:  persist will also make the state returned observable so there is no need to additionally call makeObservable.
-# Sagas
+## Generators & Sagas
 Asynchronous behavior is an important part of many React applications.  In Redux, you have thunks and in Proxily any method can be async and make use of promises.  Sometimes organizing complex behavior can be simplified by using generators and redux-saga has a rich tool-kit for doing so.  Fortunately it can be used without Redux itself using the channel API.
 
 Proxily provides a wrapper around redux-saga that facilitates it's use without a redux store.  While Redux is based on "listening" for actions, with Proxily you start with a generator function that can have multiple yields for each asynchronous step of the task.  This represents a type of task that can be scheduled 
@@ -293,7 +290,7 @@ scheduleTask(this.task, {interval: 1000}, takeLeadingCustom);
 
 ```
 You must add redux-saga to your project and import **scheduleTask** and **cancelTask** from proxily/lib/cjs/sagas.
-# Transactions & State Forking
+## Transactions & State Forking
 ### Overview
 A Transaction creates a forked environment in which updates are made.  You may then commit the forked environment which makes the updates visible outside of the transaction or roll them back.  This allows you to "cancel" changes without necessarily losing other asynchronous updates such as those that are streamed from a server.
 
@@ -317,25 +314,47 @@ Forking the state is not a common feature of state management libraries.  To und
 
 ### Creating a Transaction
 
-You create a transaction by creating a new proxy for the root of the state where you want to begin forking the state.  This is usually the part(s) of the state graph that pertain to the specific update.  It is important that all proxy references are either references stemming from that proxy or created explicity to be part of that transaction.
+To use a transaction in a component follow these steps:
+* Place **useObervables** as usual at the start of your render
+* Create the transaction with **new Transaction**.  Ensure it is only created once per component by passing a function to useState that will create the transaction
+* Create a copy of your data by calling **useTransactable**, passing it the original object and consuming the object returned.  This is only needed for the top level object(s) as Proxily will automatically do this for subordinate objects you reference.
+* Call commit() or rollback() on the transaction when the user interaction is complete
 ```
-function updatePrimaryAddress () {
-useObservables();
-const [updateAddressTxn] = useState(() => new Transaction);
-const {phones} = makeTransactable(customer, updateAddressTxn);
-const phone = phones.find(a => a.type === 'primary');
-
-return (
-    <input type="text" value={phone.number} onChange={(data) => phone.updateNumber(data)} />
-    {phone.isValid ? 
-        <button label="update" onPress=updateAddress.commit() />
-    }
-)
+function UpdateCustomer ({customer} : {customer : Customer}) {
+    useObservables();
+    const [updateAddressTxn] = useState(() => new Transaction());
+    customer = useTransactable(customer, updateAddressTxn);
+    const {name, phone, setName, setPhone} = customer;
+    return (
+        <>
+            <input type="text" value={name} 
+                   onChange={(e) => setName(e.target.value)} />
+            <input type="text" value={phone} 
+                   onChange={(e) => setPhone(e.target.value)} />
+            <button onClick={() => updateAddressTxn.commit()} >Commit</button>
+            <button onClick={() => updateAddressTxn.rollback()} >Rollback</button>
+        </>
+    )
+}
 
 ```
-Here we create the transaction and incorporate it into our proxy.  Because phone is derived from phones which is derived from customer, the proxy for phone will also be part of the transaction.  Once the isValid getter returns true, the phone number transaction can be committed.
-
-Sometimes a transaction may span multiple components.  In that case you can either create the transaction in the highest level component and pass it down via parameters, create proxies that already incorporate data consumed by the sub-components and pass them down via paramaters or use a Provider for the transaction.
+Sometimes a transaction may span multiple components.  In that case you can either create the transaction in the highest level component and pass it down via parameters or use **<TransactionProvider>** 
+```
+import {TransactionProvider} from 'proxily';
+function App () {
+    return (
+        <TransactionProvider>
+            <UpdateCustomer customer={customer} />
+        </TransactionProvider>
+    )
+}
+```
+With **<TransactionProvider>** you can then reference the transaction in your transaction with useContext rather than creating it in the component
+```
+import {TransactionContext} from 'proxily';
+...
+const updateAddressTxn = useContext(TransactionContext);
+```
 
 ### Transaction Object
 
