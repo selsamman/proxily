@@ -2,8 +2,9 @@
 > Note:  This project is being actively developped and as such has not yet been published on NPM.  See the road map towards a release at the end. In the mean time it is subject to change.
 ## Global State Management for React
 
-Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state data is changed. While eliminating the complexity of managing immutable state it provides many of the same benefits such as rendering components dependent on parent objects when child objects are updated. There is no need to annotate or describe the state shape as Proxisly will discover it as navigates through the state hierarchy. Core features include:
+Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state changes. While Proxily does not use immutable state it provides many of the same benefits. There is no need to annotate or describe the state shape as Proxily will discover it as navigates through the state hierarchy. Core features include:
 
+* Follows the same dependency pattern as immutable state in that a change to a child object constitutes a change to its parent.
 * Serialization of complex state including cyclic data and classes
 * Asynchronous semantics through redux-sagas generators and take helpers
 * Time travel (undo, redo) in applications (and soon using redux debugger plugin)
