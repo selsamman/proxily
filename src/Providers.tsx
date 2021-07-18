@@ -1,22 +1,27 @@
-import {useState} from "react";
+import {useContext, useState} from "react";
 import {proxy} from "./proxyObserve";
 import React from 'react';
 import {Transaction} from "./Transaction";
+import {useTransactable} from "./reactUse";
 
-export const ObservableProvider = ({provider, value, children} : {provider : any, value : any , children: any}) => {
+export const ObservableProvider = ({context, value, transaction, children} :
+                                       {context : any, value : any , transaction?: Transaction, children: any}) => {
 
-    const [providerValue] = useState(() => proxy(typeof value === "function" ? value() : value));
-
+    transaction = transaction || useContext(TransactionContext);
+    let [providerValue] = useState(() => proxy(typeof value === "function" ? value() : value));
+    if (transaction)
+        providerValue = useTransactable(providerValue, transaction)
     return (
-        <provider.Provider value={providerValue}>
+        <context.Provider value={providerValue}>
             {children}
-        </provider.Provider>
+        </context.Provider>
     )
 }
 
+
 export const TransactionContext = React.createContext<Transaction>(undefined as unknown as Transaction);
-export const TransactionProvider =   ({children} : {children: any}) => {
-    const [providerValue] = useState( ()=> new Transaction());
+export const TransactionProvider =   ({transaction, children} : {transaction? : Transaction, children: any}) => {
+    const [providerValue] = useState( ()=> transaction || new Transaction());
 
     return (
         <TransactionContext.Provider value={providerValue}>

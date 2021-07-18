@@ -1,5 +1,6 @@
 import {ProxyTarget, Target} from "./proxyObserve";
 import {log, logLevel} from "./log";
+import {Transaction} from "./Transaction";
 export let currentContext : ObservationContext | undefined = undefined;
 export let currentSelectorContext : ObservationContext | undefined = undefined;
 export function setCurrentSelectorContext (currentSelectorContextIn : ObservationContext | undefined) {
@@ -10,37 +11,42 @@ export function setCurrentContext (currentContextIn : ObservationContext | undef
 }
 
 export class ObservationContext {
-    constructor(onChange : (target : string, prop : string, targetProxy : ProxyTarget) => void) {
+    constructor(onChange : (target : string, prop : string, targetProxy : ProxyTarget | Transaction) => void) {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         this.onChange = onChange;
     }
-    onChange : (target : string, prop : string, targetProxy : ProxyTarget) => void | undefined;
-    connectedProxyTargets : Map<ProxyTarget, {[index: string] : boolean}> = new Map();
-    pendingProxyTargets : Array<[ProxyTarget, string]> = new Array();
+    onChange : (target : string, prop : string, targetProxy : ProxyTarget | Transaction) => void | undefined;
+    connectedProxyTargets : Map<ProxyTarget | Transaction, {[index: string] : boolean}> = new Map();
+    pendingProxyTargets : Array<[ProxyTarget | Transaction, string]> = new Array();
 
     target : Target | undefined;
 
-    changed(proxyTarget : ProxyTarget, prop : string) {
+    changed(proxyTarget : ProxyTarget | Transaction, prop : string) {
         const connectedProxy = this.connectedProxyTargets.get(proxyTarget);
         if (connectedProxy)
             if (connectedProxy[prop] || connectedProxy['*']) {
                 if(logLevel.render) log(`${proxyTarget}.${prop} forced re-render`);
-                this.onChange(proxyTarget.__target__.constructor ? proxyTarget.__target__.constructor.name :  "anonymous", prop, proxyTarget);
+                const name = proxyTarget instanceof Transaction ? "Transaction" :
+                    proxyTarget.__target__.constructor ? proxyTarget.__target__.constructor.name :  "anonymous"
+                this.onChange(name, prop, proxyTarget);
             }
     };
-    referenced(proxyTarget : ProxyTarget, prop : string) {
+    referenced(proxyTarget : ProxyTarget | Transaction, prop : string) {
         this.pendingProxyTargets.push([proxyTarget, prop]);
     };
     processPendingReferences() {
         this.pendingProxyTargets.forEach(([target, prop]) => this.processPendingReference(target, prop))
         this.pendingProxyTargets = new Array();
     }
-    processPendingReference(proxyTarget : ProxyTarget, prop : string) {
+    processPendingReference(proxyTarget : ProxyTarget | Transaction, prop : string) {
         let connectedProxy = this.connectedProxyTargets.get(proxyTarget)
         if (!connectedProxy) {
             connectedProxy = {}
             this.connectedProxyTargets.set(proxyTarget, connectedProxy);
-            proxyTarget.__target__.__contexts__.set(this, this);
+            if (proxyTarget instanceof Transaction)
+                proxyTarget.__contexts__.set(this, this);
+            else
+                proxyTarget.__target__.__contexts__.set(this, this);
         }
         connectedProxy[prop] = true;
     };
@@ -51,8 +57,14 @@ export class ObservationContext {
     cleanup () {
         // Allow Context to be garbage collected
         this.connectedProxyTargets.forEach((_crap, proxyTarget) => {
-            if (proxyTarget.__target__.__contexts__.get(this))
-                proxyTarget.__target__.__contexts__.delete(this)
+            if (proxyTarget instanceof Transaction) {
+                if (proxyTarget.__contexts__.get(this))
+                    proxyTarget.__contexts__.delete(this)
+
+            } else {
+                if (proxyTarget.__target__.__contexts__.get(this))
+                    proxyTarget.__target__.__contexts__.delete(this)
+            }
         });
         this.connectedProxyTargets = new Map();
     }

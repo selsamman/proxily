@@ -1,17 +1,14 @@
-import {Transaction} from "../../src";
+import {makeObservable, Transaction, useObservables, useTransactable} from "../../src";
 import {proxy} from "../../src";
 import {Target} from "../../src/proxyObserve";
 import {Leaf} from "../data/classes";
+import {render, screen} from "@testing-library/react";
+import "@testing-library/jest-dom/extend-expect";
+import * as React from "react";
+import {useState} from "react";
 
 describe("transation unit tests", () => {
 
-    it ("can create transactions", () => {
-        const txn1 = new Transaction({timePositioning: true});
-        expect (txn1.timePositioning).toBe(true);
-        const txn2 = Transaction.createDefaultTransaction({timePositioning: true})
-        expect(Transaction.defaultTransaction).toBe(txn2);
-        expect (txn2.timePositioning).toBe(true);
-    });
     it ("can undo, redo and rollback", () => {
         const txn1 = new Transaction({timePositioning: true});
         let t1 = 10;
@@ -41,7 +38,7 @@ describe("transation unit tests", () => {
     });
     it ("can undo, redo and rollback values", () => {
         const transaction = new Transaction({timePositioning: true});
-        const target = {prop:  "initial"} ;
+        const target = proxy({prop:  "initial"}) ;
         const start = transaction.updateSequence;
 
         transaction.startTopLevelCall();
@@ -406,4 +403,37 @@ describe("transation unit tests", () => {
 
     });
 
+});
+describe("Transaction Component Test", () => {
+
+    const state = makeObservable({
+        counter: {value: 0}
+    });
+    function Counter({txn} : {txn : Transaction}) {
+        useObservables();
+        const  {counter} = useTransactable(state, txn);
+        return (
+            <div>
+                <span>Count: {counter.value}</span>
+                <button onClick={()=>counter.value++}>Increment</button>
+            </div>
+        );
+    }
+
+    it ("Can force render on changes if canundo caled", () => {
+        function App () {
+            useObservables();
+            const [txn] = useState(() => new Transaction({timePositioning: true}));
+            return (
+                <div>
+                    <span data-testid={1}>{txn.canUndo ? "Can Undo" : "Cannot Undo"}</span>
+                    <Counter txn={txn} />
+                </div>
+            );
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (screen.getByTestId(1)).toHaveTextContent("Can Undo");
+
+    });
 });

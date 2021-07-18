@@ -1,4 +1,5 @@
 import {ProxyTarget, Target} from "./proxyObserve";
+import {currentContext, currentSelectorContext, ObservationContext} from "./ObservationContext";
 
 export interface TransactionOptions {
     timePositioning: boolean
@@ -17,7 +18,7 @@ export class Transaction {
 
     static createDefaultTransaction (options? : TransactionOptions) {
         if (Transaction.defaultTransaction)
-            throw (new Error('createDefaultTransaction called twice'));
+            return Transaction.defaultTransaction;
         Transaction.defaultTransaction = new Transaction (options);
         return Transaction.defaultTransaction
     }
@@ -31,6 +32,10 @@ export class Transaction {
 
     // Public data
     get updateSequence () { return this._updateSequence }
+    private set updateSequence (updateSequence) {
+        this._updateSequence = updateSequence;
+        this.notifyContext();
+    }
     get timePositioning () {
         return this.options.timePositioning;
     }
@@ -57,10 +62,10 @@ export class Transaction {
         if (!recordTimePosition || !this.timePositioning)
             return;
         function undo () {
-            target[key] = oldValue;
+            target.__proxy__[key] = oldValue;
         }
         function redo () {
-            target[key] = newValue
+            target.__proxy__[key] = newValue
         }
         this.recordUndoRedo(undo, redo);
     }
@@ -78,19 +83,19 @@ export class Transaction {
 
     // Add next time position element indication whther top level and a function to repeat or undo state change
     addPosition (undoredoIntermediate :  Array<() => void>) {
-        if (this._updateSequence < (this.undoredo.length - 1)) {
-            this.undoredo.splice(this._updateSequence + 1, this.undoredo.length - this._updateSequence - 1);
+        if (this.updateSequence < (this.undoredo.length - 1)) {
+            this.undoredo.splice(this.updateSequence + 1, this.undoredo.length - this.updateSequence - 1);
         }
         this.undoredo.push(undoredoIntermediate);
-        ++this._updateSequence;
+        ++this.updateSequence;
     }
 
     // Undo last state update by executing undos until top level entry reached
     undo () {
-        if (this.undoredo[this._updateSequence])
-            for (let ix = this.undoredo[this._updateSequence].length - 2; ix >= 0; ix -=2) {
+        if (this.undoredo[this.updateSequence])
+            for (let ix = this.undoredo[this.updateSequence].length - 2; ix >= 0; ix -=2) {
                 this.withinUndoRedo = true;
-                try {this.undoredo[this._updateSequence][ix].call(null)}
+                try {this.undoredo[this.updateSequence][ix].call(null)}
                 catch (e) {
                     this.withinUndoRedo = false;
                     throw(e);
@@ -98,18 +103,18 @@ export class Transaction {
                 this.withinUndoRedo = false;
             }
         else
-            throw new Error(`Cannot undo -  - updateSequence: ${this._updateSequence}`);
-        --this._updateSequence;
+            throw new Error(`Cannot undo -  - updateSequence: ${this.updateSequence}`);
+        --this.updateSequence;
     }
-    get canUndo () {return !!this.undoredo[this._updateSequence]}
+
 
     // Redo last state change (if previously undo executed) by executing redos until top level or end reached
     redo () {
-        if (this.undoredo[this._updateSequence + 1]) {
-            ++this._updateSequence;
-            for (let ix = 1; ix < this.undoredo[this._updateSequence].length; ix += 2) {
+        if (this.undoredo[this.updateSequence + 1]) {
+            ++this.updateSequence;
+            for (let ix = 1; ix < this.undoredo[this.updateSequence].length; ix += 2) {
                 this.withinUndoRedo = true;
-                try {this.undoredo[this._updateSequence][ix].call(null)}
+                try {this.undoredo[this.updateSequence][ix].call(null)}
                 catch (e) {
                     this.withinUndoRedo = false;
                     throw(e);
@@ -117,20 +122,19 @@ export class Transaction {
                 this.withinUndoRedo = false;
             }
         } else
-            throw new Error(`Cannot redo -  - updateSequence: ${this._updateSequence}`);
+            throw new Error(`Cannot redo -  - updateSequence: ${this.updateSequence}`);
     }
-    get canRedo () {return !!this.undoredo[this._updateSequence + 1]}
 
     clearUndoRedo () {
         this.undoredo = new Array<Array<() => void>>();
-        this._updateSequence = -1;
+        this.updateSequence = -1;
     }
 
     // Roll to specific sequence by undoing redoing until point reached.
     rollTo(updateSequence : number) {
-        while (updateSequence > this._updateSequence)
+        while (updateSequence > this.updateSequence)
             this.redo();
-        while (updateSequence < this._updateSequence)
+        while (updateSequence < this.updateSequence)
             this.undo();
     }
 
@@ -210,4 +214,26 @@ export class Transaction {
         this.proxies = new Map();
         this.clearUndoRedo();
     }
+    get canUndo () {
+        this.referenceContext()
+        return !!this.undoredo[this.updateSequence]
+    }
+    get canRedo () {
+        this.referenceContext()
+        return !!this.undoredo[this.updateSequence + 1]
+    }
+
+    referenceContext () {
+        if(currentContext)
+            currentContext.referenced(this, "__undo__");
+        if(currentSelectorContext)
+            currentSelectorContext.referenced(this, "__undo__");
+    }
+    notifyContext () {
+        this.__contexts__.forEach(context => {
+            context.changed(this,  "__undo__");
+        });
+    }
+    __contexts__ : Map<ObservationContext, ObservationContext> = new Map();  // A context that can communicate with the component
+
 }

@@ -40,9 +40,9 @@ Proxily will track references to your observable state that occur during the ren
 
 ### How does it work?
 
-Although you don't need to know all the details, Proxily performs its magic using ES6 proxies.  **makeObservable** creates a proxy for an object.  Then when you use that proxy to reference further into your state object hierarchy, Proxily will replace references to deeper objects with references to a proxy.  You entire state will end up being proxied as you reference it. 
+Although you don't need to know all the details, Proxily performs its magic using ES6 proxies.  **makeObservable** creates a proxy for an object.  Then when you use that proxy to reference further into your state object hierarchy, Proxily will replace references to deeper objects with references to a proxy.  Your entire state will end up being proxied as you reference it. 
 
-As this happens the shape of your state is noted such that you don'e need to annotate relationships.  The proxies will notify any components that contain **useObserverables** when properties they reference change. The relationship information is used to ensure that parent components are also notified when child data changes as is the case for the immutable pattern. Other parts of your application outside of components may also make and observe changes to your state.
+As this happens the shape of your state is noted such that you don't need to annotate relationships.  The proxies will notify any components that contain **useObserverables** when properties they reference change. The relationship information is used to ensure that parent components are also notified when child data changes as is the case for the immutable pattern. Other parts of your application outside of components may also make and observe changes to your state.
 
 Because of it's use of ES6, Proxily does not support Internet Explorer and requires 0.69 or higher of React-Native.  Proxily is written in Typescript and targets ES6. Therefore, it is advisable to target ES6 in your applications that use ES6.  This results in far less transpilation and makes debugging easier.
 
@@ -247,7 +247,6 @@ When you schedule it you chose one of the take helpers such as takeEvery, takeLe
 * **takeLeading** - Ignore requests to schedule the task while first instance of the task is in process
 * **takeLatest** - Cancel any running task instance of the task when a new instance is scheduled
 * **debounce** - Wait x milliseconds before running ignoring any others scheduled in that interval
-
 **scheduleTask** just uses redux-saga functions to schedule the task by
 * Calling runSaga on a dispatching saga for your task
 * The dispatching saga then yields on the helper passing it the generator task itself. 
@@ -376,9 +375,9 @@ Time position (undo/redo/rollTo) is implemented by internally creating an array 
 * You reposition again
 * You preform a state update
 
-In the later case the current position becomes the last entry in this array by deleteing all later entires.  Thus if you ***undo*** or ***rollTo** and make further state changes you can can never go further forward in time.
+In the later case the current position becomes the last entry in this array by deleteing all later entires.  Thus if you **undo** or **rollTo** and make further state changes you can can never go further forward in time.
 
-A ***rollback*** does not use the array of undo/redo functions.  Instead it simply updates all the of the target objects to the state of main store.
+A **rollback** does not use the array of undo/redo functions.  Instead it simply updates all the of the target objects to the state of main store.
 
 ### Requesting incremental time positioning
 
