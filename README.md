@@ -444,7 +444,7 @@ Presently Proxily is at the stage of functional completeness with good test cove
 * [x] Storage integration
 * [x] Transactions & state forking
 * [x] Extensive tests for core-functionality
-* [ ] Sample App
+* [x] Sample App
 * [ ] Publish on NPM  
 * [ ] Patterns of Usage Example
 * [ ] Full Documentation
