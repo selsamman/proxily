@@ -45,6 +45,10 @@ Although you don't need to know all the details, Proxily performs its magic usin
 As this happens the shape of your state is noted such that you don't need to annotate relationships.  The proxies will notify any components that contain **useObserverables** when properties they reference change. The relationship information is used to ensure that parent components are also notified when child data changes as is the case for the immutable pattern. Other parts of your application outside of components may also make and observe changes to your state.
 
 Because of it's use of ES6, Proxily does not support Internet Explorer and requires 0.69 or higher of React-Native.  Proxily is written in Typescript and targets ES6. Therefore, it is advisable to target ES6 in your applications that use ES6.  This results in far less transpilation and makes debugging easier.
+### Getting to Know Proxily
+
+This read.me contains the full documentation at present.  There is also a [Todo Application](https://github.com/selsamman/proxily-react-todo) that demonstrates all the features of Proxily as well as best practices.
+
 
 ## Function Binding
 The first example demonstrated that you change your state directly in your component.  Just because you **can** do so does not mean that you **should** do so. Best practices are to keep logic separate from the component.  One option is in the state itself by including an increment function
