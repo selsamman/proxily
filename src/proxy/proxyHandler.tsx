@@ -28,7 +28,7 @@ export const proxyHandler = {
                 const memo = createMemoization(prop, target, props.get);
                 return memo.getValue([]);
             } else
-                Reflect.get(target, prop, receiver);
+                return Reflect.get(target, prop, receiver);
         }
 
         // If referencing an object that is not proxied proxy it and keep on the side for serving up

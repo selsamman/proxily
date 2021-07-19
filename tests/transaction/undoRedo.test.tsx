@@ -1,5 +1,4 @@
 import {makeObservable, Transaction, useObservables, useTransactable} from "../../src";
-import {proxy} from "../../src";
 import {Target} from "../../src/proxyObserve";
 import {Leaf} from "../data/classes";
 import {render, screen} from "@testing-library/react";
@@ -38,7 +37,7 @@ describe("transation unit tests", () => {
     });
     it ("can undo, redo and rollback values", () => {
         const transaction = new Transaction({timePositioning: true});
-        const target = proxy({prop:  "initial"}) ;
+        const target = makeObservable({prop:  "initial"}) ;
         const start = transaction.updateSequence;
 
         transaction.startTopLevelCall();
@@ -79,7 +78,7 @@ describe("transation unit tests", () => {
                 this.innerProp = val;
             }
         }
-        const test = proxy(new Test(), transaction);
+        const test = makeObservable(new Test(), transaction);
 
         const start = transaction.updateSequence;
 
@@ -121,7 +120,7 @@ describe("transation unit tests", () => {
                 this.innerProp = {prop: val};
             }
         }
-        const test = proxy(new Test(), transaction);
+        const test = makeObservable(new Test(), transaction);
         expect(transaction.canUndo).toBe(false);
         expect(transaction.canRedo).toBe(false);
         const start = transaction.updateSequence;
@@ -172,7 +171,7 @@ describe("transation unit tests", () => {
         class Test {
             arr = [new Leaf(1), new Leaf(2), new Leaf(3)];
           }
-        const test = proxy(new Test(), transaction);
+        const test = makeObservable(new Test(), transaction);
 
         test.arr.sort((a, b) => b.num - a.num);
         expect(test.arr.length).toBe(3);
@@ -322,7 +321,7 @@ describe("transation unit tests", () => {
         class Test {
             date = new Date("2020/01/01");
         }
-        const test = proxy(new Test(), transaction);
+        const test = makeObservable(new Test(), transaction);
 
         expect(test.date.getMonth()).toBe(0);
         test.date.setMonth(-1);
@@ -339,7 +338,7 @@ describe("transation unit tests", () => {
         class Test {
             map = new Map([[1, new Leaf(1)], [2, new Leaf(2)]]);
         }
-        const test = proxy(new Test(), transaction);
+        const test = makeObservable(new Test(), transaction);
         expect(test.map.get(1)?.num).toBe(1);
         expect(test.map.get(2)?.num).toBe(2);
 
@@ -380,7 +379,7 @@ describe("transation unit tests", () => {
         class Test {
             set = new Set([leaf1, leaf2]);
         }
-        const test = proxy(new Test(), transaction);
+        const test = makeObservable(new Test(), transaction);
         expect(test.set.has(leaf1)).toBe(true);
         expect(test.set.has(leaf2)).toBe(true);
 

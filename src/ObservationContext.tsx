@@ -43,10 +43,13 @@ export class ObservationContext {
         if (!connectedProxy) {
             connectedProxy = {}
             this.connectedProxyTargets.set(proxyTarget, connectedProxy);
-            if (proxyTarget instanceof Transaction)
-                proxyTarget.__contexts__.set(this, this);
-            else
-                proxyTarget.__target__.__contexts__.set(this, this);
+            if (proxyTarget instanceof Transaction) {
+                if (!proxyTarget.__contexts__.has(this))
+                    proxyTarget.__contexts__.set(this, this);
+            } else {
+                if (!proxyTarget.__target__.__contexts__.has(this))
+                    proxyTarget.__target__.__contexts__.set(this, this);
+            }
         }
         connectedProxy[prop] = true;
     };

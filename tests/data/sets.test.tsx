@@ -1,11 +1,11 @@
 import {Leaf, observeResult, Root} from "./classes";
-import {proxy} from "../../src";
+import {makeObservable} from "../../src";
 
 describe("data structure tests: objects", () => {
 	it ("can observe changes to sets", () => {
 
 		expect(observeResult(new Root(), (root) => {
-			const newLeaf = proxy(new Leaf());
+			const newLeaf = makeObservable(new Leaf());
 			root.setCollection.add(newLeaf);
 			newLeaf.num = 4;
 			expect(root.setCollection.has(newLeaf)).toBe(true);

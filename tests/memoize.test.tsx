@@ -1,4 +1,4 @@
-import {memoize, proxy} from "../src";
+import {memoize, makeObservable} from "../src";
 
 describe("data structure tests of proxy", () => {
     let calls = 0;
@@ -25,7 +25,7 @@ describe("data structure tests of proxy", () => {
     }
     it ( "memo a normal function", () => {
         calls = 0;
-        const root = proxy(new Root());
+        const root = makeObservable(new Root());
         expect(root.getValue()).toBe(0);
         expect(root.getValue()).toBe(0);
         expect(calls).toBe(1);
@@ -37,7 +37,7 @@ describe("data structure tests of proxy", () => {
     });
     it ( "memo a getter function", () => {
         calls = 0;
-        const root = proxy(new Root());
+        const root = makeObservable(new Root());
         expect(root.value).toBe(0);
         expect(root.value).toBe(0);
         expect(calls).toBe(1);
@@ -49,7 +49,7 @@ describe("data structure tests of proxy", () => {
     });
     it ( "memo a function with parameters", () => {
         calls = 0;
-        const root = proxy(new Root());
+        const root = makeObservable(new Root());
         expect(root.getValuePlus(0, 0)).toBe(0);
         expect(root.getValuePlus(0, 0)).toBe(0);
         expect(root.getValuePlus(0, 1)).toBe(1);

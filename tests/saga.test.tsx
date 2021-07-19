@@ -12,7 +12,7 @@ import {
     put
 } from "@redux-saga/core/effects";
 
-import {proxy} from "../src";
+import {makeObservable} from "../src";
 // @ts-ignore
 import EventEmitter from "events";
 import type { EventChannel } from 'redux-saga';
@@ -196,7 +196,7 @@ describe("It can schedule with Proxily Sagas", () => {
                 scheduleTask(this.task,{interval: 150});
             }
         }
-        const container = proxy(new Container());
+        const container = makeObservable(new Container());
         container.invokeWorker();
         container.invokeWorker();
         await new Promise((resolve) => {resolver = resolve});
@@ -221,7 +221,7 @@ describe("It can schedule with Proxily Sagas", () => {
             }
             count = 0;
         }
-        const container = proxy(new Container());
+        const container = makeObservable(new Container());
         container.doTask('a');
         container.doTask('b');
         setTimeout(() => container.cancelTask(), 75);
@@ -256,7 +256,7 @@ describe("It can schedule with Proxily Sagas", () => {
             }
             count = 0;
         }
-        const container = proxy(new Container());
+        const container = makeObservable(new Container());
         container.doTask('a');
         container.doTask('b');
         setTimeout(() => container.cancelTask(), 75);
