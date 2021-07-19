@@ -82,12 +82,10 @@ Notice that destructuring **increment** from counter worked properly.
 ```
 const {value, increment} = counter;
 ```
-That is because Proxily binds all functions to the target on observable objects.  Now you can use objects without the consumer having to be aware of the object implementation.  Having to bind object functions to the objectis a key pain-point with using objects and classes which Proxily eliminates.
+That is because Proxily binds all functions to the target on observable objects.  Now you can use objects without the consumer having to be aware of the object implementation.
 
 ## Classes
-Proxily doesn't care whether you use prototypical delegation or classes or pure functions to update your data.  Since it only tracks the data (rather than mutating it) it leaves the creation of objects up to you.  However, Proxily does have full support for Typescript enabling you to create a type safe store.  All of the custom hooks are fully type aware such that types are inferred.
-
-Typescript give you a mechanism to create your own rules such as never allowing state to be updated outside of the store.
+Classes are an effective way to group logic with associated data.  They have never been particularly well-supported in React but with Proxily they become first class citizens with function binding and serialization support.  Classes allow you to create your own rules about how state should be updated and to enforce those rules.  Proxily itself may be un-opinionated, but with classes you can eatablish and enforce usage patterns of your choice.  For example, you can prevent the store from being updated directly by components by using ***private*** on properties and implementing actions as methods:
 ```
 class CounterState {
     private value = 0;  // Can't update value directly
@@ -114,7 +112,7 @@ function App () {
 }
 ```
 ## Memoization
-Memoization which reduces costly recalculations based on your state by saving the result and only re-running the calculation when dependent state is changed.  Both getters (akin to selectors) and functions with arguments are supported:  You need only annotate an object function with **memoizeObject** and **memoizeClass**.
+Memoization reduces costly recalculations of computed values based on your state by saving the result and only re-running the calculation when dependent state is changed.  Both getters (akin to selectors) and functions with arguments are supported:  You need only annotate an object function with **memoizeObject** and **memoizeClass**.
 ```
 const state = {
     counters: [counter1, counter2],
