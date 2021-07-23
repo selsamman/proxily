@@ -25,13 +25,19 @@ export function scheduleTask<T> (task : (parameter: T)=>void, parameter : T, tak
     sagaContainer.emitter.emit('call', parameter as any);
 }
 export function cancelTask (task : any, taker?: any) : void {
-    const sagaContainer = getSagaContainer(task,taker || takeEvery);
-    if (sagaContainer) {
-        sagaContainer.cancelEmitter.emit('call', "cancel");
-        sagaContainers.get(task)?.delete(taker || takeEvery);
-        if(sagaContainers.get(task)?.size === 0)
-            sagaContainers.delete(task);
-    }
+    const taskKey = task.__original__ || task;
+    let sagaWorker = sagaContainers.get(taskKey);
+    if (sagaWorker) {
+        const sagaContainer = sagaWorker.get(taker);
+        if (sagaContainer) {
+            sagaContainer.cancelEmitter.emit('call', "cancel");
+            sagaWorker.delete(taker);
+        } else
+            throw new Error ("attempt to cancel a saga - taker not found");
+        if (sagaWorker.size === 0)
+            sagaContainers.delete(taskKey);
+    } else
+        throw new Error ("attempt to cancel a saga - task not found");
 }
 
 function getSagaContainer(task : any, taker : any, ...takerArgs : any) {

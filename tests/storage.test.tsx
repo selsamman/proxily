@@ -1,4 +1,4 @@
-import {persist, StorageEngine} from "../src";
+import {persist, persistAsync, StorageEngine} from "../src";
 
 class Leaf1 {
     num = 3;
@@ -39,6 +39,33 @@ describe("storage tests", () => {
         root.collection1[0].num = 4;
         await new Promise((resolve) => {resolver = resolve});
         const root2 = persist(new Root1(), {storageEngine: myStorage, classes: [Root1, Leaf1]});
+        expect(root2.collection1[0].num).toBe(4)
+        expect(root2.collection3.get('2')?.parent).toBe(root2)
+    });
+})
+describe("storage tests async", () => {
+    it("Has basic sanity", async () => {
+        let resolver : any;
+        let item = {};
+        const myStorage : StorageEngine = {
+            async getItem(key: string): Promise<string> {
+                return item[key];
+            },
+            setItem(key: string, value: any): any {
+                item[key] = value;
+                resolver(value);
+            },
+            removeItem(_key: string) {}
+        }
+        const pRoot = new Root1();
+        const leaf = pRoot.collection3.get('2');
+        if (leaf)
+            leaf.parent = pRoot;
+        const root = await persistAsync(pRoot, {storageEngine: myStorage});
+        expect(root.collection3.get('2')?.parent).toBe(root)
+        root.collection1[0].num = 4;
+        await new Promise((resolve) => {resolver = resolve});
+        const root2 = await persistAsync(new Root1(), {storageEngine: myStorage, classes: [Root1, Leaf1]});
         expect(root2.collection1[0].num).toBe(4)
         expect(root2.collection3.get('2')?.parent).toBe(root2)
     });

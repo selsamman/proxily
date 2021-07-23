@@ -177,9 +177,13 @@ describe("It can schedule with Proxily Sagas", () => {
         scheduleTask(worker,{interval: 150, type: 'B'}, takeLatest);  // ignored
         scheduleTask(worker,{interval: 150, type: 'C'}, takeLatest);  // ignored
         await wait(200)
-        expect(trace).toBe("C");
+        scheduleTask(worker,{interval: 150, type: 'A'}, takeLatest);
+        scheduleTask(worker,{interval: 150, type: 'B'}, takeLatest);  // ignored
+        scheduleTask(worker,{interval: 150, type: 'C'}, takeLatest);  // ignored
+        await wait(200)
+        expect(trace).toBe("CC");
         console.log(elapsed);
-        expect(elapsed > 0 && elapsed < 200).toBe(true);
+        expect(elapsed > 0 && elapsed < 400).toBe(true);
     });
     it("can do it with class", async () => {
         let resolver : any;
@@ -226,8 +230,12 @@ describe("It can schedule with Proxily Sagas", () => {
         container.doTask('b');
         setTimeout(() => container.cancelTask(), 75);
         await wait(200);
-        expect(trace).toBe("a");
-        expect(elapsed > 0 && elapsed < 75).toBe(true);
+        container.doTask('a');
+        container.doTask('b');
+        setTimeout(() => container.cancelTask(), 75);
+        await wait(200);
+        expect(trace).toBe("aa");
+        expect(elapsed > 0 && elapsed < 275).toBe(true);
 
     });
     it("can cancel with class and custom taker", async () => {

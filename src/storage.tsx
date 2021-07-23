@@ -39,6 +39,33 @@ export function persist<T>(initialState: T, config : PersistConfig) : T {
         }, 0);
     }
 }
+export async function  persistAsync <T>(initialState: T, config : PersistConfig) : Promise<T> {
+    const key = config.key || 'root'
+    const storageEngine : StorageEngine | undefined = config.storageEngine
+    if (!storageEngine)
+        throw( new Error("storageEngine parameter missing from persistAsync"));
+    const persistedStateJSON = await storageEngine.getItem(key);
+    let persistedState : T;
+    if (persistedStateJSON) {
+        persistedState = deserialize(persistedStateJSON, config.classes, config.classHandlers);
+        if (config.migrate)
+            persistedState = config.migrate(persistedState, initialState);
+        else
+            persistedState = migrate(persistedState, initialState);
+    } else
+        persistedState = initialState;
+    let scheduled = false;
+    observe(persistedState, onChange);
+    return makeObservable(persistedState);
+    function onChange(_proxy:string, _prop : string) {
+        if (!scheduled)
+            setTimeout(() => {
+                storageEngine?.setItem(key, serialize(persistedState))
+                scheduled = false;
+            }, 0);
+    }
+}
+
 export function migrate (persistIn : any, initialIn : any) {
     const visited = new Set();
     const outState = Object.create(initialIn);

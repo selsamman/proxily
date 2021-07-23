@@ -292,7 +292,19 @@ const takeLeadingCustom = (patternOrChannel:any, saga:any, ...args:any) => fork(
 scheduleTask(this.task, {interval: 1000}, takeLeadingCustom);
 
 ```
-You must add redux-saga to your project and import **scheduleTask** and **cancelTask** from proxily/lib/cjs/sagas.
+###Important Notes on Usage: 
+Proxily does not have redux-saga as a dependency.  Therefore, you must:
+* Add redux-saga to your project
+  
+  ``` yarn add redux-saga```
+  
+* Import scheduleTask and cancelTask from proxily/lib/cjs/sagas.
+  
+  ```import {scheduleTask, cancelTask} from proxily/lib/cjs/sagas";```
+  
+* With react-native you may also need to install events
+
+   ```yarn install events```
 ## Transactions & State Forking
 ### Overview
 A Transaction creates a forked environment in which updates are made.  You may then commit the forked environment which makes the updates visible outside of the transaction or roll them back.  This allows you to "cancel" changes without necessarily losing other asynchronous updates such as those that are streamed from a server.
