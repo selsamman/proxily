@@ -1,14 +1,16 @@
-import {useContext, useState} from "react";
+import {useContext, useState, useMemo} from "react";
 import {makeObservable} from "./proxyObserve";
 import React from 'react';
 import {Transaction} from "./Transaction";
 import {useTransactable} from "./reactUse";
 
-export const ObservableProvider = ({context, value, transaction, children} :
-                                       {context : any, value : any , transaction?: Transaction, children: any}) => {
+export const ObservableProvider = ({context, value, dependencies, transaction, children} :
+             {context : any, value : any , dependencies? : any, transaction?: Transaction, children: any}) => {
 
     transaction = transaction || useContext(TransactionContext);
-    let [providerValue] = useState(() => makeObservable(typeof value === "function" ? value() : value));
+    let [providerValue] = dependencies
+        ? [useMemo(() => makeObservable(typeof value === "function" ? value() : value), dependencies)]
+        : useState(() => makeObservable(typeof value === "function" ? value() : value))
     if (transaction)
         providerValue = useTransactable(providerValue, transaction)
     return (
