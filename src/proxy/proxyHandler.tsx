@@ -35,7 +35,9 @@ export const proxyHandler = {
         let value : any = Reflect.get(target, prop, target);
 
         if (typeof value === "function") {
-            if (isMemoized(prop, target)) {
+            if (value._isMockFunction)
+                return value;
+            else if (isMemoized(prop, target)) {
                 let memo = createMemoization(prop, target, value);
                 return (...args : any) => {
                     if (callLevel === 0)
