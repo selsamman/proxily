@@ -6,7 +6,7 @@ import {
     setLogLevel,
     memoize,
     useObservables,
-    makeObservable
+    makeObservable, jestMockFromClass
 } from '../../src';
 import "@testing-library/jest-dom/extend-expect";
 
@@ -84,6 +84,32 @@ describe('Counter Patterns',  () => {
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+    it( 'Can test component with jestMockFromClass' , async () => {
+        class CounterState {
+            constructor (val : number) {this._value = val}
+            private _value : number = 0;
+            get value () {
+                return this._value
+            }
+            increment () {this._value++}
+        }
+
+        function Counter({counter} : {counter : CounterState}) {
+            useObservables();
+            const {value, increment} = counter;
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+        }
+        const mockState = jestMockFromClass(CounterState, {get value () {return 5}});
+        render(<Counter counter={mockState} />);
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 5");
+        screen.getByText('Increment').click();
+        expect(mockState.increment).toBeCalled();
     });
     it( 'Can have self contained state with TS' , async () => {
         class CounterState {

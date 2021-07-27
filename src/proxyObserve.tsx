@@ -56,4 +56,17 @@ export function isInternalProperty (prop : any) {
 export function target <T>(a: T) {return (a as unknown as any).__target__ as unknown as T};
 
 
+export function jestMockFromClass<T>(c : abstract new (...args: any) => T,  o: Partial<T>) : T {
+
+    const proto = c.prototype.constructor.prototype
+    Object.getOwnPropertyNames(proto).forEach(p => {
+        const props = Object.getOwnPropertyDescriptor(proto, p);
+        if (typeof props?.get !== "function"  && typeof proto[p] == 'function')
+            (o as unknown as any)[p] = jest.fn();
+
+    })
+    return o as T
+}
+
+
 
