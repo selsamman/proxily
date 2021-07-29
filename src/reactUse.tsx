@@ -40,7 +40,7 @@ export function useObservable<S>(value: S) : [S, (value: S) => void] {
 
 }
 
-export function useTransactable<A>(targetIn: A, transaction? : Transaction) : A {
+export function useTransactable<A>(targetIn: A, transaction : Transaction) : A {
     const transactableRef : any = useRef();
     if (transactableRef.current)
         return transactableRef.current;
