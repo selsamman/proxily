@@ -17,7 +17,7 @@ export const proxyHandlerSet = {
             return targetValue;
 
         if(logLevel.propertyReference) log(`${target.constructor.name}.${typeof prop === 'string' ? prop : '?'} referenced`);
-        const set = target as unknown as Set<any>;
+        const setProxy = target.__proxy__ as unknown as Set<any>;
         switch (prop) {
 
             case 'has':
@@ -32,7 +32,9 @@ export const proxyHandlerSet = {
                 return (newValue: any) => {
                     newValue = propertyUpdated(target, '*',  newValue);
                     if (target.__transaction__.timePositioning)
-                        target.__transaction__.recordUndoRedo(()=>set.delete(newValue), ()=>set.add(newValue));
+                        target.__transaction__.recordUndoRedo(
+                            ()=>setProxy.delete(newValue),
+                            ()=>setProxy.add(newValue));
                     DataChanged(target, prop);
                     return targetValue.call(target, newValue);
                 }
@@ -41,7 +43,9 @@ export const proxyHandlerSet = {
                 return function (key: any) {
                     proxyAllElements();
                     if (target.__transaction__.timePositioning)
-                        target.__transaction__.recordUndoRedo(()=>set.add(key), ()=>set.delete(key));
+                        target.__transaction__.recordUndoRedo(
+                            ()=>setProxy.add(key),
+                            ()=>setProxy.delete(key));
                     DataChanged(target, key);
                     return  targetValue.call(target, key);
                 }

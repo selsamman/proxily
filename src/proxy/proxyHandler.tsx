@@ -9,6 +9,7 @@ import {
     propertyUpdated
 } from "./proxyCommon";
 import {Transaction} from "../Transaction";
+import {startHighLevelFunctionCall, endHighLevelFunctionCall} from "../devTools";
 export const proxyHandler = {
 
     get(target : Target, prop: string, receiver: any) : any {
@@ -58,14 +59,18 @@ export const proxyHandler = {
                 }
             } else {
                 const proxyFunction = (...args : any) => {
-                    if (callLevel === 0)
+                    if (callLevel === 0) {
                         target.__transaction__.startTopLevelCall();
+                        startHighLevelFunctionCall(target, prop);
+                    }
                     callLevel++
                     try {
                         const ret = value.apply(target.__proxy__, args);
                         --callLevel;
-                        if (callLevel === 0)
+                        if (callLevel === 0) {
                             target.__transaction__.endTopLevelCall();
+                            endHighLevelFunctionCall(target, prop);
+                        }
                         return ret;
                     } catch (e) {
                         --callLevel;

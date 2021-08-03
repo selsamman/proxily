@@ -19,6 +19,7 @@ export const proxyHandlerMap = {
 
         if(logLevel.propertyReference) log(`${target.constructor.name}.${prop} referenced`);
         const map = target as unknown as Map<any, any>
+        const mapProxy = target.__proxy__ as unknown as Map<any, any>
         switch (prop) {
             case 'get':
                 return (key : any) => propertyReferenced(target, key, targetValue.call(target, key),
@@ -35,7 +36,9 @@ export const proxyHandlerMap = {
 
                     // Notify referencing object that referenced property has changed
                     if (target.__transaction__.timePositioning)
-                        target.__transaction__.recordUndoRedo(()=>map.set(key, oldValue), ()=>map.set(key, newValue));
+                        target.__transaction__.recordUndoRedo(
+                            ()=>mapProxy.set(key, oldValue),
+                            ()=>mapProxy.set(key, newValue));
                     DataChanged(target, key);
                 }
 
@@ -49,7 +52,9 @@ export const proxyHandlerMap = {
                     targetValue.call(target, key);
 
                     if (target.__transaction__.timePositioning)
-                        target.__transaction__.recordUndoRedo(()=>map.set(key, oldValue), ()=>map.delete(key));
+                        target.__transaction__.recordUndoRedo(
+                            ()=>mapProxy.set(key, oldValue),
+                            ()=>mapProxy.delete(key));
 
                     // Notify referencing object that referenced property has changed
                     DataChanged(target, prop);

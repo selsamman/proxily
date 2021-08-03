@@ -6,6 +6,7 @@ import {proxyHandlerDate} from "./proxyHandlerDate";
 import {proxyHandlerArray} from "./proxyHandlerArray";
 import {proxyHandler} from "./proxyHandler";
 import {Transaction} from "../Transaction";
+import {setDirty} from "../devTools";
 
 export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transaction) : ProxyTarget {
 
@@ -13,18 +14,26 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     if (!transaction)
         transaction = transaction || Transaction.defaultTransaction || Transaction.createDefaultTransaction();
 
+    let target : any =  proxyOrTarget.__target__ || proxyOrTarget;
+    let proxy = proxyOrTarget.__proxy__;
+
     // If we already have proxy with correct transaction, return it
-    if (proxyOrTarget.__proxy__ && (proxyOrTarget as Target).__transaction__ === transaction)
-        return proxyOrTarget.__proxy__;
+    if (proxy) {
+        if (target.__transaction__ === transaction)
+            return proxy;
+        const potentialProxy = transaction.getProxyFromParentTarget(target);
+        if (potentialProxy)
+            return potentialProxy;
+    }
 
     // Either unproxied or different proxy
 
-    let target : any =  proxyOrTarget.__target__ || proxyOrTarget;
     let parentTarget = null;
 
     // If transactions are different we need to duplicate the object.  This can also be the case where
     // new objects were added in the course of a commit and are now being referenced on the default transaction
-    if (!transaction.isDefault() && proxyOrTarget.__proxy__) {
+    if (!transaction.isDefault() && proxyOrTarget.__proxy__ &&
+        proxyOrTarget.__target__?.__transaction__ !== transaction) {
         parentTarget = target;
         if (target instanceof Map)
             target = new Map(target as Map<any, any>);
@@ -52,7 +61,10 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
         handler = proxyHandlerArray;
     else
         handler = proxyHandler;
-    const proxy = new Proxy(target as any, handler) as ProxyTarget;
+    proxy = new Proxy(target as any, handler) as ProxyTarget;
+
+    if (parentTarget)
+        transaction.addParentTargetProxy(parentTarget, proxy);
 
     Object.defineProperty(target, '__parentReferences__', {writable: true, enumerable: false, value: new Map()});
     Object.defineProperty(target, '__contexts__', {writable: true, enumerable: false, value: new Map()});
@@ -77,6 +89,7 @@ export function DataChanged(target : Target, prop : string) {
     DataChangedInternal(target, prop, new Set());
     if (target.__transaction__)
         target.__transaction__.setDirty(target.__proxy__, prop);
+    setDirty();
 }
 
 export function DataChangedInternal(target : Target, prop : string, history : Set<Target>) {

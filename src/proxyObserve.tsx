@@ -3,11 +3,13 @@ import {ObservationContext, setCurrentContext} from "./ObservationContext";
 import {GetterMemo} from "./memoize";
 import {makeProxy} from "./proxy/proxyCommon";
 import {Transaction} from "./Transaction";
+import {addRoot} from "./devTools";
 
 export function makeObservable<A>(targetIn: A, transaction? : Transaction) : A {
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyOrTarget;
-        const proxy =  makeProxy(target, transaction)
+        const proxy =  makeProxy(target, transaction);
+        addRoot(proxy.__target__);
         return proxy as unknown as A;
     } else
         throw new Error("Attempt to call proxy on a non-object");

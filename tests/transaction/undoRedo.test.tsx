@@ -272,6 +272,7 @@ describe("transation unit tests", () => {
         expect(test.arr[0].num).toBe(2);
         expect(test.arr[1].num).toBe(3);
         transaction.undo();
+        expect(test.arr.length).toBe(3);
 
         test.arr.push(new Leaf(4), new Leaf(5));
         expect(test.arr.length).toBe(5);
@@ -293,6 +294,7 @@ describe("transation unit tests", () => {
         expect(test.arr[3].num).toBe(4);
         expect(test.arr[4].num).toBe(5);
         transaction.undo();
+        expect(test.arr.length).toBe(3);
 
         test.arr.unshift(new Leaf(4), new Leaf(5));
         expect(test.arr.length).toBe(5);

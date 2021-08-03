@@ -4,7 +4,6 @@ import {currentContext, currentSelectorContext, ObservationContext} from "./Obse
 export interface TransactionOptions {
     timePositioning: boolean
 }
-let recordTimePosition = true;
 
 export class Transaction {
 
@@ -25,10 +24,11 @@ export class Transaction {
 
     // Private data
     private options: Partial<TransactionOptions> = {};
-    private proxies : Map<ProxyTarget, Set<any>> = new Map();
+    private dirtyProxies : Map<ProxyTarget, Set<any>> = new Map();
     private undoredo: Array<Array<() => void>> = [];
     private _updateSequence = -1;
     private undoredoIntermediate : Array<() => void> = [];
+    private parentTargetProxies : WeakMap<Target, ProxyTarget> = new WeakMap()
 
     // Public data
     get updateSequence () { return this._updateSequence }
@@ -59,7 +59,7 @@ export class Transaction {
     }
 
     recordTimePosition(target : Target, key : any, oldValue: any, newValue : any) {
-        if (!recordTimePosition || !this.timePositioning)
+        if (!this.timePositioning)
             return;
         function undo () {
             target.__proxy__[key] = oldValue;
@@ -71,6 +71,8 @@ export class Transaction {
     }
 
     recordUndoRedo(undo : () => void, redo: () => void) {
+        if (!this.timePositioning)
+            return;
         if (!this.withinUndoRedo) {
             this.undoredoIntermediate.push(undo);
             this.undoredoIntermediate.push(redo);
@@ -141,10 +143,10 @@ export class Transaction {
     // Used internally to indicate a property of an object has been changed
     setDirty (proxy : ProxyTarget, key : any) {
         if (this !== Transaction.defaultTransaction) {
-            let keys = this.proxies.get(proxy);
+            let keys = this.dirtyProxies.get(proxy);
             if (!keys) {
                 keys = new Set();
-                this.proxies.set(proxy, keys);
+                this.dirtyProxies.set(proxy, keys);
             }
             keys.add(key);
         }
@@ -153,7 +155,7 @@ export class Transaction {
     rollback () {
         if (this === Transaction.defaultTransaction)
             throw new Error(`Attempt to commit the default transaction`);
-        this.proxies.forEach((keys, proxy) => {
+        this.dirtyProxies.forEach((keys, proxy) => {
             const rootProxy = proxy.__target__.__parentTarget__.__proxy__;
             if (keys.size) {
                 if (proxy instanceof Map) {
@@ -176,14 +178,14 @@ export class Transaction {
                     });
             }
         });
-        this.proxies = new Map();
+        this.dirtyProxies = new Map();
         this.clearUndoRedo();
     }
     // Rollback changes by deleteing own properties of target restoring it to the base
     commit () {
         if (this === Transaction.defaultTransaction)
             throw new Error(`Attempt to commit the default transaction`);
-        this.proxies.forEach((keys, proxy) => {
+        this.dirtyProxies.forEach((keys, proxy) => {
             const rootProxy = proxy.__target__.__parentTarget__.__proxy__;
             if (!rootProxy) throw new Error("Hissy Fit");
             if (keys.size) {
@@ -211,7 +213,7 @@ export class Transaction {
                     });
             }
         });
-        this.proxies = new Map();
+        this.dirtyProxies = new Map();
         this.clearUndoRedo();
     }
     get canUndo () {
@@ -233,6 +235,13 @@ export class Transaction {
         this.__contexts__.forEach(context => {
             context.changed(this,  "__undo__");
         });
+    }
+
+    addParentTargetProxy (target : Target, proxyTarget : ProxyTarget) {
+        this.parentTargetProxies.set(target, proxyTarget);
+    }
+    getProxyFromParentTarget(target : Target) {
+        return this.parentTargetProxies.get(target)
     }
     __contexts__ : Map<ObservationContext, ObservationContext> = new Map();  // A context that can communicate with the component
 

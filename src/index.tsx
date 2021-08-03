@@ -9,4 +9,5 @@ export {persist, persistAsync, migrate, StorageEngine, PersistConfig} from "./st
 export {Transaction, TransactionOptions} from "./Transaction";
 export {ObservationContext} from "./ObservationContext";
 export {TransactionProvider, ObservableProvider, TransactionContext} from "./Providers"
+export {configureReduxDevTools, initReduxDevTools} from "./devTools";
 

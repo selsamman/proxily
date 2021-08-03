@@ -1,18 +1,17 @@
-import {useContext, useState, useMemo} from "react";
+import {useContext, useState, useMemo, useEffect} from "react";
 import {makeObservable} from "./proxyObserve";
 import React from 'react';
-import {Transaction} from "./Transaction";
-import {useTransactable} from "./reactUse";
+import {Transaction, TransactionOptions} from "./Transaction";
+import {removeRoot} from "./devTools";
 
 export const ObservableProvider = ({context, value, dependencies, transaction, children} :
-             {context : any, value : any , dependencies? : any, transaction?: Transaction, children: any}) => {
+             {context : any, value : any , dependencies? : Array<any>, transaction?: Transaction, children: any}) => {
 
     transaction = transaction || useContext(TransactionContext);
     let [providerValue] = dependencies
-        ? [useMemo(() => makeObservable(typeof value === "function" ? value() : value), dependencies)]
-        : useState(() => makeObservable(typeof value === "function" ? value() : value))
-    if (transaction)
-        providerValue = useTransactable(providerValue, transaction)
+        ? [useMemo(() => makeObservable(typeof value === "function" ? value() : value, transaction), dependencies)]
+        : useState(() => makeObservable(typeof value === "function" ? value() : value, transaction))
+    useEffect(() => ()=>removeRoot(providerValue.__target__));
     return (
         <context.Provider value={providerValue}>
             {children}
@@ -20,10 +19,9 @@ export const ObservableProvider = ({context, value, dependencies, transaction, c
     )
 }
 
-
-export const TransactionContext = React.createContext<Transaction>(undefined as unknown as Transaction);
-export const TransactionProvider =   ({transaction, children} : {transaction? : Transaction, children: any}) => {
-    const [providerValue] = useState( ()=> transaction || new Transaction());
+export const TransactionProvider =   ({transaction, options, children} :
+{transaction? : Transaction, options? : TransactionOptions, children: any}) => {
+    const [providerValue] = useState( ()=> transaction || new Transaction(options));
 
     return (
         <TransactionContext.Provider value={providerValue}>
@@ -31,3 +29,5 @@ export const TransactionProvider =   ({transaction, children} : {transaction? : 
         </TransactionContext.Provider>
     )
 }
+
+export const TransactionContext = React.createContext<Transaction>(undefined as unknown as Transaction);

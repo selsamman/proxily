@@ -18,7 +18,7 @@ export const proxyHandlerArray = {
 
         // If referencing an object that is not proxied proxy it and keep on the side for serving up
         let value : any = Reflect.get(target, prop, target);
-        const arr = target as unknown as Array<any>;
+        const arrProxy = target.__proxy__ as unknown as Array<any>;
         if (typeof value === "function") {
             // For mutable methods note that the array
             const length = (target as unknown as []).length;
@@ -109,7 +109,9 @@ export const proxyHandlerArray = {
                         deleteElementReferences(target, length -  1, length - 1);
                         const val =  (target as any)[prop].apply(target, args);
                         if (target.__transaction__.timePositioning)
-                            target.__transaction__.recordUndoRedo(()=>arr.push(val), ()=>arr.pop())
+                            target.__transaction__.recordUndoRedo(
+                                ()=>arrProxy.push(val),
+                                ()=>arrProxy.pop())
                         DataChanged(target, '*');
                         return val;
                     }
@@ -118,7 +120,12 @@ export const proxyHandlerArray = {
                         makeProxies(target, args, 0, 0);
                         const val =  (target as any)[prop].apply(target, args);
                         if (target.__transaction__.timePositioning)
-                            target.__transaction__.recordUndoRedo( ()=>{for (let ix = 0; ix < args.length; ++ix) arr.pop()}, ()=>arr.push(...args))
+                            target.__transaction__.recordUndoRedo(
+                                ()=> {
+                                    for (let ix = 0; ix < args.length; ++ix)
+                                        arrProxy.pop()
+                                },
+                                ()=>arrProxy.push(...args))
                         DataChanged(target, '*');
                         return val;
                     }
@@ -127,7 +134,9 @@ export const proxyHandlerArray = {
                         deleteElementReferences(target, 0, 0);
                         const val =  (target as any)[prop].apply(target, args);
                         if (target.__transaction__.timePositioning)
-                            target.__transaction__.recordUndoRedo( ()=>arr.unshift(val), ()=>arr.shift())
+                            target.__transaction__.recordUndoRedo(
+                                ()=>arrProxy.unshift(val),
+                                ()=>arrProxy.shift())
                         DataChanged(target, '*');
                         return val;
                     }
@@ -150,7 +159,12 @@ export const proxyHandlerArray = {
                         makeProxies(target, args, 0, 0);
                         const val =  (target as any)[prop].apply(target, args);
                         if (target.__transaction__.timePositioning)
-                            target.__transaction__.recordUndoRedo( ()=>{for (let ix = 0; ix < args.length; ++ix) arr.shift()}, ()=>arr.unshift(...args), )
+                            target.__transaction__.recordUndoRedo(
+                                ()=> {
+                                    for (let ix = 0; ix < args.length; ++ix)
+                                        arrProxy.shift()
+                                },
+                                ()=>arrProxy.unshift(...args), )
                         DataChanged(target, '*');
                         return val;
                     }

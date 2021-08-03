@@ -214,9 +214,9 @@ describe("transation unit tests dates", () => {
             new Root(),
             (root) => {
                 const transaction = new Transaction();
-                root.objectSingle.date.setMonth(0);
+                root.objectSingle.date.setMonth(0, 1);
                 const tRoot = makeObservable(root, transaction)
-                tRoot.objectSingle.date.setMonth(1);
+                tRoot.objectSingle.date.setMonth(1, 1);
                 expect(root.objectSingle.date.getMonth()).toBe(0);
                 expect(tRoot.objectSingle.date.getMonth()).toBe(1);
             }
@@ -227,9 +227,9 @@ describe("transation unit tests dates", () => {
             new Root(),
             (root) => {
                 const transaction = new Transaction();
-                root.objectSingle.date.setMonth(0);
+                root.objectSingle.date.setMonth(0, 1);
                 const tRoot = makeObservable(root, transaction)
-                tRoot.objectSingle.date.setMonth(1);
+                tRoot.objectSingle.date.setMonth(1, 1);
                 expect(root.objectSingle.date.getMonth()).toBe(0);
                 expect(tRoot.objectSingle.date.getMonth()).toBe(1);
                 transaction.commit();
@@ -244,9 +244,9 @@ describe("transation unit tests dates", () => {
             new Root(),
             (root) => {
                 const transaction = new Transaction();
-                root.objectSingle.date.setMonth(0);
+                root.objectSingle.date.setMonth(0, 1);
                 const tRoot = makeObservable(root, transaction)
-                tRoot.objectSingle.date.setMonth(1);
+                tRoot.objectSingle.date.setMonth(1, 1);
                 expect(root.objectSingle.date.getMonth()).toBe(0);
                 expect(tRoot.objectSingle.date.getMonth()).toBe(1);
                 transaction.rollback();
