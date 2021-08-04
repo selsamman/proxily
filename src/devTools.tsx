@@ -1,29 +1,32 @@
 
-// Each root element (makeObservalbe) is recorded
+// Each root element (makeObservable) is recorded
 import {Transaction} from "./Transaction";
-import {ProxyTarget, Target} from "./proxyObserve";
-const maxAge = 50;
+import {Target} from "./proxyObserve";
+import {ObservationContext} from "./ObservationContext";
+let maxAge = 50;
 
 // Every high level object that subject to makeObservable is going to be reported in state
-export const rootTargets : Set<Target> = new Set();
+const rootTargets : Set<Target> = new Set();
+const transactions : Set<Transaction> = new Set();
 
 // value returned from devTools.connect();
 let devTools : any;
 
-interface actionEntry {
-    transaction: Transaction;
-    targets: Map<Target, Target>;
-}
-
-const actions : Array<actionEntry> = [];
+// actions are just a list of values for each object at the point when the state is saved
+const actions : Array<Map<Target, any>> = [];
 let firstAction = -1;
 let lastAction = -1;
 
 // --- Connect to redux_devtools and handles incoming messages to goTo a particular state
-export function configureReduxDevTools() {
+export function configureReduxDevTools(options? : any) {
     if (typeof window === "object" && (window as unknown as any).__REDUX_DEVTOOLS_EXTENSION__
         && (window as unknown as any).__REDUX_DEVTOOLS_EXTENSION__.connect) {
-        const options = {}
+        if (!options)
+            options = {};
+        if (!options.maxAge)
+            options.maxAge = maxAge;
+        maxAge = options.maxAge;
+
         devTools = (window as unknown as any).__REDUX_DEVTOOLS_EXTENSION__.connect(options)
 
         devTools.subscribe((message : any) => {
@@ -35,7 +38,7 @@ export function configureReduxDevTools() {
     }
 }
 
-// --- Send out the intial state using the devtools init call
+// --- Send out the initial state using the devtools init call
 
 export function initReduxDevTools() {
     if (devTools && Transaction.defaultTransaction) {
@@ -57,6 +60,16 @@ export function isRoot(target : Target) {
 export function removeRoot(target : Target) {
     if (devTools)
         rootTargets.delete(target);
+}
+
+// --- Manage transactions
+
+export function addTransaction(transaction : Transaction) {
+    transactions.add(transaction);
+}
+
+export function removeTransaction(transaction : Transaction) {
+    transactions.delete(transaction);
 }
 
 // --- Manage the sending of actions only if the action actually modified data (isDirty)
@@ -120,66 +133,109 @@ export function getState(transaction : Transaction) : any {
 // --- Save the state by replicating the state graph of all root objects + the transaction
 
 function saveState() {
-    targets.clear();
-    const actionEntry : actionEntry = {
-        transaction: Object.assign(new Transaction(), Transaction.defaultTransaction),
-        targets: new Map(Array.from(rootTargets).map(
-            target => ([target, cloneProxyTarget(target)])))
-    }
-    actions[++lastAction] = actionEntry;
+
+    // Get the transactions values and root targets at time of snapshot
+    const values : Map<Target, any> = new Map();
+
+    // Get the values for each target in case they changed since snapshot
+    transactions.forEach( transaction => getProxyTargetProps(transaction, values));
+    rootTargets.forEach(target => getProxyTargetProps(target, values))
+
+    // Manage list of actions so we only keep the maximum amount
+    actions[++lastAction] = values;
     firstAction = Math.max(firstAction, 0);
     if ((lastAction - firstAction) > maxAge)
         delete actions[firstAction++]
 }
 
-function  restoreState(id : number) {
-    if (id >= firstAction) {
-        const actionEntry = actions[id];
-        actionEntry.targets.forEach( (newTarget, originalTarget) =>
-            Object.assign(originalTarget.__proxy__, newTarget));
-    }
+// Get all the values and stuff them into a map so we can freshen up targets on state restore
+function getProxyTargetProps(target : any, valueMap : Map<Target, any>) {
+
+    if (target instanceof Transaction)
+        return target.getState();
+
+    target = target.__target__ || target; // Only want the targets not the proxies
+
+    // Deal with circular references
+    if (valueMap.has(target))
+        return target;
+
+    // Get values for this target and recurse into next
+    let values = {};
+    valueMap.set(target, values);
+
+    // get values of object
+    let prop;
+    for(prop in target)
+        values[prop] = getPropValue(target[prop], valueMap);
 }
 
-// --- Utility to clone the state graph an object at a time in a recursive descent
-
-const targets : Map<Target, Target> = new Map();
-
-function cloneProxyTarget(target : any) : Target {
-
-    let cloned = targets.get(target);
-    if (cloned)
-        return cloned;
-
-    let clone;
-    try {
-        clone = new target.constructor();
-    } catch(e) {
-        console.log("");
-    }
-    targets.set(target, clone);
-
-    for(let prop in target)
-        clone[prop] = cloneProp(target[prop]);
-    return clone;
-}
-
-function cloneProp(value : unknown) {
+// Make a careful copy of the values depending on the type of object
+function getPropValue(value : unknown, valueMap : Map<Target, any>) {
     let newValue : unknown;
     if (value instanceof Date)
         newValue = new Date(value.getTime());
     else if (value instanceof Array)
-        newValue = value.map(value => cloneProp(value));
+        newValue = value.map(value => getPropValue(value, valueMap));
     else if (value instanceof Map) {
         newValue = new Map();
         (value as Map<any, any>).forEach(
-            (prop : any , key : any) => (newValue as Map<any,any>).set(key, cloneProp(prop)));
+            (prop : any , key : any) =>
+                (newValue as Map<any,any>).set(key, getPropValue(prop, valueMap)));
     } else if (value instanceof Set) {
         newValue = new Set();
-        (value as Set<any>).forEach(value => (newValue as Set<any>).add(value));
-    } else if (typeof value === 'object' && value !== null)
-        newValue = cloneProxyTarget((value as ProxyTarget).__target__ || value);
-    else
+        (value as Set<any>).forEach(value => (newValue as Set<any>).add(getPropValue(value, valueMap)));
+    } else if (typeof value === 'object' && value !== null  && !(value instanceof WeakMap)) {
+        newValue = value;
+        getProxyTargetProps(value, valueMap);
+    } else
         newValue = value;
     return newValue;
 }
 
+// --- Restore the state
+
+function  restoreState(id : number) {
+    const contexts : Set<ObservationContext> = new Set();
+    if (id >= firstAction) {
+        const values = actions[id];
+        values.forEach( (values, target) => {
+            assignValues(target, values)
+            if (target.__contexts__)
+                target.__contexts__.forEach(context => contexts.add(context))
+        });
+        contexts.forEach(context => context.changed(undefined, "*"));
+    }
+}
+
+function assignValues(obj : any, props : any) {
+    if (obj instanceof Transaction)
+        obj.setState(props)
+    else {
+        let prop;
+        for (prop in props) {
+            obj[prop] = getValue(props[prop]);
+        }
+        // delete any props that were non-existent at time of snapshot
+        for (prop in obj)
+            if (typeof props[prop] === 'undefined')
+                delete obj[prop];
+    }
+}
+function getValue(value : unknown) {
+    let newValue : unknown;
+    if (value instanceof Date)
+        newValue = new Date(value.getTime());
+    else if (value instanceof Array)
+        newValue = value.map(value => getValue(value));
+    else if (value instanceof Map) {
+        newValue = new Map();
+        (value as Map<any, any>).forEach(
+            (prop : any , key : any) => (newValue as Map<any,any>).set(key, getValue(prop)));
+    } else if (value instanceof Set) {
+        newValue = new Set();
+        (value as Set<any>).forEach(value => (newValue as Set<any>).add(getValue(value)));
+    } else
+        newValue = value;
+    return newValue;
+}

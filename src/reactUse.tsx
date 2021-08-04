@@ -3,8 +3,9 @@ import {currentContext, ObservationContext, setCurrentContext} from "./Observati
 import {log, logLevel} from "./log";
 import {useEffect, useRef, useState} from "react";
 import {lastReference, makeProxy} from "./proxy/proxyCommon";
-import {Transaction} from "./Transaction";
-import {addRoot, endHighLevelFunctionCall, isRoot, removeRoot, startHighLevelFunctionCall} from "./devTools";
+import {Transaction, TransactionOptions} from "./Transaction";
+import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot, startHighLevelFunctionCall
+} from "./devTools";
 
 export function useObservables() : ObservationContext {
 
@@ -24,7 +25,7 @@ export function useObservables() : ObservationContext {
     return context;
 }
 
-export function useObservable<S>(value: S) : [S, (value: S) => void] {
+export function useObservableProp<S>(value: S) : [S, (value: S) => void] {
     const {target, prop} = lastReference;
     if (!target)
         throw new Error("Improper useProp reference - is reference a proxy returned from useProxy?");
@@ -46,20 +47,35 @@ export function useObservable<S>(value: S) : [S, (value: S) => void] {
 
 }
 
+export function useTransaction(options? : Partial<TransactionOptions>) {
+    const [transaction] = useState(() => {
+        const transaction = new Transaction(options, true);
+        return transaction;
+    });
+    useEffect(() => {
+        addTransaction(transaction);
+        return () => removeTransaction(transaction)
+    },[]);
+
+    return transaction;
+}
+
 export function useTransactable<A>(targetIn: A, transaction : Transaction) : A {
     const transactableRef : any = useRef();
     if (transactableRef.current) {
-        useEffect(() => ()=>removeRoot(transactableRef.current.__target__));
+        useEffect(() => ()=>removeRoot(transactableRef.current.__target__), []);
         return transactableRef.current;
     }
     const target  = targetIn as unknown as ProxyOrTarget;
     if(logLevel.useProxy) log(`makeTransactable ${target.constructor.name}`);
     const inRoot = isRoot(target.__target__ ? target.__target__ : target as Target);
     const proxy =  makeProxy(target as unknown as ProxyOrTarget, transaction);
-    if (inRoot)
-        addRoot(proxy.__target__);
     transactableRef.current = proxy;
-    useEffect(() => ()=>removeRoot(proxy.__target__));
+    useEffect(() => {
+        if (inRoot)
+            addRoot(proxy.__target__);
+        return ()=>removeRoot(proxy.__target__)
+    }, []);
     return proxy as unknown as A;
 }
 

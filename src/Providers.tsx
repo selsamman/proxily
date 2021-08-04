@@ -2,16 +2,22 @@ import {useContext, useState, useMemo, useEffect} from "react";
 import {makeObservable} from "./proxyObserve";
 import React from 'react';
 import {Transaction, TransactionOptions} from "./Transaction";
-import {removeRoot} from "./devTools";
+import {addRoot, removeRoot} from "./devTools";
+import {useTransaction} from "./reactUse";
 
 export const ObservableProvider = ({context, value, dependencies, transaction, children} :
-             {context : any, value : any , dependencies? : Array<any>, transaction?: Transaction, children: any}) => {
+             {context : any, value : any , dependencies : Array<any>, transaction?: Transaction, children: any}) => {
 
     transaction = transaction || useContext(TransactionContext);
     let [providerValue] = dependencies
-        ? [useMemo(() => makeObservable(typeof value === "function" ? value() : value, transaction), dependencies)]
-        : useState(() => makeObservable(typeof value === "function" ? value() : value, transaction))
-    useEffect(() => ()=>removeRoot(providerValue.__target__));
+        ? [useMemo(() =>
+            makeObservable(typeof value === "function" ? value() : value, transaction, true), dependencies)]
+        : useState(() =>
+            makeObservable(typeof value === "function" ? value() : value, transaction, true))
+    useEffect(() => {
+        addRoot(providerValue.__target__);
+        return () =>removeRoot(providerValue.__target__)
+    }, []);
     return (
         <context.Provider value={providerValue}>
             {children}
@@ -19,9 +25,10 @@ export const ObservableProvider = ({context, value, dependencies, transaction, c
     )
 }
 
-export const TransactionProvider =   ({transaction, options, children} :
+export const TransactionProvider = ({transaction, options, children} :
 {transaction? : Transaction, options? : TransactionOptions, children: any}) => {
-    const [providerValue] = useState( ()=> transaction || new Transaction(options));
+
+    const providerValue = transaction || useTransaction(options || {});
 
     return (
         <TransactionContext.Provider value={providerValue}>
