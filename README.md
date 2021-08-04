@@ -459,6 +459,7 @@ Presently Proxily is at the stage of functional completeness with good test cove
 * [x] Transactions & state forking
 * [x] Extensive tests for core-functionality
 * [x] Sample App
+* [ ] Support for redux-devtools  
 * [ ] Publish on NPM  
 * [ ] Patterns of Usage Example
 * [ ] Full Documentation
