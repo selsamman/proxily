@@ -6,7 +6,7 @@ import {
     setLogLevel,
     memoize,
     useObservables,
-    makeObservable, jestMockFromClass
+    makeObservable, jestMockFromClass, useObservableProp
 } from '../../src';
 import "@testing-library/jest-dom/extend-expect";
 
@@ -137,6 +137,25 @@ describe('Counter Patterns',  () => {
             return (
                 <Counter counter={state.counter}/>
             );
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+    it( 'Can use useObservable' , async () => {
+        const counter = makeObservable({
+            value: 0
+        });
+        function App () {
+            useObservables();
+            const [value, setValue] = useObservableProp(counter.value)
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={() => setValue(value + 1)}>Increment</button>
+                </div>
+            );
+
         }
         render(<App />);
         screen.getByText('Increment').click();

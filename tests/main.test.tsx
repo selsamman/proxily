@@ -3,7 +3,7 @@ import {Family, Person, Preference} from "./family";
 import { render, screen} from '@testing-library/react';
 import {setLogLevel, memoizeObject, makeObservable} from "../src/index";
 import "@testing-library/jest-dom/extend-expect";
-import {useObservable, useObservables} from "../src/reactUse";
+import {useObservableProp, useObservables} from "../src/reactUse";
 
 setLogLevel({});
 
@@ -71,7 +71,7 @@ test('can render names', async () => {
 
     const PersonComponent = React.memo(({person, id} : {person: Person, id : number}) => {
         useObservables();
-        const [name, setName] = useObservable(person.name);
+        const [name, setName] = useObservableProp(person.name);
         renderCount['C' + id]++;
         return (
             <>

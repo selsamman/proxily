@@ -1,16 +1,16 @@
 import {
     makeObservable,
     useTransactable,
-    Transaction,
     useObservables,
     TransactionContext,
     TransactionProvider
 } from "../../src";
-import {useContext, useState} from "react";
+import {useContext} from "react";
 import * as React from 'react';
 import "@testing-library/jest-dom/extend-expect";
 import { render, screen} from '@testing-library/react';
 import userEvent from "@testing-library/user-event";
+import {useTransaction} from "../../src/reactUse";
 
 class Customer {
     name = "Sam";
@@ -20,7 +20,7 @@ class Customer {
 }
 function UpdateCustomer ({customer} : {customer : Customer}) {
     useObservables();
-    const [updateAddressTxn] = useState(() => new Transaction());
+    const updateAddressTxn = useTransaction();
     customer = useTransactable(customer, updateAddressTxn);
     const {name, phone, setName, setPhone} = customer;
     return (

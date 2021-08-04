@@ -11,17 +11,22 @@ export function setCurrentContext (currentContextIn : ObservationContext | undef
 }
 
 export class ObservationContext {
-    constructor(onChange : (target : string, prop : string, targetProxy : ProxyTarget | Transaction) => void) {
+    constructor(onChange : (target : string, prop : string, targetProxy? : ProxyTarget | Transaction) => void) {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         this.onChange = onChange;
     }
-    onChange : (target : string, prop : string, targetProxy : ProxyTarget | Transaction) => void | undefined;
+    onChange : (target : string, prop : string, targetProxy? : ProxyTarget | Transaction) => void | undefined;
     connectedProxyTargets : Map<ProxyTarget | Transaction, {[index: string] : boolean}> = new Map();
     pendingProxyTargets : Array<[ProxyTarget | Transaction, string]> = new Array();
 
     target : Target | undefined;
 
-    changed(proxyTarget : ProxyTarget | Transaction, prop : string) {
+    changed(proxyTarget : ProxyTarget | Transaction | undefined, prop : string) {
+        if (!proxyTarget) {
+            if (this.connectedProxyTargets.size > 0)
+                this.onChange("*", "*");
+            return
+        }
         const connectedProxy = this.connectedProxyTargets.get(proxyTarget);
         if (connectedProxy)
             if (connectedProxy[prop] || connectedProxy['*']) {
@@ -31,11 +36,13 @@ export class ObservationContext {
                 this.onChange(name, prop, proxyTarget);
             }
     };
+
     referenced(proxyTarget : ProxyTarget | Transaction, prop : string) {
         this.pendingProxyTargets.push([proxyTarget, prop]);
     };
     processPendingReferences() {
-        this.pendingProxyTargets.forEach(([target, prop]) => this.processPendingReference(target, prop))
+        this.pendingProxyTargets.forEach(([target, prop]) =>
+            this.processPendingReference(target, prop))
         this.pendingProxyTargets = new Array();
     }
     processPendingReference(proxyTarget : ProxyTarget | Transaction, prop : string) {

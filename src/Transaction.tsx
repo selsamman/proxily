@@ -1,5 +1,6 @@
 import {ProxyTarget, Target} from "./proxyObserve";
 import {currentContext, currentSelectorContext, ObservationContext} from "./ObservationContext";
+import {addTransaction, removeTransaction} from "./devTools";
 
 export interface TransactionOptions {
     timePositioning: boolean
@@ -7,11 +8,13 @@ export interface TransactionOptions {
 
 export class Transaction {
 
-    constructor(options? : TransactionOptions) {
+    constructor(options? : Partial<TransactionOptions>, noAdd? : boolean) {
         if (options)
             this.options = options;
+        if (!noAdd)
+            addTransaction(this)
      }
-
+    cleanup () {removeTransaction(this)}
     static defaultTransaction : Transaction | undefined;
     static defaultTransactionOptions : Partial<TransactionOptions> = {};
 
@@ -29,6 +32,23 @@ export class Transaction {
     private _updateSequence = -1;
     private undoredoIntermediate : Array<() => void> = [];
     private parentTargetProxies : WeakMap<Target, ProxyTarget> = new WeakMap()
+    __contexts__ : Map<ObservationContext, ObservationContext> = new Map(); // For ObservationContext
+    private withinProxy = false;
+    private withinUndoRedo = false;
+
+    getState () {
+        return {
+            dirtyProxies: new Map(this.dirtyProxies),
+            undoredo: this.undoredo.slice(0),
+            _updateSequence: this._updateSequence
+        }
+    }
+    setState (savedState : any) {
+        this.dirtyProxies = new Map(savedState.dirtyProxies);
+        this.undoredo = savedState.undoredo.slice(0);
+        this._updateSequence = savedState._updateSequence;
+    }
+
 
     // Public data
     get updateSequence () { return this._updateSequence }
@@ -43,8 +63,6 @@ export class Transaction {
         return this === Transaction.defaultTransaction;
     }
 
-    withinProxy = false;
-    withinUndoRedo = false;
 
     startTopLevelCall () {
         this.undoredoIntermediate = [];
@@ -243,6 +261,5 @@ export class Transaction {
     getProxyFromParentTarget(target : Target) {
         return this.parentTargetProxies.get(target)
     }
-    __contexts__ : Map<ObservationContext, ObservationContext> = new Map();  // A context that can communicate with the component
 
 }
