@@ -5,13 +5,13 @@ import {makeProxy} from "./proxy/proxyCommon";
 import {Transaction} from "./Transaction";
 import {addRoot, removeRoot} from "./devTools";
 
-export function makeObservable<A>(targetIn: A, transaction? : Transaction, nonRoot? : boolean) : A {
+export function makeObservable<TYPE>(targetIn: TYPE, transaction? : Transaction, nonRoot? : boolean) : TYPE {
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyOrTarget;
         const proxy =  makeProxy(target, transaction);
         if (!nonRoot)
             addRoot(proxy.__target__);
-        return proxy as unknown as A;
+        return proxy as unknown as TYPE;
     } else
         throw new Error("Attempt to call proxy on a non-object");
 }
@@ -19,7 +19,16 @@ export function releaseObservable(proxy : ProxyTarget) {
     removeRoot(proxy.__target__);
 }
 
-export function observe<T>(targetIn: T, onChange : (target : string, prop : string) => void,  observer? : (target : T) => void) : ObservationContext {
+export interface ObserveOptions {
+    async: boolean
+}
+
+export function observe<T>(targetIn: T,
+                           onChange : (target : string, prop : string) => void,
+                           observer? : (target : T) => void,
+                           _observationOptions? : ObserveOptions)
+                           : ObservationContext
+{
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyTarget;
         const observationContext = new ObservationContext(onChange);

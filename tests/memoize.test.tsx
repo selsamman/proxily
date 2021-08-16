@@ -1,5 +1,6 @@
 import {memoize, makeObservable} from "../src";
 
+
 describe("data structure tests of proxy", () => {
     let calls = 0;
     class Root {

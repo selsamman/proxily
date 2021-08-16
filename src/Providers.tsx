@@ -6,7 +6,7 @@ import {addRoot, removeRoot} from "./devTools";
 import {useTransaction} from "./reactUse";
 
 export const ObservableProvider = ({context, value, dependencies, transaction, children} :
-             {context : any, value : any , dependencies : Array<any>, transaction?: Transaction, children: any}) => {
+             {context : any, value : Function | any , dependencies : Array<any>, transaction?: Transaction, children: any}) => {
 
     transaction = transaction || useContext(TransactionContext);
     let [providerValue] = dependencies

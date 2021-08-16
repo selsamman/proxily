@@ -1,6 +1,6 @@
 export {memoizeClass, memoizeObject, memoize} from "./memoize";
 export {setLogLevel, LogLevels} from "./log";
-export {useObservableProp, useObservables, useTransactable} from "./reactUse";
+export {useObservableProp, useObservables, useTransaction, useTransactable, useLocalObservable} from "./reactUse";
 export {makeObservable, observe, target, jestMockFromClass} from "./proxyObserve"
 export {serialize} from "./serialize";
 export {deserialize} from "./deserialize";

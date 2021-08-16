@@ -1,4 +1,4 @@
-import {ProxyOrTarget, Target} from "./proxyObserve";
+import {makeObservable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
 import {currentContext, ObservationContext, setCurrentContext} from "./ObservationContext";
 import {log, logLevel} from "./log";
 import {useEffect, useRef, useState} from "react";
@@ -23,6 +23,18 @@ export function useObservables() : ObservationContext {
     });
     useEffect(() => () => context.cleanup(), []);
     return context;
+}
+
+export function useLocalObservable<T>(callback : () => T, transaction? : Transaction) : T {
+    if (!callback)
+        throw new Error("useLocalObservable did not have callback - did you mean useObservables?");
+    const [observable] = useState( () => makeObservable(callback(), transaction,true));
+    useEffect(() => {
+        addRoot((observable as unknown as ProxyTarget).__target__);
+        return () =>removeRoot((observable as unknown as ProxyTarget).__target__)
+    }, []);
+
+    return observable as unknown as T;
 }
 
 export function useObservableProp<S>(value: S) : [S, (value: S) => void] {

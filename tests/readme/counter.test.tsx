@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {
     memoizeClass,
     memoizeObject,
@@ -9,6 +9,7 @@ import {
     makeObservable, jestMockFromClass, useObservableProp
 } from '../../src';
 import "@testing-library/jest-dom/extend-expect";
+import {useLocalObservable} from "../../src/reactUse";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
@@ -54,6 +55,31 @@ describe('Counter Patterns',  () => {
         const {getByText, findByText} = render(<App />);
         await findByText("Count: 1", {}, {timeout: 5000});
         expect (getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+    it( 'Can modify data in async method', async () => {
+        class CounterState {
+            value = 0;
+            async increment () {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                this.value++
+            }
+        }
+
+        function Counter({counter} : {counter : CounterState}) {
+            useObservables();
+            const {value, increment} = counter;
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+        }
+
+        const {getByText, findByText} = render(<Counter counter={makeObservable(new CounterState())} />);
+        expect (getByText(/Count/)).toHaveTextContent("Count: 0");
+        screen.getByText('Increment').click();
+        await findByText("Count: 1", {}, {timeout: 5000});
     });
 
     it( 'Can have self contained state without TS' , async () => {
@@ -148,6 +174,26 @@ describe('Counter Patterns',  () => {
         });
         function App () {
             useObservables();
+            const [value, setValue] = useObservableProp(counter.value)
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={() => setValue(value + 1)}>Increment</button>
+                </div>
+            );
+
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+    it( 'Can use useLocalObservable' , async () => {
+
+        function App () {
+            useObservables();
+            const counter = useLocalObservable(() => ({
+                value: 0
+            }));
             const [value, setValue] = useObservableProp(counter.value)
             return (
                 <div>
