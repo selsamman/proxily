@@ -2,7 +2,7 @@
 // Each root element (makeObservable) is recorded
 import {Transaction} from "./Transaction";
 import {Target} from "./proxyObserve";
-import {ObservationContext} from "./ObservationContext";
+import {Observer} from "./Observer";
 let maxAge = 50;
 
 // Every high level object that subject to makeObservable is going to be reported in state
@@ -196,7 +196,7 @@ function getPropValue(value : unknown, valueMap : Map<Target, any>) {
 // --- Restore the state
 
 function  restoreState(id : number) {
-    const contexts : Set<ObservationContext> = new Set();
+    const contexts : Set<Observer> = new Set();
     if (id >= firstAction) {
         const values = actions[id];
         values.forEach( (values, target) => {

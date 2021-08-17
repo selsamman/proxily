@@ -20,9 +20,9 @@ Schedule will then emit via a channel to the dispatching saga so it can be sched
 to the algorithm of the effect helper.  You may also pass in your own custom effect helper.  One parameter
 may be passed and the types will be inferred and verified from your task saga
  */
-export function scheduleTask<T> (task : (parameter: T)=>void, parameter : T, taker?: any, ...takerArgs : any) : void {
+export function scheduleTask<T> (task : (parameter: T)=>void, parameter? : T, taker?: any, ...takerArgs : any) : void {
     const sagaContainer = getSagaContainer(task,  taker || takeEvery, ...takerArgs);
-    sagaContainer.emitter.emit('call', parameter as any);
+    sagaContainer.emitter.emit('call', parameter as any || {});
 }
 export function cancelTask (task : any, taker?: any) : void {
     const taskKey = task.__original__ || task;

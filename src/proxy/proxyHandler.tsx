@@ -10,6 +10,7 @@ import {
 } from "./proxyCommon";
 import {Transaction} from "../Transaction";
 import {startHighLevelFunctionCall, endHighLevelFunctionCall} from "../devTools";
+import {Observer} from "../Observer";
 export const proxyHandler = {
 
     get(target : Target, prop: string, receiver: any) : any {
@@ -41,19 +42,25 @@ export const proxyHandler = {
             else if (isMemoized(prop, target)) {
                 let memo = createMemoization(prop, target, value);
                 return (...args : any) => {
-                    if (callLevel === 0)
+                    if (callLevel === 0) {
                         target.__transaction__.startTopLevelCall();
+                        Observer.startTopLevelCall();
+                    }
                     callLevel++
                     try {
                         const ret =  memo.getValue(args);
                         --callLevel;
-                        if (callLevel === 0)
+                        if (callLevel === 0) {
                             target.__transaction__.endTopLevelCall();
+                            Observer.endTopLevelCall();
+                        }
                         return ret;
                     } catch (e) {
                         --callLevel;
-                        if (callLevel === 0)
+                        if (callLevel === 0) {
                             target.__transaction__.endTopLevelCall();
+                            Observer.endTopLevelCall();
+                        }
                         throw (e);
                     }
                 }
@@ -62,6 +69,7 @@ export const proxyHandler = {
                     if (callLevel === 0) {
                         target.__transaction__.startTopLevelCall();
                         startHighLevelFunctionCall(target, prop);
+                        Observer.startTopLevelCall();
                     }
                     callLevel++
                     try {
@@ -70,12 +78,15 @@ export const proxyHandler = {
                         if (callLevel === 0) {
                             target.__transaction__.endTopLevelCall();
                             endHighLevelFunctionCall(target, prop);
+                            Observer.endTopLevelCall();
                         }
                         return ret;
                     } catch (e) {
                         --callLevel;
-                        if (callLevel === 0)
+                        if (callLevel === 0) {
                             target.__transaction__.endTopLevelCall();
+                            Observer.endTopLevelCall();
+                        }
                         throw (e);
                     }
                 }

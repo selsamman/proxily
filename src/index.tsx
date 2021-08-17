@@ -7,7 +7,7 @@ export {deserialize} from "./deserialize";
 export {persist, persistAsync, migrate, StorageEngine, PersistConfig} from "./storage"
 //export {scheduleTask, cancelTask} from "./sagas";  -- Do not import or will drag in redux
 export {Transaction, TransactionOptions} from "./Transaction";
-export {ObservationContext} from "./ObservationContext";
+export {Observer} from "./Observer";
 export {TransactionProvider, ObservableProvider, TransactionContext} from "./Providers"
 export {configureReduxDevTools, initReduxDevTools} from "./devTools";
 

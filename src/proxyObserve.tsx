@@ -1,5 +1,5 @@
 // A wrapper for the proxy that let's us track additional information
-import {ObservationContext, setCurrentContext} from "./ObservationContext";
+import {Observer, ObserverOptions, setCurrentContext} from "./Observer";
 import {GetterMemo} from "./memoize";
 import {makeProxy} from "./proxy/proxyCommon";
 import {Transaction} from "./Transaction";
@@ -19,19 +19,15 @@ export function releaseObservable(proxy : ProxyTarget) {
     removeRoot(proxy.__target__);
 }
 
-export interface ObserveOptions {
-    async: boolean
-}
-
 export function observe<T>(targetIn: T,
-                           onChange : (target : string, prop : string) => void,
+                           onChange : (target? : string, prop? : string) => void,
                            observer? : (target : T) => void,
-                           _observationOptions? : ObserveOptions)
-                           : ObservationContext
+                           observationOptions : ObserverOptions = {batch : true, delay: undefined})
+                           : Observer
 {
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyTarget;
-        const observationContext = new ObservationContext(onChange);
+        const observationContext = new Observer(onChange, observationOptions);
         const proxy = makeProxy(target);
         if (observer) {
             setCurrentContext(observationContext);
@@ -53,7 +49,7 @@ export interface Target {
     __parentTarget__ : Target
     __nonObservableProps__ : {[index: string] : boolean};
     __memoizedProps__ : {[index: string] : boolean};
-    __contexts__ : Map<ObservationContext, ObservationContext>;  // A context that can communicate with the component
+    __contexts__ : Map<Observer, Observer>;  // A context that can communicate with the component
     __parentReferences__ : Map<Target, { [index: string] : number }>;
     __memoContexts__ : { [key: string] : GetterMemo}
 }

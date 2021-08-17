@@ -1,5 +1,5 @@
 import {isObservable, ProxyOrTarget, ProxyTarget, Target} from "../proxyObserve";
-import {currentContext, currentSelectorContext} from "../ObservationContext";
+import {currentContext, currentSelectorContext} from "../Observer";
 import {proxyHandlerMap} from "./proxyHandlerMap";
 import {proxyHandlerSet} from "./proxyHandlerSet";
 import {proxyHandlerDate} from "./proxyHandlerDate";

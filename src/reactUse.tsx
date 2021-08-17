@@ -1,5 +1,5 @@
 import {makeObservable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
-import {currentContext, ObservationContext, setCurrentContext} from "./ObservationContext";
+import {currentContext, Observer, setCurrentContext} from "./Observer";
 import {log, logLevel} from "./log";
 import {useEffect, useRef, useState} from "react";
 import {lastReference, makeProxy} from "./proxy/proxyCommon";
@@ -7,13 +7,13 @@ import {Transaction, TransactionOptions} from "./Transaction";
 import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot, startHighLevelFunctionCall
 } from "./devTools";
 
-export function useObservables() : ObservationContext {
+export function useObservables() : Observer {
 
     const [,setSeq] = useState(0);
     let contextContainer : any = useRef(null);
 
     if (!contextContainer.current)
-        contextContainer.current = new ObservationContext(()=>setSeq((seq) => seq + 1));
+        contextContainer.current = new Observer(()=>setSeq((seq) => seq + 1));
     const context = contextContainer.current;
     setCurrentContext(context);
 

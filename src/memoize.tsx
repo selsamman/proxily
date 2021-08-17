@@ -1,10 +1,10 @@
-import {currentSelectorContext, ObservationContext, setCurrentSelectorContext} from "./ObservationContext";
+import {currentSelectorContext, Observer, setCurrentSelectorContext} from "./Observer";
 import {ProxyTarget, Target} from "./proxyObserve";
 
 export class GetterMemo {
     constructor(valueFunction: () => any, target : ProxyTarget) {
         this.valueFunction = valueFunction;
-        this.context = new ObservationContext(()=>{
+        this.context = new Observer(()=>{
             this.dependentsChanged = true
         });
         this.proxyTarget = target;
@@ -13,7 +13,7 @@ export class GetterMemo {
     proxyTarget: ProxyTarget
     lastValue: any;
     dependentsChanged = true;
-    context: ObservationContext;
+    context: Observer;
     valueFunction: () => any;
     closureFunction : any;
     getValue (args : any) {
@@ -33,7 +33,7 @@ export class GetterMemo {
         return changed;
     }
     updateLastValue (args : any) {
-        const context = currentSelectorContext as ObservationContext;
+        const context = currentSelectorContext as Observer;
         setCurrentSelectorContext(this.context);
         this.lastValue = this.valueFunction.apply(this.proxyTarget, args);
         setCurrentSelectorContext(context);

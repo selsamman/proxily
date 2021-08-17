@@ -1,5 +1,5 @@
 import {ProxyTarget, Target} from "./proxyObserve";
-import {currentContext, currentSelectorContext, ObservationContext} from "./ObservationContext";
+import {currentContext, currentSelectorContext, Observer} from "./Observer";
 import {addTransaction, removeTransaction} from "./devTools";
 
 export interface TransactionOptions {
@@ -32,7 +32,7 @@ export class Transaction {
     private _updateSequence = -1;
     private undoredoIntermediate : Array<() => void> = [];
     private parentTargetProxies : WeakMap<Target, ProxyTarget> = new WeakMap()
-    __contexts__ : Map<ObservationContext, ObservationContext> = new Map(); // For ObservationContext
+    __contexts__ : Map<Observer, Observer> = new Map(); // For ObservationContext
     private withinProxy = false;
     private withinUndoRedo = false;
 

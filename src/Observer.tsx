@@ -1,21 +1,30 @@
 import {ProxyTarget, Target} from "./proxyObserve";
 import {log, logLevel} from "./log";
 import {Transaction} from "./Transaction";
-export let currentContext : ObservationContext | undefined = undefined;
-export let currentSelectorContext : ObservationContext | undefined = undefined;
-export function setCurrentSelectorContext (currentSelectorContextIn : ObservationContext | undefined) {
+export let currentContext : Observer | undefined = undefined;
+export let currentSelectorContext : Observer | undefined = undefined;
+export function setCurrentSelectorContext (currentSelectorContextIn : Observer | undefined) {
     currentSelectorContext = currentSelectorContextIn;
 }
-export function setCurrentContext (currentContextIn : ObservationContext | undefined) {
+export function setCurrentContext (currentContextIn : Observer | undefined) {
     currentContext = currentContextIn;
 }
 
-export class ObservationContext {
-    constructor(onChange : (target : string, prop : string, targetProxy? : ProxyTarget | Transaction) => void) {
+interface ObserverOptionsAll {
+    batch: boolean,
+    delay: number | undefined
+}
+export type ObserverOptions = Partial<ObserverOptionsAll>;
+
+export class Observer {
+    constructor(onChange : (target? : string, prop? : string, targetProxy? : ProxyTarget | Transaction) => void,
+                options : ObserverOptions = {batch : true, delay: undefined}) {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         this.onChange = onChange;
+        this.options = options;
     }
-    onChange : (target : string, prop : string, targetProxy? : ProxyTarget | Transaction) => void | undefined;
+    options: ObserverOptions;
+    onChange : (target? : string, prop? : string, targetProxy? : ProxyTarget | Transaction) => void | undefined;
     connectedProxyTargets : Map<ProxyTarget | Transaction, {[index: string] : boolean}> = new Map();
     pendingProxyTargets : Array<[ProxyTarget | Transaction, string]> = new Array();
 
@@ -33,10 +42,37 @@ export class ObservationContext {
                 if(logLevel.render) log(`${proxyTarget}.${prop} forced re-render`);
                 const name = proxyTarget instanceof Transaction ? "Transaction" :
                     proxyTarget.__target__.constructor ? proxyTarget.__target__.constructor.name :  "anonymous"
-                this.onChange(name, prop, proxyTarget);
+                this.scheduleChange(name, prop, proxyTarget);
             }
     };
-
+    static inAction = false;
+    static observersPendingChange : Set<Observer> = new Set();
+    static startTopLevelCall () {
+        Observer.inAction = true;
+    }
+    static endTopLevelCall () {
+        Observer.inAction = false;
+        Observer.observersPendingChange.forEach(observer => observer.effectChange())
+        Observer.observersPendingChange.clear();
+    }
+    timeout : NodeJS.Timeout | undefined;
+    scheduleChange(name : string, prop : string, proxyTarget: ProxyTarget | Transaction) {
+        if (!this.options.batch)
+            this.onChange(name, prop, proxyTarget);
+        else if (Observer.inAction)
+            Observer.observersPendingChange.add(this);
+        else
+            this.effectChange();
+    }
+    effectChange () {
+        if (typeof this.options.delay === 'undefined')
+            this.onChange();
+        else {
+            if (this.timeout)
+                clearTimeout(this.timeout);
+            this.timeout = setTimeout(() => this.onChange(), this.options.delay);
+        }
+    }
     referenced(proxyTarget : ProxyTarget | Transaction, prop : string) {
         this.pendingProxyTargets.push([proxyTarget, prop]);
     };
