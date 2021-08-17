@@ -2,7 +2,7 @@
 > Note:  This project is being actively developed and as such has not yet been published on NPM.  See the road map towards a release at the end. In the meantime it is subject to change.
 ## Global State Management for React
 
-Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state changes. While Proxily does not use immutable state it provides many of the same benefits. There is no need to annotate or describe the state shape as Proxily will discover it as navigates through the state hierarchy. Core features include:
+Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state changes. Though Proxily does not use immutable state, it provides many of the same benefits. There is no need to annotate or describe the state shape as Proxily will discover it as navigates through the state hierarchy. Core features include:
 
 * Serialization and state persistence including complex state (cyclic data and classes)
 * Asynchronous semantics through redux-sagas generators and take helpers
@@ -39,11 +39,11 @@ Proxily will track references to your observable state that occur during the ren
 
 ### How does it work?
 
-Although you don't need to know all the details, Proxily performs its magic using ES6 proxies.  **makeObservable** creates a proxy for an object.  Then, when you use that proxy to reference further into your state object hierarchy, Proxily will replace references to deeper objects with references to a proxy.  Your entire state will end up being proxied as you reference it. 
+Although you don't need to know all the details, Proxily performs its magic using ES6 proxies.  **makeObservable** creates a proxy for an object.  Then, when you use that proxy to reference further into your state object hierarchy, Proxily will replace references to deeper objects with references to a proxy.  Your entire state will end up being proxied as you reference it. Proxily notes the shape of your state during this process. 
 
-As this happens the shape of your state is noted such that you don't need to annotate relationships.  The proxies will notify any components that contain **useObservables** when properties they reference change. The relationship information is used to ensure that parent components are also notified when child data changes as is the case for the immutable pattern. Other parts of your application outside of components may also make and observe changes to your state.
+The proxies will notify any components that contain **useObservables** when properties they reference change. The relationship information is used to ensure that parent components are also notified when child data changes as is the case for the immutable pattern. Other parts of your application outside of components may also make and observe changes to your state.
 
-Because of it's use of ES6, Proxily does not support Internet Explorer and requires 0.69 or higher of React-Native.  Proxily is written in Typescript and targets ES6. Therefore, it is advisable to target ES6 in your applications that use ES6 and enjoy the smaller code size.
+Because of its use of ES6, Proxily does not support Internet Explorer and requires 0.69 or higher of React-Native.  Proxily is written in Typescript and targets ES6. Therefore, it is advisable to target ES6 in your applications that use ES6 and enjoy the smaller code size.
 
 ### Getting to Know Proxily
 
@@ -168,7 +168,7 @@ function App() {
 
 }
 ```
-**useObservableProp** will create return the value of the prop as well as function that can be used to set the prop.  The specific prop is the last prop referenced which by convention is the argument to **useObservableProp**.  Be sure to also includ **useObservables** before calling **useObservableProp**.
+**useObservableProp** will return the value of the prop as well as function that can be used to set the prop.  The specific prop is the last prop referenced which by convention is the argument to **useObservableProp**.  Be sure to also include **useObservables** before calling **useObservableProp**.
 
 ***setValue*** will be considered an action for tooling such as redux-devtools.
 
@@ -216,7 +216,7 @@ To serialize it:
 ```
 const json = serialize(drawing);
 ```
-And to deserialize it:
+To deserialize it:
 ```
 const newDrawing = deserialize(json, [Box, Arrow, Drawing]);
 ```
@@ -227,7 +227,7 @@ You can serialize anything that JSON.stringify/JSON.parse support plus:
 * Maps
 * Classes - deserialize will instantiate the class with an empty constructor and then copy over the properties.  Therefore, the class must be able to be creatable with an empty constructor.
 
-If you want to manually control the creation of objects or have classes that require specific parameters in the constructor you can also pass a hash of class names and an associated function that will be passed the serialized data from the object and is expected to return the instantiated object.  This hash is the third (optional) parameter.
+If you want to manually control the creation of objects or have classes that require specific parameters in the constructor you can also pass a hash of class names.  The value of each class name property is a function that will be passed the serialized data from the object and is expected to return the instantiated object.  This hash is the third (optional) parameter.
 
 **serialize** cannot process objects containing functions unless they use classes as there is no way to know how to reconstitute them.
 ## Storage Integration
@@ -240,7 +240,7 @@ The first parameter to persist is the initial state which is any structure suppo
 * **classes** - An array of classes used in the structure just as for deserialize
 * **migrate** - A function which is passed the persisted state and the initial state and should return the new state.  It might, for example, enhance the persisted state to bring it up-to-date with the current application requirements and then merge it using the default merge routine exported from Proxily
 
-The default migration logic will merge initial and persistent states giving preference to the persistent state.  It will merge multiple levels up to but not including properties of built-in objects or Arrays.
+The default migration logic will merge initial and persistent states, giving preference to the persistent state.  It will merge multiple levels up to but not including properties of built-in objects or Arrays.
 ```
 import {migrate, persist} from 'proxily';
 const stateProxy = persist(state, {classes: [Class1, Class2], migrate: myMigrate});
@@ -264,7 +264,7 @@ You then schedule an instance of that task
 ```
   scheduleTask(worker, {interval: 150, type: 'A'}, takeEvery);
 ```
-The parameters are passed as an object and our received in the task function.
+The parameters are passed as an object.  They are also received as an object in the task function.
 
 When you schedule it you chose one of the take helpers such as takeEvery, takeLeading, debounce, throttle to indicate how the scheduling should deal with concurrent invocation of the task.  See the redux-saga documentation on how these work in detail.  The high level summary is:
 
@@ -272,7 +272,8 @@ When you schedule it you chose one of the take helpers such as takeEvery, takeLe
 * **takeLeading** - Ignore requests to schedule the task while first instance of the task is in process
 * **takeLatest** - Cancel any running task instance of the task when a new instance is scheduled
 * **debounce** - Wait x milliseconds before running ignoring any others scheduled in that interval
-**scheduleTask** just uses redux-saga functions to schedule the task by
+
+**scheduleTask** uses redux-saga functions to schedule the task by
 * Calling runSaga on a dispatching saga for your task
 * The dispatching saga then yields on the helper passing it the generator task itself. 
 * It then yields waiting to be cancelled. 
@@ -302,7 +303,7 @@ You can cancel a task if you don't want it to run for the duration of your appli
 ```
  cancelTask(this.task, takeLeading);
 ```
-And if you want a more exotic use of sagas just pass in your own take effect.  Here is the example for takeEvery
+If you want a more exotic use of sagas, just pass in your own take effect.  Here is the example for takeEvery
 ```
 const takeLeadingCustom = (patternOrChannel:any, saga:any, ...args:any) => fork(function*() {
     while (true) {
@@ -341,14 +342,14 @@ When running in debug with the redux devtools extension, your main environment i
 ### Use Cases
 Forking the state is not a common feature of state management libraries.  To understand the benefits, here are a few common use cases:
 
-* ***Asynchronous updates*** - Often updates from the server take several calls to complete and data is delivered in pieces.  Rather than putting intermediate data in the store which can impact integrity most applications will store up the results and then update the state when all calls have succeeded. Forking the state allows the state to be updated as each call to the server is completed.  If the operation as a whole fails, the saga controlling the server interaction and the partial updates can both be cancelled.
+* ***Asynchronous updates*** - Often updates from the server take several calls to complete and data is delivered in pieces.  Rather than putting intermediate data in the store which can impact integrity most applications will store up the results and then update the state when all calls have succeeded. Forking the state allows the state to be updated as each call to the server is completed.  If the operation as a whole fails, this can be cancelled.
   
-* ***Complex User Interactions*** - Sometimes a user interface requires a series of steps to complete.  Rather than updating the state at each step which is the simplest solution, components often store intermediate state locally until the steps are complete. With state forking the application doesn't need to worry about this and can use the normal process for updating the pieces of the state as the user goes along, knowing that the updates won't be visible until the end. Examples might include:
+* ***Complex User Interactions*** - Sometimes a user interface requires a series of steps to complete.  Rather than updating the state at each step which is the simplest solution, components often store intermediate state locally until the steps are complete. The application doesn't need to worry about state forking. It can use the normal process for updating the pieces of the state as the user goes along, knowing that the updates won't be visible until the end. Examples might include:
   * Modal dialogs that implement a cancel / OK button
   * Creating a new chat message which must have a recipient, subject and text to be complete
   * Filling out a form where there are required fields
     
-* ***Undo/Redo*** - Some user interfaces require an undo/redo button.  While other libraries allow for this as well, what Proxily can do is to limit the scope of the undo/redo to a single subject area using transactions.  Undoing an operation would not, for example, undo any data received from the server during the course of user interaction.
+* ***Undo/Redo*** - Some user interfaces require undo/redo functionality.  While other libraries allow for this as well, what Proxily can do is to limit the scope of the undo/redo to a single subject area using transactions.  Undoing an operation would not, for example, undo any data received from the server during the course of user interaction.
 
 ### Creating a Transaction
 
@@ -356,7 +357,7 @@ To use a transaction in a component follow these steps:
 * Place **useObservables** as usual at the start of your render
 * Create the transaction with **useTransaction**
 * Call **useTransactable** to get a transactable copy of the data you wish to participate in the transaction. Proxily will automatically make subordinate objects transactable as you reference them from the copy.
-* Call **commit()** or **rollback()** on the transaction when the user interaction is complete and you wish the changes in your copies of the data to be reflect back to the original
+* Call **commit()** or **rollback()** on the transaction when the user interaction is complete.  This will copy back the changes to the original data.
 ```
 function UpdateCustomer ({customer} : {customer : Customer}) {
     useObservables();
@@ -418,7 +419,7 @@ A **rollback** does not use the array of undo/redo functions.  Instead, it simpl
 
 ### Requesting incremental time positioning
 
-Since implementing the internal undo/redo list has a performance impact on memory it is not turned on by default.  To enable it you create a transaction with TimePositioning as an option:
+Since implementing the internal undo/redo list has a performance impact on memory, it is not turned on by default.  To enable it you create a transaction with TimePositioning as an option:
 ```
 const txn = useTransaction({timePositioning: true});
 ```
@@ -427,9 +428,9 @@ const txn = useTransaction({timePositioning: true});
 When you commit you override any changes made outside the transaction that are made during the timespan between creating the transaction and committing.  This applies, however, only to data (objects) that you reference in the transaction.  Therefore, we recommend that you ensure that overlapping parts of the state are not simultaneously updated inside and outside the transaction.
 
 Proxily applies a very simple forking mechanism to transactions.  
-* Proxily makes a copy of each object (using **Object.create** and **Object.assign**) as you reference it.  This includes built-ins such as Array, Map, Set and Date.  This copy becomes your new proxy during the course of the transaction.
-* When you commit it copies the data back to the original
-* When you roll back it copies the data from the original to the transaction copy
+* Proxily makes a copy of each object (using **Object.create** and **Object.assign**) as you reference it.  This includes built-ins such as Array, Map, Set and Date.  This copy becomes your new proxy during the course of the transaction:
+** when you commit it copies the data back to the original
+** when you roll back it copies the data from the original to the transaction copy
   
 While this works in most circumstances there are some anomalies to be aware of:
 * Under some circumstances changes stemming from the commit will be moot.  For example if you update the address of a customer that you deleted outside the transaction, the customer will remain deleted even if you commit the changes to update its address.
@@ -440,7 +441,7 @@ While this works in most circumstances there are some anomalies to be aware of:
 Proxily supports redux-devtools. We recommend only using in development mode and not in production since it stores all previous states in memory which can be more expensive than it would be with Redux.  To use it call **configureReduxDevTools** at the start of your app and **initReduxDevTools** after your state has been initialized.
 ```javascript
 configureReduxDevTools();
-const toDoList = makeObservable(new ToDoList();
+const toDoList = makeObservable(new ToDoList());
 initReduxDevTools();
 ```
 There are some things to note about using redux-devtools:
@@ -448,7 +449,7 @@ There are some things to note about using redux-devtools:
 * Each time you call makeObservable (or use ObservableContextProvider) you are creating a root
 * When you time travel all roots will be updated to the state they were in when a particular action was fired
 * Because in Proxily you can create observable objects on the fly and discard them when no longer needed, time travelling backwards or forwards cannot re-create the objects for you.
-* If you wish to have the same "single source of truth" for time-travel in redux-devtools as you have in Redux then you need create a single makeObservable object at the top of your app just as you would do with redux.
+* If you wish to have the same "single source of truth" for time-travel in redux-devtools as you have in Redux then you need create a single makeObservable object at the top of your application just as you would do with redux.
 # Design Goals
 
 We build on the shoulders of giants. Redux, Redux-toolkit, MobX and MobX-state-tree are all very effective mechanisms for reacting to state changes and can handle complex applications.  Redux (especially redux-toolkit) is the standard-bearer with a rich set of tools including redux-devtools and redux-saga. If you are not religious about immutable state then MobX is one of the more popular mutable state solutions but lacks some capabilities of Redux. MobX-state-tree is an evolution of MobX that imposes a high degree of structure on your application but provides additional benefits such as serialization, redux-dev-tools integration, time-travel, snapshots and generator support.  It does not, however, support using classes for defining your application.
