@@ -1,4 +1,4 @@
-import {ProxyOrTarget, ProxyTarget, Target} from "../proxyObserve";
+import {isObservable, ProxyOrTarget, ProxyTarget, Target} from "../proxyObserve";
 import {currentContext, currentSelectorContext} from "../ObservationContext";
 import {proxyHandlerMap} from "./proxyHandlerMap";
 import {proxyHandlerSet} from "./proxyHandlerSet";
@@ -116,7 +116,7 @@ export function DataChangedInternal(target : Target, prop : string, history : Se
  */
 export function propertyReferenced(target : Target, prop: any, value: any, setter?: (proxy: ProxyTarget) => void) : any {
 
-    if (typeof value === "object" && value !== null) {
+    if (typeof value === "object" && value !== null && isObservable(prop, target)) {
 
         if (!value.__target__  || value.__transaction__ !== target.__transaction__) {
             // In case non-default transaction referencing a new child we need to create child on default transaction

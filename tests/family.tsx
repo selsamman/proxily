@@ -1,5 +1,5 @@
 
-import {memoizeClass} from "../src";
+import {memoize} from "../src";
 
 let id = 1;
 export class Preference {
@@ -79,5 +79,5 @@ export class Family {
     get foo ()  {return "foo"}
     date = new Date();
 }
-memoizeClass(Family, 'sortedMembers');
+memoize(Family, 'sortedMembers');
 

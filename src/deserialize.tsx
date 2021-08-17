@@ -53,7 +53,6 @@ export function deserialize(json : string, classes? : Array<any>, classHandlers?
                         return processObject(newObj1);
                     } else if (newHelper) {
                         const newObj2 = newHelper(obj.v);
-
                         objects.set(obj.i, newObj2);
                         return processObject(newObj2);
                     } else

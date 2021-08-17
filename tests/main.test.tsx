@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {Family, Person, Preference} from "./family";
 import { render, screen} from '@testing-library/react';
-import {setLogLevel, memoizeObject, makeObservable} from "../src/index";
+import {setLogLevel, makeObservable, memoize} from "../src/index";
 import "@testing-library/jest-dom/extend-expect";
 import {useObservableProp, useObservables} from "../src/reactUse";
 
@@ -66,7 +66,7 @@ test('can render names', async () => {
             new Person({name: "Sam"}),
             new Person({name: "Karen", age: 53, preferences: [new Preference({name: "food", value: 1})]})
         ]}));
-    memoizeObject(family, 'getSortedMembers');
+    memoize(family, 'getSortedMembers');
     const renderCount : any = {C0: 0, C1: 0, C2: 0, P: 0};
 
     const PersonComponent = React.memo(({person, id} : {person: Person, id : number}) => {

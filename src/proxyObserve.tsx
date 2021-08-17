@@ -5,13 +5,13 @@ import {makeProxy} from "./proxy/proxyCommon";
 import {Transaction} from "./Transaction";
 import {addRoot, removeRoot} from "./devTools";
 
-export function makeObservable<A>(targetIn: A, transaction? : Transaction, nonRoot? : boolean) : A {
+export function makeObservable<TYPE>(targetIn: TYPE, transaction? : Transaction, nonRoot? : boolean) : TYPE {
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyOrTarget;
         const proxy =  makeProxy(target, transaction);
         if (!nonRoot)
             addRoot(proxy.__target__);
-        return proxy as unknown as A;
+        return proxy as unknown as TYPE;
     } else
         throw new Error("Attempt to call proxy on a non-object");
 }
@@ -19,7 +19,16 @@ export function releaseObservable(proxy : ProxyTarget) {
     removeRoot(proxy.__target__);
 }
 
-export function observe<T>(targetIn: T, onChange : (target : string, prop : string) => void,  observer? : (target : T) => void) : ObservationContext {
+export interface ObserveOptions {
+    async: boolean
+}
+
+export function observe<T>(targetIn: T,
+                           onChange : (target : string, prop : string) => void,
+                           observer? : (target : T) => void,
+                           _observationOptions? : ObserveOptions)
+                           : ObservationContext
+{
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyTarget;
         const observationContext = new ObservationContext(onChange);
@@ -36,13 +45,13 @@ export function observe<T>(targetIn: T, onChange : (target : string, prop : stri
         throw new Error("Attempt to call observe on a non-object");
 }
 
-
 // Additional properties on objects being proxied
 export interface Target {
     __transaction__ : Transaction;
     __referenced__ : boolean
     __proxy__ : ProxyTarget
     __parentTarget__ : Target
+    __nonObservableProps__ : {[index: string] : boolean};
     __memoizedProps__ : {[index: string] : boolean};
     __contexts__ : Map<ObservationContext, ObservationContext>;  // A context that can communicate with the component
     __parentReferences__ : Map<Target, { [index: string] : number }>;
@@ -56,7 +65,7 @@ export interface ProxyOrTarget {
     __proxy__? : ProxyTarget;
 }
 export function isInternalProperty (prop : any) {
-    return ['__referenced__', '__proxy__', '__target__', '__memoizedProps__', '__contexts__', '__parentReferences__',
+    return ['__referenced__', '__proxy__', '__target__', '__nonObservableProps__', '__memoizedProps__', '__contexts__', '__parentReferences__',
      '__memoContexts__', '__transaction__', '__parentTarget__'].includes(prop)
 }
 export function target <T>(a: T) {return (a as unknown as any).__target__ as unknown as T};
@@ -72,6 +81,33 @@ export function jestMockFromClass<T>(c : abstract new (...args: any) => T,  o: P
 
     })
     return o as T
+}
+
+export function nonObservable(obj?: any, propOrProps? : string | Array<string>) {
+    if (obj && propOrProps) {
+        if (obj.prototype)
+            nonObservableClass(obj, propOrProps)
+        else
+            nonObservableObject(obj, propOrProps)
+    }
+    return function (classPrototype: any, prop: string) {
+        nonObservableObject(classPrototype, prop);
+    };
+}
+
+function nonObservableObject (obj: any, propOrProps : string | Array<string>) {
+    const props = propOrProps instanceof Array ? propOrProps : [propOrProps];
+    if (!obj.__nonObservableProps__)
+        obj.__nonObservableProps__ = {};
+    props.map(prop => obj.__nonObservableProps__[prop] = true);
+}
+
+function nonObservableClass (cls : any, propOrProps : string | Array<string>) {
+    nonObservableObject(cls.prototype, propOrProps);
+}
+
+export function isObservable(prop: string, target: Target) {
+    return !target.__nonObservableProps__ || !target.__nonObservableProps__.hasOwnProperty(prop);
 }
 
 

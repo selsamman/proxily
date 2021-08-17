@@ -1,14 +1,16 @@
 import * as React from 'react';
-import { render, screen} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {
-    memoizeClass,
-    memoizeObject,
     setLogLevel,
     memoize,
     useObservables,
-    makeObservable, jestMockFromClass, useObservableProp
+    makeObservable,
+    jestMockFromClass,
+    useObservableProp,
+    nonObservable
 } from '../../src';
 import "@testing-library/jest-dom/extend-expect";
+import {useLocalObservable} from "../../src/reactUse";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
@@ -54,6 +56,31 @@ describe('Counter Patterns',  () => {
         const {getByText, findByText} = render(<App />);
         await findByText("Count: 1", {}, {timeout: 5000});
         expect (getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+    it( 'Can modify data in async method', async () => {
+        class CounterState {
+            value = 0;
+            async increment () {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                this.value++
+            }
+        }
+
+        function Counter({counter} : {counter : CounterState}) {
+            useObservables();
+            const {value, increment} = counter;
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+        }
+
+        const {getByText, findByText} = render(<Counter counter={makeObservable(new CounterState())} />);
+        expect (getByText(/Count/)).toHaveTextContent("Count: 0");
+        screen.getByText('Increment').click();
+        await findByText("Count: 1", {}, {timeout: 5000});
     });
 
     it( 'Can have self contained state without TS' , async () => {
@@ -142,12 +169,64 @@ describe('Counter Patterns',  () => {
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
+    it( 'Can use nonObservable' , async () => {
+        class CounterState {
+            private _value = 0;
+            get value () {
+                return this._value
+            }
+            increment () {this._value++}
+        }
+        const state = makeObservable({
+            counter: new CounterState()
+        });
+        nonObservable(state, 'counter');
+
+        function Counter({counter} : {counter : CounterState}) {
+            useObservables();
+            const {value} = counter;
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={() => counter.increment}>Increment</button>
+                </div>
+            );
+        }
+        function App () {
+            return (
+                <Counter counter={state.counter}/>
+            );
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 0");
+    });
     it( 'Can use useObservable' , async () => {
         const counter = makeObservable({
             value: 0
         });
         function App () {
             useObservables();
+            const [value, setValue] = useObservableProp(counter.value)
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={() => setValue(value + 1)}>Increment</button>
+                </div>
+            );
+
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+    it( 'Can use useLocalObservable' , async () => {
+
+        function App () {
+            useObservables();
+            const counter = useLocalObservable(() => ({
+                value: 0
+            }));
             const [value, setValue] = useObservableProp(counter.value)
             return (
                 <div>
@@ -202,7 +281,7 @@ describe('Counter Patterns',  () => {
                 </>
             );
         }
-        memoizeObject(state, 'sortedCounters');
+        memoize(state, 'sortedCounters');
         render(<App />);
         screen.getByText('IncrementA0').click();
         expect (await screen.getByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
@@ -228,7 +307,7 @@ describe('Counter Patterns',  () => {
                 return this.counters.slice(0).sort((a,b) => a.value - b.value) as Array<CounterClass>;
             }
         }
-        memoizeClass(State, 'sortedCounters');
+        memoize(State, 'sortedCounters');
         const state = makeObservable(new State());
 
         function Counter({counter, id} : {counter : CounterClass, id: any}) {

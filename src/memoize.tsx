@@ -43,20 +43,28 @@ export class GetterMemo {
         this.context.cleanup();
     }
 }
-export function memoizeObject (obj: any, propOrProps : string | Array<string>) {
+
+export function memoize(obj?: any, propOrProps? : string | Array<string>) {
+    if (obj && propOrProps) {
+        if (obj.prototype)
+            memoizeClass(obj, propOrProps)
+        else
+            memoizeObject(obj, propOrProps)
+    }
+    return function (classPrototype: any, prop: string) {
+        memoizeObject(classPrototype, prop);
+    };
+}
+function memoizeObject (obj: any, propOrProps : string | Array<string>) {
     const props = propOrProps instanceof Array ? propOrProps : [propOrProps];
     if (!obj.__memoizedProps__)
         obj.__memoizedProps__ = {};
     props.map(prop => obj.__memoizedProps__[prop] = true);
 }
-export function memoizeClass (cls : any, propOrProps : string | Array<string>) {
+function memoizeClass (cls : any, propOrProps : string | Array<string>) {
     memoizeObject(cls.prototype, propOrProps);
 }
-export function memoize() {
-    return function (classPrototype: any, prop: string) {
-        memoizeObject(classPrototype, prop);
-    };
-}
+
 export function isMemoized(prop: string, target: Target) {
     return target.__memoizedProps__ && target.__memoizedProps__.hasOwnProperty(prop);
 }
