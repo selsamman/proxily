@@ -55,12 +55,14 @@ export function memoize(obj?: any, propOrProps? : string | Array<string>) {
         memoizeObject(classPrototype, prop);
     };
 }
+
 function memoizeObject (obj: any, propOrProps : string | Array<string>) {
     const props = propOrProps instanceof Array ? propOrProps : [propOrProps];
     if (!obj.__memoizedProps__)
         obj.__memoizedProps__ = {};
     props.map(prop => obj.__memoizedProps__[prop] = true);
 }
+
 function memoizeClass (cls : any, propOrProps : string | Array<string>) {
     memoizeObject(cls.prototype, propOrProps);
 }
@@ -68,6 +70,7 @@ function memoizeClass (cls : any, propOrProps : string | Array<string>) {
 export function isMemoized(prop: string, target: Target) {
     return target.__memoizedProps__ && target.__memoizedProps__.hasOwnProperty(prop);
 }
+
 export function createMemoization (prop: string, target: Target, valueFunction: any) : GetterMemo {
     if (target.__memoizedProps__ && target.__memoizedProps__[prop] &&
         (!target.__memoContexts__ || !target.__memoContexts__[prop]))
