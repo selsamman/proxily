@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-    <id>https://proxily.github.io/proxily/blog</id>
+    <id>https://selsamman.github.io/proxily/blog</id>
     <title>Proxily Blog</title>
     <updated>2020-08-21T00:00:00.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
-    <link rel="alternate" href="https://proxily.github.io/proxily/blog"/>
+    <link rel="alternate" href="https://selsamman.github.io/proxily/blog"/>
     <subtitle>Proxily Blog</subtitle>
-    <icon>https://proxily.github.io/proxily/img/favicon.ico</icon>
+    <icon>https://selsamman.github.io/proxily/img/favicon.ico</icon>
     <entry>
         <title type="html"><![CDATA[Welcome]]></title>
         <id>welcome</id>
-        <link href="https://proxily.github.io/proxily/blog/welcome"/>
+        <link href="https://selsamman.github.io/proxily/blog/welcome"/>
         <updated>2020-08-21T00:00:00.000Z</updated>
         <summary type="html"><![CDATA[Please bare with us as we prepare Proxily for release]]></summary>
     </entry>
