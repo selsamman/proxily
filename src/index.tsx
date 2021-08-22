@@ -2,6 +2,7 @@ export {memoize} from "./memoize";
 export {setLogLevel, LogLevels} from "./log";
 export {useObservableProp, useObservables, useTransaction, useTransactable, useLocalObservable} from "./reactUse";
 export {makeObservable, observe, target, jestMockFromClass, nonObservable} from "./proxyObserve"
+export {groupUpdates} from "./proxy/proxyHandler";
 export {serialize} from "./serialize";
 export {deserialize} from "./deserialize";
 export {persist, persistAsync, migrate, StorageEngine, PersistConfig} from "./storage"

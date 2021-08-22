@@ -1,19 +1,104 @@
 import * as React from 'react';
 import {render, screen} from '@testing-library/react';
-import {
-    setLogLevel,
-    memoize,
-    useObservables,
-    makeObservable,
-    jestMockFromClass,
-    useObservableProp,
-    nonObservable
-} from '../../src';
+import {setLogLevel, memoize, useObservables, makeObservable, jestMockFromClass, useObservableProp, nonObservable, useLocalObservable} from '../../src';
 import "@testing-library/jest-dom/extend-expect";
-import {useLocalObservable} from "../../src/reactUse";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
+    it( 'Redux Style example',  () => {
+        const store = makeObservable({
+            counter: {
+                value: 0
+            }
+        });
+        const actions = makeObservable({
+            increment () {
+                store.counter.value++;
+            }
+        })
+        const selectors = makeObservable({
+            get value () {
+                return store.counter.value;
+            }
+        })
+        function App() {
+            useObservables();
+            const {value} = selectors;
+            const {increment} = actions;
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+    it( 'Redux Style example',  () => {
+
+        interface Item {text : string; completed: boolean};
+        interface State {list : Array<Item>};
+
+        const store = makeObservable({
+            list: []
+        } as State);
+
+        const actions = makeObservable({
+            add () {
+                store.list.push({text: "New Item", completed: false})
+            },
+            toggle (todo : Item) {
+                todo.completed = !todo.completed;
+            }
+        })
+
+        const selectors = makeObservable({
+            get list () {
+                return store.list;
+            }
+        })
+
+        function App() {
+            useObservables();
+            const {list} = selectors;
+            const {add, toggle} = actions;
+            return (
+                <div>
+                    <button onClick={add}>Add</button>
+                    {list.map( (item, ix) =>
+                        <div key={ix}>
+                            <button onClick={()=>toggle(item)}>Complete</button>
+                            <span>{item.text}</span>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        render(<App />);
+        screen.getByText('Add').click();
+        expect (screen.getByText(/Item/)).toHaveTextContent("New Item");
+        screen.getByText('Complete').click();
+        expect (store.list[0].completed).toBe(true);
+
+    });
+    it( 'Minimal example', async () => {
+        const counter = makeObservable({value: 0});
+
+        function App() {
+            useObservables();
+            return (
+                <div>
+                    <span>Count: {counter.value}</span>
+                    <button onClick={()=>counter.value++}>Increment</button>
+                </div>
+            );
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
     it( 'Can modify data directly in events', async () => {
         const state = makeObservable({
             counter: {value: 0}

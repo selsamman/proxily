@@ -11,6 +11,7 @@ import {
 import {Transaction} from "../Transaction";
 import {startHighLevelFunctionCall, endHighLevelFunctionCall} from "../devTools";
 import {Observer} from "../Observer";
+
 export const proxyHandler = {
 
     get(target : Target, prop: string, receiver: any) : any {
@@ -42,53 +43,11 @@ export const proxyHandler = {
             else if (isMemoized(prop, target)) {
                 let memo = createMemoization(prop, target, value);
                 return (...args : any) => {
-                    if (callLevel === 0) {
-                        target.__transaction__.startTopLevelCall();
-                        Observer.startTopLevelCall();
-                    }
-                    callLevel++
-                    try {
-                        const ret =  memo.getValue(args);
-                        --callLevel;
-                        if (callLevel === 0) {
-                            target.__transaction__.endTopLevelCall();
-                            Observer.endTopLevelCall();
-                        }
-                        return ret;
-                    } catch (e) {
-                        --callLevel;
-                        if (callLevel === 0) {
-                            target.__transaction__.endTopLevelCall();
-                            Observer.endTopLevelCall();
-                        }
-                        throw (e);
-                    }
+                    return nestCall(()=>memo.getValue(args), target);
                 }
             } else {
                 const proxyFunction = (...args : any) => {
-                    if (callLevel === 0) {
-                        target.__transaction__.startTopLevelCall();
-                        startHighLevelFunctionCall(target, prop);
-                        Observer.startTopLevelCall();
-                    }
-                    callLevel++
-                    try {
-                        const ret = value.apply(target.__proxy__, args);
-                        --callLevel;
-                        if (callLevel === 0) {
-                            target.__transaction__.endTopLevelCall();
-                            endHighLevelFunctionCall(target, prop);
-                            Observer.endTopLevelCall();
-                        }
-                        return ret;
-                    } catch (e) {
-                        --callLevel;
-                        if (callLevel === 0) {
-                            target.__transaction__.endTopLevelCall();
-                            Observer.endTopLevelCall();
-                        }
-                        throw (e);
-                    }
+                    return nestCall(() => value.apply(target.__proxy__, args), target, prop);
                 }
                 proxyFunction.__original__ = value;
                 return proxyFunction;
@@ -129,3 +88,41 @@ export const proxyHandler = {
 
 }
 
+export const groupUpdates = (callback : Function) => {
+    nestCall(callback);
+}
+function nestCall(callback : Function, target? : Target, prop? : string) {
+    if (callLevel === 0) {
+        if (target) {
+            target.__transaction__.startTopLevelCall();
+            if (prop)
+                startHighLevelFunctionCall(target, prop);
+        }
+        Observer.startTopLevelCall();
+    }
+    callLevel++
+    try {
+        const ret = callback();
+        --callLevel;
+        if (callLevel === 0) {
+            if (target) {
+                target.__transaction__.endTopLevelCall();
+                if (prop)
+                    endHighLevelFunctionCall(target, prop);
+            }
+            Observer.endTopLevelCall();
+        }
+        return ret;
+    } catch (e) {
+        --callLevel;
+        if (callLevel === 0) {
+            if (target) {
+                target.__transaction__.endTopLevelCall();
+                if (prop)
+                    endHighLevelFunctionCall(target, prop);
+            }
+            Observer.endTopLevelCall();
+        }
+        throw (e);
+    }
+}

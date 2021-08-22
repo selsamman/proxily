@@ -15,22 +15,18 @@ describe("batching testing for observer", () => {
             this.increment();
         }
         async asyncAction  () {
-            this.increment();
-            this.increment();
-            await wait(5);
-            this.increment();
-            this.increment();
+            this.action();
+            await wait(50);
+            this.action();
         }
         scheduleAction () {
             scheduleTask(this.task);
         }
 
         *task () {
-            this.increment();
-            this.increment();
+            this.action();
             yield delay(0);
-            this.increment();
-            this.increment();
+            this.action();
         }
     }
     const wait = (time : number) => new Promise((res : any) =>setTimeout(()=>res(), time));
@@ -67,10 +63,10 @@ describe("batching testing for observer", () => {
         observe(root, () => ++calls, (r) => r.value, {batch: true, delay: 0});
         root.asyncAction();
         expect(calls).toBe(0);
-        await wait(1);
+        await wait(0);
         expect(calls).toBe(1);
         expect(root.value).toBe(2);
-        await wait(10);
+        await wait(100);
         expect(calls).toBe(2);
         expect(root.value).toBe(4);
     });

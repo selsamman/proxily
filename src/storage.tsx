@@ -31,7 +31,7 @@ export function persist<T>(initialState: T, config : PersistConfig) : T {
     let scheduled = false;
     observe(persistedState, onChange);
     return makeObservable(persistedState);
-    function onChange(_proxy:string, _prop : string) {
+    function onChange() {
         if (!scheduled)
             setTimeout(() => {
                 storageEngine.setItem(key, serialize(persistedState))
@@ -57,7 +57,7 @@ export async function  persistAsync <T>(initialState: T, config : PersistConfig)
     let scheduled = false;
     observe(persistedState, onChange);
     return makeObservable(persistedState);
-    function onChange(_proxy:string, _prop : string) {
+    function onChange() {
         if (!scheduled)
             setTimeout(() => {
                 storageEngine?.setItem(key, serialize(persistedState))
