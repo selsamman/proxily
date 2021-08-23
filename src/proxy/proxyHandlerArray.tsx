@@ -1,4 +1,3 @@
-import {log, logLevel} from "../log";
 import {isInternalProperty, Target} from "../proxyObserve";
 import {DataChanged, propertyReferenced, propertyUpdated, makeProxy} from "./proxyCommon";
 import {proxyHandler} from "./proxyHandler";
@@ -12,9 +11,6 @@ export const proxyHandlerArray = {
             return target;
         if (isInternalProperty(prop))
             return Reflect.get(target, prop, target);
-
-        // Find proxyWrapper via WeakMap.  It should always be there
-        if(logLevel.propertyReference) log(`${target.constructor.name}.${prop} referenced`);
 
         // If referencing an object that is not proxied proxy it and keep on the side for serving up
         let value : any = Reflect.get(target, prop, target);
@@ -81,7 +77,7 @@ export const proxyHandlerArray = {
                         target.__referenced__ = false;
                         proxyAllElements();
                         recordAfter(target, before);
-                        DataChanged(target, '*');
+                        DataChanged(target, '*', true);
                         return val;
                     }
 
@@ -100,7 +96,7 @@ export const proxyHandlerArray = {
                         makeProxies(target, args, 0, 0,last - first + 1);
                         const val =  (target as any)[prop].apply(target, args);
                         recordAfter(target, before);
-                        DataChanged(target, '*');
+                        DataChanged(target, '*', true);
                         return val;
                     }
 
@@ -112,7 +108,7 @@ export const proxyHandlerArray = {
                             target.__transaction__.recordUndoRedo(
                                 ()=>arrProxy.push(val),
                                 ()=>arrProxy.pop())
-                        DataChanged(target, '*');
+                        DataChanged(target, '*', true);
                         return val;
                     }
                 case 'push': // Make proxy for new element
@@ -126,7 +122,7 @@ export const proxyHandlerArray = {
                                         arrProxy.pop()
                                 },
                                 ()=>arrProxy.push(...args))
-                        DataChanged(target, '*');
+                        DataChanged(target, '*', true);
                         return val;
                     }
                 case 'shift': // remove parent references from deleted entry
@@ -137,7 +133,7 @@ export const proxyHandlerArray = {
                             target.__transaction__.recordUndoRedo(
                                 ()=>arrProxy.unshift(val),
                                 ()=>arrProxy.shift())
-                        DataChanged(target, '*');
+                        DataChanged(target, '*', true);
                         return val;
                     }
                 case 'splice': // Make proxies for new additions & remove parent references from deleted entries
@@ -150,7 +146,7 @@ export const proxyHandlerArray = {
                         makeProxies(target, args,2, args.length - 1);
                         const val =  (target as any)[prop].apply(target, args);
                         recordAfter(target, before);
-                        DataChanged(target, '*');
+                        DataChanged(target, '*', true);
                         return val;
                     }
 
@@ -165,7 +161,7 @@ export const proxyHandlerArray = {
                                         arrProxy.shift()
                                 },
                                 ()=>arrProxy.unshift(...args), )
-                        DataChanged(target, '*');
+                        DataChanged(target, '*', true);
                         return val;
                     }
 
@@ -186,9 +182,13 @@ export const proxyHandlerArray = {
 
     },
 
-    set: proxyHandler.set,
+    set (target : Target, key : string, value : any, receiver : any) {
+        return proxyHandler.set(target, key, value, receiver,true);
+    },
 
-    deleteProperty: proxyHandler.deleteProperty
+    deleteProperty (target : Target, key : string) {
+        return proxyHandler.deleteProperty(target, key, true);
+    }
 
 }
 

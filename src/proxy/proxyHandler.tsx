@@ -1,5 +1,5 @@
 import {createMemoization, isMemoized} from "../memoize";
-import {log, logLevel} from "../log";
+import {setCurrentFunction} from "../log";
 import {isInternalProperty, ProxyTarget, Target} from "../proxyObserve";
 let callLevel = 0;
 import {
@@ -21,8 +21,6 @@ export const proxyHandler = {
             return target;
         if (isInternalProperty(prop))
             return Reflect.get(target, prop, target);
-
-        if(logLevel.propertyReference) log(`${target.constructor.name}.${prop} referenced`);
 
         // Handle case of getter which may need to be memoized
         const props : any = getterProps(target, prop);
@@ -56,23 +54,20 @@ export const proxyHandler = {
         return propertyReferenced(target, prop, value, (value : ProxyTarget) => Reflect.set(target, prop, value));
     },
 
-    set(target : Target, key: string, value: any): boolean {
-
-        if(logLevel.propertyChange) log(`${target.constructor.name}.${key} changed`);
+    set(target : Target, key: string, value: any, _receiver : unknown, isContainer = false): boolean {
 
         const oldValue = Reflect.get(target, key, target);
         value = propertyUpdated(target, key, value, oldValue)
         const ret = Reflect.set(target, key, value);
-        DataChanged(target, key);
+        DataChanged(target, key, isContainer, value);
 
         target.__transaction__.recordTimePosition(target, key, oldValue, value);
 
         return ret;
     },
 
-    deleteProperty(target : Target, key: any): boolean {
+    deleteProperty(target : Target, key: any, isContainer = false): boolean {
 
-        if(logLevel.propertyChange) log(`${target.constructor.name}.${key} deleted`);
         const oldValue = Reflect.get(target, key, target);
         propertyUpdated(target,  key, undefined, oldValue);
         let ret;
@@ -80,7 +75,7 @@ export const proxyHandler = {
             ret = Reflect.deleteProperty(target, key);
         else
             ret = Reflect.set(target, key, undefined);
-        DataChanged(target, key);
+        DataChanged(target, key, isContainer,undefined);
         target.__transaction__.recordTimePosition(target, key, oldValue, undefined);
 
         return ret;
@@ -102,7 +97,9 @@ function nestCall(callback : Function, target? : Target, prop? : string) {
     }
     callLevel++
     try {
+        setCurrentFunction(target, prop);
         const ret = callback();
+        setCurrentFunction();
         --callLevel;
         if (callLevel === 0) {
             if (target) {

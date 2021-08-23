@@ -123,7 +123,6 @@ describe("It can schedule with Proxily Sagas", () => {
         scheduleTask(worker,{interval: 50, type: 'A'}, debounce, 50);
         await wait(450)
         expect(trace).toBe("A");
-        console.log(elapsed);
         expect(elapsed > 0 && elapsed < 200).toBe(true);
     });
 
@@ -142,7 +141,6 @@ describe("It can schedule with Proxily Sagas", () => {
         scheduleTask(worker,{interval: 150, type: 'C'}, takeEvery);
         await wait(200)
         expect(trace).toBe("ABC");
-        console.log(elapsed);
         expect(elapsed > 0 && elapsed < 200).toBe(true);
     });
     it("takeLeading", async () => {
@@ -160,7 +158,6 @@ describe("It can schedule with Proxily Sagas", () => {
         scheduleTask(worker,{interval: 150, type: 'C'}, takeLeading);  // ignored
         await wait(200)
         expect(trace).toBe("A");
-        console.log(elapsed);
         expect(elapsed > 0 && elapsed < 200).toBe(true);
     });
     it("takeLatest", async () => {
@@ -182,7 +179,6 @@ describe("It can schedule with Proxily Sagas", () => {
         scheduleTask(worker,{interval: 150, type: 'C'}, takeLatest);  // ignored
         await wait(200)
         expect(trace).toBe("CC");
-        console.log(elapsed);
         expect(elapsed > 0 && elapsed < 400).toBe(true);
     });
     it("can do it with class", async () => {

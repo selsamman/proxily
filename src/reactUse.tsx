@@ -1,6 +1,6 @@
 import {makeObservable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
 import {currentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
-import {log, logLevel} from "./log";
+import {getComponentName, log, logLevel} from "./log";
 import {useEffect, useRef, useState} from "react";
 import {lastReference, makeProxy} from "./proxy/proxyCommon";
 import {Transaction, TransactionOptions} from "./Transaction";
@@ -9,14 +9,16 @@ import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, is
 
 export function useObservables(options? : ObserverOptions) : Observer {
 
-    const [,setSeq] = useState(0);
+    const [,setSeq] = useState(1);
     let contextContainer : any = useRef(null);
 
-    if (!contextContainer.current)
-        contextContainer.current = new Observer(()=>setSeq((seq) => seq + 1), options);
+    if (!contextContainer.current) {
+        const componentName = (logLevel.render || logLevel.propertyTracking) ? getComponentName() : "";
+        contextContainer.current = new Observer(() => setSeq((seq) => seq + 1), options, componentName);
+    }
     const context = contextContainer.current;
     setCurrentContext(context);
-
+    if(logLevel.render) log(`${context.componentName} render (${++context.renderCount})`);
     useEffect(() => {  // After every render process any references
         context.processPendingReferences();
         setCurrentContext(undefined); // current context only exists during course of render
@@ -79,7 +81,6 @@ export function useTransactable<A>(targetIn: A, transaction : Transaction) : A {
         return transactableRef.current;
     }
     const target  = targetIn as unknown as ProxyOrTarget;
-    if(logLevel.useProxy) log(`makeTransactable ${target.constructor.name}`);
     const inRoot = isRoot(target.__target__ ? target.__target__ : target as Target);
     const proxy =  makeProxy(target as unknown as ProxyOrTarget, transaction);
     transactableRef.current = proxy;

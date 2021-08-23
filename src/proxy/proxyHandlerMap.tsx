@@ -1,4 +1,3 @@
-import {log, logLevel} from "../log";
 import {isInternalProperty, Target} from "../proxyObserve";
 import {DataChanged, propertyReferenced, propertyUpdated} from "./proxyCommon";
 
@@ -17,8 +16,7 @@ export const proxyHandlerMap = {
         if (typeof targetValue !== "function")
             return targetValue;
 
-        if(logLevel.propertyReference) log(`${target.constructor.name}.${prop} referenced`);
-        const map = target as unknown as Map<any, any>
+         const map = target as unknown as Map<any, any>
         const mapProxy = target.__proxy__ as unknown as Map<any, any>
         switch (prop) {
             case 'get':
@@ -39,7 +37,7 @@ export const proxyHandlerMap = {
                         target.__transaction__.recordUndoRedo(
                             ()=>mapProxy.set(key, oldValue),
                             ()=>mapProxy.set(key, newValue));
-                    DataChanged(target, key);
+                    DataChanged(target, key, true, newValue);
                 }
 
             case 'delete':
@@ -57,7 +55,7 @@ export const proxyHandlerMap = {
                             ()=>mapProxy.delete(key));
 
                     // Notify referencing object that referenced property has changed
-                    DataChanged(target, prop);
+                    DataChanged(target, key, true);
 
                 }
 
@@ -78,7 +76,7 @@ export const proxyHandlerMap = {
 
                 return (...args : any []) => {
                     const val =  (target as any)[prop].apply(target, args);
-                    DataChanged(target, "*");
+                    DataChanged(target, "*", true);
                     return val;
                 }
 

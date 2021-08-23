@@ -1,4 +1,3 @@
-import {log, logLevel} from "../log";
 import {isInternalProperty, Target} from "../proxyObserve";
 import {DataChanged, makeProxy, propertyReferenced, propertyUpdated} from "./proxyCommon";
 
@@ -16,7 +15,6 @@ export const proxyHandlerSet = {
         if (typeof targetValue !== "function")
             return targetValue;
 
-        if(logLevel.propertyReference) log(`${target.constructor.name}.${typeof prop === 'string' ? prop : '?'} referenced`);
         const setProxy = target.__proxy__ as unknown as Set<any>;
         switch (prop) {
 
@@ -35,7 +33,7 @@ export const proxyHandlerSet = {
                         target.__transaction__.recordUndoRedo(
                             ()=>setProxy.delete(newValue),
                             ()=>setProxy.add(newValue));
-                    DataChanged(target, prop);
+                    DataChanged(target, newValue, true, newValue);
                     return targetValue.call(target, newValue);
                 }
 
@@ -46,7 +44,7 @@ export const proxyHandlerSet = {
                         target.__transaction__.recordUndoRedo(
                             ()=>setProxy.add(key),
                             ()=>setProxy.delete(key));
-                    DataChanged(target, key);
+                    DataChanged(target, key, true);
                     return  targetValue.call(target, key);
                 }
 
@@ -64,7 +62,7 @@ export const proxyHandlerSet = {
 
                 return (...args : any []) => {
                     const val =  (target as any)[prop].apply(target, args);
-                    DataChanged(target, "*");
+                    DataChanged(target, "*", true);
                     return val;
                 }
 

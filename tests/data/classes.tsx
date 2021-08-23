@@ -32,7 +32,7 @@ export function observeResult<T>(root : T, action : (obj : T) => void, observer?
     reactions = 0;
     observedProp = "";
     observedObj = "";
-    const context = observe (root, reactor, observer, {batch: false})
+    const context = observe (root, reactor, observer, {batch: false, notifyParents: true})
     action(makeObservable(root) as T)
     context.cleanup();
     return `${observedObj}-${observedProp}-${reactions}`;

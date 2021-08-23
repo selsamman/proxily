@@ -22,7 +22,7 @@ export function releaseObservable(proxy : ProxyTarget) {
 export function observe<T>(targetIn: T,
                            onChange : (target? : string, prop? : string) => void,
                            observer? : (target : T) => void,
-                           observationOptions : ObserverOptions = {batch : true, delay: undefined})
+                           observationOptions : ObserverOptions = {batch : true, delay: undefined, notifyParents : true})
                            : Observer
 {
     if (typeof targetIn === "object" && targetIn !== null) {

@@ -7,6 +7,7 @@ import {proxyHandlerArray} from "./proxyHandlerArray";
 import {proxyHandler} from "./proxyHandler";
 import {Transaction} from "../Transaction";
 import {setDirty} from "../devTools";
+import {logChange, logLevel} from "../log";
 
 export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transaction) : ProxyTarget {
 
@@ -85,29 +86,37 @@ export function getterProps(target : Target, prop : string) {
     return props && typeof props.get === "function" ? props : false;
 }
 
-export function DataChanged(target : Target, prop : string) {
-    DataChangedInternal(target, prop, new Set());
+export function DataChanged(target : Target, key : string, isContainer = false, value? : any) {
+
+    if (!isContainer && logLevel.propertyChange)
+        logChange(target, key, undefined, value);
+    DataChangedInternal(target, key, new Set(), isContainer, false);
     if (target.__transaction__)
-        target.__transaction__.setDirty(target.__proxy__, prop);
+        target.__transaction__.setDirty(target.__proxy__, key);
     setDirty();
+
+    function DataChangedInternal(target : Target, prop : string, history : Set<Target>, isChild : boolean, isParent : boolean) {
+
+        // Notify contexts of the change
+        target.__contexts__.forEach(context => {
+            context.changed(target.__proxy__,  prop, isParent);
+        });
+
+        // Pass notification up the chain of references
+        target.__parentReferences__.forEach((referenceProps, parentProxyTarget) => {
+            if (history.has(parentProxyTarget))
+                return;
+            history.add(parentProxyTarget)
+            for (const prop in referenceProps) {
+                if (isChild && logLevel.propertyChange)
+                    logChange(parentProxyTarget, prop, key, value);
+                DataChangedInternal(parentProxyTarget, prop, history, false, !isChild);
+            }
+        });
+    }
 }
 
-export function DataChangedInternal(target : Target, prop : string, history : Set<Target>) {
 
-    // Notify contexts of the change
-    target.__contexts__.forEach(context => {
-        context.changed(target.__proxy__,  prop);
-    });
-
-    // Pass notification up the chain of references
-    target.__parentReferences__.forEach((referenceProps, parentProxyTarget) => {
-        if (history.has(parentProxyTarget))
-            return;
-        history.add(parentProxyTarget)
-        for (const prop in referenceProps)
-            DataChangedInternal(parentProxyTarget, prop, history);
-    });
-}
 
 /*
         When a property is referenced it may need to be made into a proxy and the referencing
@@ -126,7 +135,7 @@ export function propertyReferenced(target : Target, prop: any, value: any, sette
                 console.log("some magic");
                 //value = value.__parentTarget__.__proxy__ ||  value.__parentTarget__;
             }
-            value = propertyUpdated(target, prop, value as unknown as ProxyOrTarget)
+            value = propertyUpdated(target, prop, value as unknown as ProxyOrTarget, undefined)
             if (setter)
                 setter(value);
         }
@@ -187,6 +196,7 @@ export function propertyUpdated(parentTarget : Target, prop: string, child : any
         } else
             child.__parentReferences__.set(parentTarget, {[prop]: 1});
     }
+
     return child;
 }
 

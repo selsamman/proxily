@@ -5,7 +5,7 @@ import "@testing-library/jest-dom/extend-expect";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
-    it( 'Redux Style example',  () => {
+    it( 'Redux Style example Counter',  () => {
         const store = makeObservable({
             counter: {
                 value: 0
@@ -36,7 +36,7 @@ describe('Counter Patterns',  () => {
         screen.getByText('Increment').click();
         expect (screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
-    it( 'Redux Style example',  () => {
+    it( 'Redux Style example Todo',  () => {
 
         interface Item {text : string; completed: boolean};
         interface State {list : Array<Item>};
@@ -69,7 +69,7 @@ describe('Counter Patterns',  () => {
                     <button onClick={add}>Add</button>
                     {list.map( (item, ix) =>
                         <div key={ix}>
-                            <button onClick={()=>toggle(item)}>Complete</button>
+                            <input type="checkbox" checked={item.completed} onChange={()=>toggle(item)} />
                             <span>{item.text}</span>
                         </div>
                     )}
@@ -79,7 +79,7 @@ describe('Counter Patterns',  () => {
         render(<App />);
         screen.getByText('Add').click();
         expect (screen.getByText(/Item/)).toHaveTextContent("New Item");
-        screen.getByText('Complete').click();
+        screen.getByRole("checkbox").click();
         expect (store.list[0].completed).toBe(true);
 
     });
@@ -126,7 +126,6 @@ describe('Counter Patterns',  () => {
         setTimeout(()=> {
             const pstate = state;
             pstate.counter.value++
-            console.log(pstate.counter.value);
         }, 750);
 
         function App() {

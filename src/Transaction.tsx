@@ -251,7 +251,7 @@ export class Transaction {
     }
     notifyContext () {
         this.__contexts__.forEach(context => {
-            context.changed(this,  "__undo__");
+            context.changed(this,  "__undo__", false);
         });
     }
 

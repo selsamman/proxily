@@ -29,7 +29,7 @@ export function persist<T>(initialState: T, config : PersistConfig) : T {
     } else
         persistedState = initialState;
     let scheduled = false;
-    observe(persistedState, onChange);
+    observe(persistedState, onChange, undefined, {batch : true, delay: 0, notifyParents : true});
     return makeObservable(persistedState);
     function onChange() {
         if (!scheduled)

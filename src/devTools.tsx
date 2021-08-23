@@ -204,7 +204,8 @@ function  restoreState(id : number) {
             if (target.__contexts__)
                 target.__contexts__.forEach(context => contexts.add(context))
         });
-        contexts.forEach(context => context.changed(undefined, "*"));
+        contexts.forEach(context =>
+            context.changed(undefined, "*", false));
     }
 }
 
