@@ -1,7 +1,7 @@
 import {makeObservable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
 import {currentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
 import {getComponentName, log, logLevel} from "./log";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useLayoutEffect, useRef, useState} from "react";
 import {lastReference, makeProxy} from "./proxy/proxyCommon";
 import {Transaction, TransactionOptions} from "./Transaction";
 import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot, startHighLevelFunctionCall
@@ -19,7 +19,7 @@ export function useObservables(options? : ObserverOptions) : Observer {
     const context = contextContainer.current;
     setCurrentContext(context);
     if(logLevel.render) log(`${context.componentName} render (${++context.renderCount})`);
-    useEffect(() => {  // After every render process any references
+    useLayoutEffect(() => {  // After every render process any references
         context.processPendingReferences();
         setCurrentContext(undefined); // current context only exists during course of render
     });

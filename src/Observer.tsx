@@ -71,9 +71,11 @@ export class Observer {
         Observer.inAction = true;
     }
     static endTopLevelCall () {
+
         Observer.inAction = false;
-        Observer.observersPendingChange.forEach(observer => observer.effectChange())
+        const toCall = Array.from(Observer.observersPendingChange)
         Observer.observersPendingChange.clear();
+        toCall.forEach(observer => observer.effectChange())
     }
     timeout : NodeJS.Timeout | undefined;
 
@@ -111,8 +113,8 @@ export class Observer {
         this.pendingProxyTargets.forEach(([target, prop]) =>
             this.processPendingReference(target, prop, logging))
         this.pendingProxyTargets = new Array();
-        if (logLevel.propertyTracking)
-            log((this.componentName ? this.componentName + " " : "") + "Observer" + " tracking " + logging.join(", "));
+        if (logLevel.propertyTracking && logging.length > 0 && this.componentName)
+            log(this.componentName + " Observer" + " tracking " + logging.join(", "));
     }
     processPendingReference(proxyTarget : ProxyTarget | Transaction, prop : string, logging : Array<string>) {
         let connectedProxy = this.connectedProxyTargets.get(proxyTarget)
