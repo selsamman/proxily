@@ -2,14 +2,14 @@
 <rss version="2.0">
     <channel>
         <title>Proxily Blog</title>
-        <link>https://selsamman.github.io/proxily/blog</link>
+        <link>https://selsamman.github.io/blog</link>
         <description>Proxily Blog</description>
         <lastBuildDate>Fri, 21 Aug 2020 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <item>
             <title><![CDATA[Welcome]]></title>
-            <link>https://selsamman.github.io/proxily/blog/welcome</link>
+            <link>https://selsamman.github.io/blog/welcome</link>
             <guid>welcome</guid>
             <pubDate>Fri, 21 Aug 2020 00:00:00 GMT</pubDate>
             <description><![CDATA[Please bare with us as we prepare Proxily for release]]></description>
