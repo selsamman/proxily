@@ -66,7 +66,6 @@ export function isInternalProperty (prop : any) {
 }
 export function target <T>(a: T) {return (a as unknown as any).__target__ as unknown as T};
 
-
 export function jestMockFromClass<T>(c : abstract new (...args: any) => T,  o: Partial<T>) : T {
 
     const proto = c.prototype.constructor.prototype

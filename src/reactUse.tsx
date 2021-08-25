@@ -6,6 +6,8 @@ import {lastReference, makeProxy} from "./proxy/proxyCommon";
 import {Transaction, TransactionOptions} from "./Transaction";
 import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot, startHighLevelFunctionCall
 } from "./devTools";
+import React from "react";
+
 
 export function useObservables(options? : ObserverOptions) : Observer {
 
@@ -92,6 +94,14 @@ export function useTransactable<A>(targetIn: A, transaction : Transaction) : A {
     return proxy as unknown as A;
 }
 
-
+export function bindObservables<P> (ClassBasedComponent : React.ComponentType<P>) {
+    const name = ClassBasedComponent.name;
+    return {[name] : function (props : any) {
+            useObservables();
+            return (
+                <ClassBasedComponent {...props}/>
+            )
+        }}[name] as (args : P) => any
+}
 
 

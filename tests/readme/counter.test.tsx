@@ -2,6 +2,7 @@ import * as React from 'react';
 import {render, screen} from '@testing-library/react';
 import {setLogLevel, memoize, useObservables, makeObservable, jestMockFromClass, useObservableProp, nonObservable, useLocalObservable} from '../../src';
 import "@testing-library/jest-dom/extend-expect";
+import {bindObservables} from "../../src/reactUse";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
@@ -244,6 +245,39 @@ describe('Counter Patterns',  () => {
                 </div>
             );
         }
+        function App () {
+            return (
+                <Counter counter={state.counter}/>
+            );
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+    it( 'Can bind observables to class components' , async () => {
+        class CounterState {
+            private _value = 0;
+            get value () {
+                return this._value
+            }
+            increment () {this._value++}
+        }
+        const state = makeObservable({
+            counter: new CounterState()
+        });
+        class CounterClass extends React.Component<{counter : CounterState}> {
+            render () {
+                const {value, increment} = this.props.counter;
+                return (
+                    <div>
+                        <span>Count: {value}</span>
+                        <button onClick={increment}>Increment</button>2
+                    </div>
+                );
+            }
+        }
+
+        const Counter = bindObservables(CounterClass);
         function App () {
             return (
                 <Counter counter={state.counter}/>
