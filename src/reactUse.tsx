@@ -94,7 +94,7 @@ export function useTransactable<A>(targetIn: A, transaction : Transaction) : A {
     return proxy as unknown as A;
 }
 
-export function bindObservables<P> (ClassBasedComponent : React.ComponentType<P>) {
+export function bindObservables<P> (ClassBasedComponent : React.ComponentType<P>) : (args : P) => any {
     const name = ClassBasedComponent.name;
     return {[name] : function (props : any) {
             useObservables();
