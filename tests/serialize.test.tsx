@@ -133,5 +133,19 @@ describe("serialization tests", () => {
         expect(newC.date instanceof Date).toBe(true);
         expect(newC.date.getTime()).toBe(c.date.getTime());
     });
+    it("Can serialize Strings", () => {
+        class Container {
+            str = "1";
+            num = 1;
+        }
+
+        const c = new Container();
+        const json = serialize(c);
+        const newC = deserialize(json, [Container]);
+        expect(newC.str).toBe("1");
+        expect(newC.num).toBe(1);
+        expect(typeof newC.str).toBe("string");
+        expect(typeof newC.num).toBe("number");
+    });
 
 });

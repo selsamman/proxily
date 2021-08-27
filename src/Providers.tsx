@@ -5,8 +5,8 @@ import {Transaction, TransactionOptions} from "./Transaction";
 import {addRoot, removeRoot} from "./devTools";
 import {useTransaction} from "./reactUse";
 
-export const ObservableProvider = ({context, value, dependencies, transaction, children} :
-             {context : any, value : Function | any , dependencies : Array<any>, transaction?: Transaction, children: any}) => {
+export function ObservableProvider ({context, value, dependencies, transaction, children} :
+             {context : any, value : Function | any , dependencies : Array<any>, transaction?: Transaction, children: any}) {
 
     transaction = transaction || useContext(TransactionContext);
     let [providerValue] = dependencies
@@ -25,8 +25,8 @@ export const ObservableProvider = ({context, value, dependencies, transaction, c
     )
 }
 
-export const TransactionProvider = ({transaction, options, children} :
-{transaction? : Transaction, options? : TransactionOptions, children: any}) => {
+export function TransactionProvider ({transaction, options, children} :
+{transaction? : Transaction, options? : TransactionOptions, children: any}) {
 
     const providerValue = transaction || useTransaction(options || {});
 
