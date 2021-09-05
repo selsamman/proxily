@@ -63,7 +63,7 @@ export function getComponentName() {
         throw new Error("Get Stack")
     } catch (e) {
         const lines = e.stack.split(/\r?\n/);
-        return lines[3].match(/at (.+) \(/)[1];
+        return lines[2].match(/at (.+) \(/)[1];
     }
     return "";
 }

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {render, screen} from '@testing-library/react';
-import {setLogLevel, useObservables, makeObservable} from '../src';
+import {setLogLevel, observer, makeObservable} from '../src';
 import "@testing-library/jest-dom/extend-expect";
 import {resetLogging, setLog} from "../src/log";
 import {Leaf, observeResult, Root} from "./data/classes";
@@ -32,8 +32,7 @@ describe('Logging Tests',  () => {
             }
         })
         setLogLevel({render: true, propertyChange: true});
-        function App() {
-            useObservables();
+        const App = observer(function App() {
             const {value} = selectors;
             const {increment} = actions;
             return (
@@ -42,7 +41,7 @@ describe('Logging Tests',  () => {
                     <button onClick={increment}>Increment</button>
                 </div>
             );
-        }
+        });
         render(<App />);
         screen.getByText('Increment').click();
         expect (screen.getByText(/Count/)).toHaveTextContent("Count: 1");
@@ -137,8 +136,7 @@ describe('Logging Tests',  () => {
 
         setLogLevel({propertyTracking: true})
 
-        function App() {
-            useObservables();
+        const App = observer(function App() {
             return (
                 <div>
                     {store.list.map( (item, ix) =>
@@ -149,7 +147,7 @@ describe('Logging Tests',  () => {
                     )}
                 </div>
             );
-        }
+        })
 
         render(<App />);
 

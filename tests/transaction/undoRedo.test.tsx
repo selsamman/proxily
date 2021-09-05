@@ -1,4 +1,4 @@
-import {makeObservable, Transaction, useObservables, useTransactable} from "../../src";
+import {makeObservable, Transaction, observer, useTransactable} from "../../src";
 import {Target} from "../../src/proxyObserve";
 import {Leaf} from "../data/classes";
 import {render, screen} from "@testing-library/react";
@@ -410,8 +410,7 @@ describe("Transaction Component Test", () => {
     const state = makeObservable({
         counter: {value: 0}
     });
-    function Counter({txn} : {txn : Transaction}) {
-        useObservables();
+    const Counter = observer(function Counter({txn} : {txn : Transaction}) {
         const  {counter} = useTransactable(state, txn);
         return (
             <div>
@@ -419,11 +418,10 @@ describe("Transaction Component Test", () => {
                 <button onClick={()=>counter.value++}>Increment</button>
             </div>
         );
-    }
+    });
 
     it ("Can force render on changes if canundo caled", () => {
-        function App () {
-            useObservables();
+        const App = observer(function App () {
             const [txn] = useState(() => new Transaction({timePositioning: true}));
             return (
                 <div>
@@ -431,7 +429,7 @@ describe("Transaction Component Test", () => {
                     <Counter txn={txn} />
                 </div>
             );
-        }
+        });
         render(<App />);
         screen.getByText('Increment').click();
         expect (screen.getByTestId(1)).toHaveTextContent("Can Undo");

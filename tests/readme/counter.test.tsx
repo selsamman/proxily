@@ -1,8 +1,7 @@
 import * as React from 'react';
 import {render, screen} from '@testing-library/react';
-import {setLogLevel, memoize, useObservables, makeObservable, jestMockFromClass, useObservableProp, nonObservable, useLocalObservable} from '../../src';
+import {setLogLevel, memoize, bindObservables, observer, makeObservable, jestMockFromClass, useObservableProp, nonObservable, useLocalObservable} from '../../src';
 import "@testing-library/jest-dom/extend-expect";
-import {bindObservables} from "../../src/reactUse";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
@@ -22,8 +21,7 @@ describe('Counter Patterns',  () => {
                 return store.counter.value;
             }
         })
-        function App() {
-            useObservables();
+        const App = observer(function App() {
             const {value} = selectors;
             const {increment} = actions;
             return (
@@ -32,7 +30,7 @@ describe('Counter Patterns',  () => {
                     <button onClick={increment}>Increment</button>
                 </div>
             );
-        }
+        })
         render(<App />);
         screen.getByText('Increment').click();
         expect (screen.getByText(/Count/)).toHaveTextContent("Count: 1");
@@ -61,8 +59,7 @@ describe('Counter Patterns',  () => {
             }
         })
 
-        function App() {
-            useObservables();
+        const App = observer(function App() {
             const {list} = selectors;
             const {add, toggle} = actions;
             return (
@@ -76,7 +73,7 @@ describe('Counter Patterns',  () => {
                     )}
                 </div>
             );
-        }
+        })
         render(<App />);
         screen.getByText('Add').click();
         expect (screen.getByText(/Item/)).toHaveTextContent("New Item");
@@ -87,15 +84,14 @@ describe('Counter Patterns',  () => {
     it( 'Minimal example', async () => {
         const counter = makeObservable({value: 0});
 
-        function App() {
-            useObservables();
+        const App = observer(function App() {
             return (
                 <div>
                     <span>Count: {counter.value}</span>
                     <button onClick={()=>counter.value++}>Increment</button>
                 </div>
             );
-        }
+        });
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
@@ -105,8 +101,7 @@ describe('Counter Patterns',  () => {
             counter: {value: 0}
         });
 
-        function App() {
-            useObservables();
+        const App = observer(function App() {
             const  {counter} = state;
             return (
                 <div>
@@ -114,7 +109,7 @@ describe('Counter Patterns',  () => {
                     <button onClick={()=>counter.value++}>Increment</button>
                 </div>
             );
-        }
+        });
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
@@ -129,15 +124,14 @@ describe('Counter Patterns',  () => {
             pstate.counter.value++
         }, 750);
 
-        function App() {
-            useObservables();
+        const App = observer(function App() {
             const  {counter} = state;
             return (
                 <div>
                     <span>Count: {counter.value}</span>
                 </div>
             );
-        }
+        });
         const {getByText, findByText} = render(<App />);
         await findByText("Count: 1", {}, {timeout: 5000});
         expect (getByText(/Count/)).toHaveTextContent("Count: 1");
@@ -151,8 +145,7 @@ describe('Counter Patterns',  () => {
             }
         }
 
-        function Counter({counter} : {counter : CounterState}) {
-            useObservables();
+        const Counter = observer(function Counter({counter} : {counter : CounterState}) {
             const {value, increment} = counter;
             return (
                 <div>
@@ -160,7 +153,7 @@ describe('Counter Patterns',  () => {
                     <button onClick={increment}>Increment</button>
                 </div>
             );
-        }
+        });
 
         const {getByText, findByText} = render(<Counter counter={makeObservable(new CounterState())} />);
         expect (getByText(/Count/)).toHaveTextContent("Count: 0");
@@ -178,8 +171,7 @@ describe('Counter Patterns',  () => {
         });
 
         // @ts-ignore
-        function Counter({counter}) {
-            useObservables();
+        const Counter = observer(function Counter({counter}) {
             const {value, increment} = counter;
             return (
                 <div>
@@ -187,12 +179,12 @@ describe('Counter Patterns',  () => {
                     <button onClick={increment}>Increment</button>
                 </div>
             );
-        }
-        function App () {
-            return (
-                <Counter counter={state.counter}/>
-            );
-        }
+        });
+
+        const App = observer(function App () {
+            // @ts-ignore
+            return (<Counter counter={state.counter}/>);
+        });
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
@@ -207,8 +199,7 @@ describe('Counter Patterns',  () => {
             increment () {this._value++}
         }
 
-        function Counter({counter} : {counter : CounterState}) {
-            useObservables();
+        const Counter = observer(function Counter({counter} : {counter : CounterState}) {
             const {value, increment} = counter;
             return (
                 <div>
@@ -216,7 +207,7 @@ describe('Counter Patterns',  () => {
                     <button onClick={increment}>Increment</button>
                 </div>
             );
-        }
+        });
         const mockState = jestMockFromClass(CounterState, {get value () {return 5}});
         render(<Counter counter={mockState} />);
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 5");
@@ -235,8 +226,7 @@ describe('Counter Patterns',  () => {
             counter: new CounterState()
         });
 
-        function Counter({counter} : {counter : CounterState}) {
-            useObservables();
+        const Counter = observer(function Counter({counter} : {counter : CounterState}) {
             const {value, increment} = counter;
             return (
                 <div>
@@ -244,12 +234,12 @@ describe('Counter Patterns',  () => {
                     <button onClick={increment}>Increment</button>
                 </div>
             );
-        }
-        function App () {
+        });
+        const App = observer(function App () {
             return (
                 <Counter counter={state.counter}/>
             );
-        }
+        });
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
@@ -300,8 +290,7 @@ describe('Counter Patterns',  () => {
         });
         nonObservable(state, 'counter');
 
-        function Counter({counter} : {counter : CounterState}) {
-            useObservables();
+        const Counter = observer(function Counter({counter} : {counter : CounterState}) {
             const {value} = counter;
             return (
                 <div>
@@ -309,7 +298,7 @@ describe('Counter Patterns',  () => {
                     <button onClick={() => counter.increment}>Increment</button>
                 </div>
             );
-        }
+        });
         function App () {
             return (
                 <Counter counter={state.counter}/>
@@ -323,8 +312,7 @@ describe('Counter Patterns',  () => {
         const counter = makeObservable({
             value: 0
         });
-        function App () {
-            useObservables();
+        const App = observer(function App () {
             const [value, setValue] = useObservableProp(counter.value)
             return (
                 <div>
@@ -333,15 +321,14 @@ describe('Counter Patterns',  () => {
                 </div>
             );
 
-        }
+        });
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Can use useLocalObservable' , async () => {
 
-        function App () {
-            useObservables();
+        const App = observer(function App () {
             const counter = useLocalObservable(() => ({
                 value: 0
             }));
@@ -353,7 +340,7 @@ describe('Counter Patterns',  () => {
                 </div>
             );
 
-        }
+        });
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
@@ -361,22 +348,20 @@ describe('Counter Patterns',  () => {
     it("can memoize a function", async () => {
         let sorts = 0;
 
-        const counter = {
+        const counterState = {
             value : 0,
             increment () {
                 this.value++
             }
         }
         const state = makeObservable({
-            counters: [Object.assign({},counter), Object.assign({},counter)],
+            counters: [Object.assign({},counterState), Object.assign({},counterState)],
             sortedCounters: function () {
                 ++sorts;
                 return this.counters.slice(0).sort((a,b) => a.value - b.value);
             }
         });
-        // @ts-ignore
-        function Counter({counter, id}) {
-            useObservables();
+        const Counter = observer(function Counter({counter, id} : {counter: typeof counterState, id : string}) {
             const {value, increment} = counter;
             return (
                 <div>
@@ -384,9 +369,8 @@ describe('Counter Patterns',  () => {
                     <button onClick={increment}>Increment{id}</button>
                 </div>
             );
-        }
-        function App () {
-            useObservables();
+        });
+        const App = observer(function App () {
             const {sortedCounters} = state;
             return (
                 <>
@@ -398,7 +382,7 @@ describe('Counter Patterns',  () => {
                     )}
                 </>
             );
-        }
+        });
         memoize(state, 'sortedCounters');
         render(<App />);
         screen.getByText('IncrementA0').click();
@@ -438,8 +422,7 @@ describe('Counter Patterns',  () => {
             );
         }
 
-        function App () {
-            useObservables();
+        const App = observer(function App () {
             const {sortedCounters} = state;
             return (
                 <>
@@ -451,7 +434,7 @@ describe('Counter Patterns',  () => {
                     )}
                 </>
             );
-        }
+        });
 
         render(<App />);
         screen.getByText('IncrementA0').click();
@@ -480,8 +463,7 @@ describe('Counter Patterns',  () => {
         }
         const state = makeObservable(new State());
 
-        function Counter({counter, id} : {counter : CounterClass, id: any}) {
-            useObservables();
+        const Counter = observer(function Counter({counter, id} : {counter : CounterClass, id: any}) {
             const {value, increment} = counter;
             return (
                 <div>
@@ -489,10 +471,9 @@ describe('Counter Patterns',  () => {
                     <button onClick={increment}>Increment{id}</button>
                 </div>
             );
-        }
+        });
 
-        function App () {
-            useObservables();
+        const App = observer(function App () {
             const {sortedCounters} = state;
             return (
                 <>
@@ -504,7 +485,7 @@ describe('Counter Patterns',  () => {
                     )}
                 </>
             );
-        }
+        });
 
         render(<App />);
         screen.getByText('IncrementA0').click();

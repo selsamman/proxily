@@ -1,9 +1,8 @@
 import * as React from 'react';
 import {Family, Person, Preference} from "./family";
 import { render, screen} from '@testing-library/react';
-import {setLogLevel, makeObservable, memoize} from "../src/index";
+import {setLogLevel, makeObservable, memoize, useObservableProp, observer} from "../src/index";
 import "@testing-library/jest-dom/extend-expect";
-import {useObservableProp, useObservables} from "../src/reactUse";
 
 setLogLevel({});
 
@@ -69,8 +68,7 @@ test('can render names', async () => {
     memoize(family, 'getSortedMembers');
     const renderCount : any = {C0: 0, C1: 0, C2: 0, P: 0};
 
-    const PersonComponent = React.memo(({person, id} : {person: Person, id : number}) => {
-        useObservables();
+    const PersonComponent = React.memo(observer(({person, id} : {person: Person, id : number}) => {
         const [name, setName] = useObservableProp(person.name);
         renderCount['C' + id]++;
         return (
@@ -79,9 +77,8 @@ test('can render names', async () => {
                 <div data-testid={'B' + id} onClick={() => setName(name.toLowerCase())}>Lower</div>
             </>
         );
-    });
-    function App () {
-        useObservables()
+    }));
+    const App = observer(function App () {
         renderCount['P']++;
         const {members, sortedMembers, getSortedMembers} = family;
         return  (
@@ -109,7 +106,7 @@ test('can render names', async () => {
                 )}
             </div>
         );
-    }
+    });
     /*
     class LOC extends Component<any, any> {
         render() {

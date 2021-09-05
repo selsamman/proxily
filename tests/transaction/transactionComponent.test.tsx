@@ -1,10 +1,4 @@
-import {
-    makeObservable,
-    useTransactable,
-    useObservables,
-    TransactionContext,
-    TransactionProvider
-} from "../../src";
+import {observer, makeObservable, useTransactable, TransactionContext, TransactionProvider} from "../../src";
 import {useContext} from "react";
 import * as React from 'react';
 import "@testing-library/jest-dom/extend-expect";
@@ -18,8 +12,7 @@ class Customer {
     setName (name : string) {this.name = name;}
     setPhone (phone : string) { this.phone = phone; }
 }
-function UpdateCustomer ({customer} : {customer : Customer}) {
-    useObservables();
+const UpdateCustomer = observer(function UpdateCustomer ({customer} : {customer : Customer}) {
     const updateAddressTxn = useTransaction();
     customer = useTransactable(customer, updateAddressTxn);
     const {name, phone, setName, setPhone} = customer;
@@ -31,9 +24,9 @@ function UpdateCustomer ({customer} : {customer : Customer}) {
             <button onClick={() => updateAddressTxn.rollback()} >Rollback</button>
         </>
     )
-}
-function UpdateCustomerWithContext ({customer} : {customer : Customer}) {
-    useObservables();
+});
+
+const UpdateCustomerWithContext = observer(function UpdateCustomerWithContext ({customer} : {customer : Customer}) {
     const updateAddressTxn = useContext(TransactionContext);
     customer = useTransactable(customer, updateAddressTxn);
     const {name, phone, setName, setPhone} = customer;
@@ -45,7 +38,7 @@ function UpdateCustomerWithContext ({customer} : {customer : Customer}) {
             <button onClick={() => updateAddressTxn.rollback()} >Rollback</button>
         </>
     )
-}
+});
 
 describe("Transaction Component Tests", () => {
     it ("can commit", async () => {

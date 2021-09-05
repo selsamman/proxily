@@ -1,13 +1,51 @@
 import {makeObservable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
 import {currentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
 import {getComponentName, log, logLevel} from "./log";
-import {useEffect, useLayoutEffect, useRef, useState} from "react";
+import {
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+    NamedExoticComponent,
+    FunctionComponent,
+    PropsWithChildren
+} from "react";
 import {lastReference, makeProxy} from "./proxy/proxyCommon";
 import {Transaction, TransactionOptions} from "./Transaction";
 import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot, startHighLevelFunctionCall
 } from "./devTools";
 import React from "react";
 
+
+
+export function observer<P>(Component : FunctionComponent<P>, options? : ObserverOptions) : NamedExoticComponent<P> {
+
+    const name = Component.name;
+    return {[name] : function (props: PropsWithChildren<P>, ctx: any) {
+
+            const [,setSeq] = useState(1);
+            let contextContainer : any = useRef(null);
+
+            if (!contextContainer.current) {
+                const componentName = (logLevel.render || logLevel.propertyTracking) ? getComponentName() : "";
+                contextContainer.current = new Observer(() => setSeq((seq) => seq + 1), options, componentName);
+            }
+            const context = contextContainer.current;
+            setCurrentContext(context);
+            if(logLevel.render) log(`${context.componentName} render (${++context.renderCount})`);
+            useLayoutEffect(() => {  // After every render process any references
+                context.processPendingReferences();
+            });
+            useEffect(() => () => context.cleanup(), []);
+
+            const ret = Component(props, ctx);
+
+            setCurrentContext(undefined); // current context only exists during course of render
+            return ret;
+
+        }}[name] as NamedExoticComponent<P>
+
+}
 
 export function useObservables(options? : ObserverOptions) : Observer {
 
