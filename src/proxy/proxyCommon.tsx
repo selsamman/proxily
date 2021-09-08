@@ -93,9 +93,18 @@ export function setInternalProps (target: any, transaction: any, proxy: any, par
 
 }
 
-export function getterProps(target : Target, prop : string) {
-    const props = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(target), prop);
-    return props && typeof props.get === "function" ? props : false;
+export function getterProps(target : Target, prop : string) : any {
+    if (!(prop in target))
+        return false;
+    return getterPropsInternal(target, prop);
+}
+
+function getterPropsInternal(target : Target, prop : string) : any {
+    const props = Object.getOwnPropertyDescriptor(target, prop);
+    if (props)
+        return typeof props.get === "function" ? props : undefined;
+    target = Object.getPrototypeOf(target);
+    return target ? getterPropsInternal(target, prop) : undefined
 }
 
 export function DataChanged(target : Target, key : string, isContainer = false, value? : any) {

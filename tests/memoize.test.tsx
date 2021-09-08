@@ -162,18 +162,6 @@ describe("data structure tests of proxy with objects", () => {
         expect(calls).toBe(2);
 
     });
-    it ( "memo a getter function", () => {
-        calls = 0;
-        const root = makeObservable(Object.create(Root, {}));
-        expect(root.value).toBe(0);
-        expect(root.value).toBe(0);
-        expect(calls).toBe(1);
-        root._value++;
-        expect(root.value).toBe(1);
-        expect(root.value).toBe(1);
-        expect(calls).toBe(2);
-
-    });
     it ( "memo a function with parameters", () => {
         calls = 0;
         const root = makeObservable(Object.create(Root, {}));
@@ -189,4 +177,29 @@ describe("data structure tests of proxy with objects", () => {
         expect(calls).toBe(4);
 
     });
+    it ( "memo a getter function", () => {
+        calls = 0;
+        const root = makeObservable(Object.create(Root, {}));
+        expect(root.value).toBe(0);
+        expect(root.value).toBe(0);
+        expect(calls).toBe(1);
+        root._value++;
+        expect(root.value).toBe(1);
+        expect(root.value).toBe(1);
+        expect(calls).toBe(2);
+
+    });
+    it ( "memo a getter function true root", () => {
+        calls = 0;
+        const root = makeObservable(Root);
+        expect(root.value).toBe(0);
+        expect(root.value).toBe(0);
+        expect(calls).toBe(1);
+        root._value++;
+        expect(root.value).toBe(1);
+        expect(root.value).toBe(1);
+        expect(calls).toBe(2);
+
+    });
+
 });
