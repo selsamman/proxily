@@ -1,17 +1,12 @@
 import {createMemoization, isMemoized} from "../memoize";
 import {setCurrentFunction} from "../log";
 import {isInternalProperty, ProxyTarget, Target} from "../proxyObserve";
-let callLevel = 0;
-import {
-    DataChanged,
-    getterProps,
-    propertyReferenced,
-    propertyUpdated
-} from "./proxyCommon";
+import {DataChanged, getSnapshotIfNeeded, getterProps, propertyReferenced, propertyUpdated} from "./proxyCommon";
 import {Transaction} from "../Transaction";
 import {startHighLevelFunctionCall, endHighLevelFunctionCall} from "../devTools";
 import {Observer} from "../Observer";
 
+let callLevel = 0;
 export const proxyHandler = {
 
     get(target : Target, prop: string, receiver: any) : any {
@@ -21,6 +16,8 @@ export const proxyHandler = {
             return target;
         if (isInternalProperty(prop))
             return Reflect.get(target, prop, target);
+
+        target = getSnapshotIfNeeded(target);
 
         // Handle case of getter which may need to be memoized
         const props : any = getterProps(target, prop);

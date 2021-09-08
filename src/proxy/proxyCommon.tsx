@@ -8,6 +8,8 @@ import {proxyHandler} from "./proxyHandler";
 import {Transaction} from "../Transaction";
 import {setDirty} from "../devTools";
 import {logChange, logLevel} from "../log";
+import {isTransition, useSnapshot} from "../reactUse";
+import {Snapshots} from "../transition";
 
 export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transaction) : ProxyTarget {
 
@@ -36,18 +38,7 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     if (!transaction.isDefault() && proxyOrTarget.__proxy__ &&
         proxyOrTarget.__target__?.__transaction__ !== transaction) {
         parentTarget = target;
-        if (target instanceof Map)
-            target = new Map(target as Map<any, any>);
-        else if (target instanceof Set)
-            target = new Set(target as Set<any>);
-        else if (target instanceof Date)
-            target = new Date(target);
-        else if (target instanceof Array)
-            target = Array.from(target);
-        else {
-            const emptyObject = Object.create(Object.getPrototypeOf(target));
-            target = Object.assign(emptyObject, target);
-        }
+        target = cloneObject(target);
     }
 
     // Create the proxy with the appropriate handler
@@ -67,6 +58,31 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     if (parentTarget)
         transaction.addParentTargetProxy(parentTarget, proxy);
 
+    setInternalProps(target, transaction, proxy, parentTarget);
+    //if (target !== originalTarget && !originalTarget.__transaction__.isDefault())
+    //    originalTarget.__parentTarget__ = target;
+
+    return proxy;
+
+}
+
+export function cloneObject(target : any) {
+    if (target instanceof Map)
+        target = new Map(target as Map<any, any>);
+    else if (target instanceof Set)
+        target = new Set(target as Set<any>);
+    else if (target instanceof Date)
+        target = new Date(target);
+    else if (target instanceof Array)
+        target = Array.from(target);
+    else {
+        const emptyObject = Object.create(Object.getPrototypeOf(target));
+        target = Object.assign(emptyObject, target);
+    }
+    return target;
+}
+
+export function setInternalProps (target: any, transaction: any, proxy: any, parentTarget: any) {
     Object.defineProperty(target, '__parentReferences__', {writable: true, enumerable: false, value: new Map()});
     Object.defineProperty(target, '__contexts__', {writable: true, enumerable: false, value: new Map()});
     Object.defineProperty(target, '__memoContexts__', {writable: true, enumerable: false, value: {}});
@@ -75,12 +91,8 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     Object.defineProperty(target, '__transaction__', {writable: true, enumerable: false, value: transaction});
     Object.defineProperty(target, '__parentTarget__', {writable: true, enumerable: false, value: parentTarget});
 
-    //if (target !== originalTarget && !originalTarget.__transaction__.isDefault())
-    //    originalTarget.__parentTarget__ = target;
-
-    return proxy;
-
 }
+
 export function getterProps(target : Target, prop : string) {
     const props = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(target), prop);
     return props && typeof props.get === "function" ? props : false;
@@ -195,7 +207,10 @@ export function propertyUpdated(parentTarget : Target, prop: string, child : any
                 parentReference[prop] = 1;
         } else
             child.__parentReferences__.set(parentTarget, {[prop]: 1});
+
     }
+
+    recordSnapshotIfNeeded(parentTarget);
 
     return child;
 }
@@ -218,4 +233,16 @@ export const lastReference : LastReference = {
         this.target = undefined;
         this.prop = "";
     }
+}
+
+export function getSnapshotIfNeeded(target : Target) {
+    if (useSnapshot() && target.__snapshot__)
+        return target.__snapshot__.getSnapshot(target)
+    else
+        return target;
+}
+
+export function recordSnapshotIfNeeded(target : Target) {
+    if (isTransition())
+        Snapshots.create(target);
 }

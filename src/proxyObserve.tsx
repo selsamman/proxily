@@ -4,6 +4,7 @@ import {GetterMemo} from "./memoize";
 import {makeProxy} from "./proxy/proxyCommon";
 import {Transaction} from "./Transaction";
 import {addRoot, removeRoot} from "./devTools";
+import {Snapshots} from "./transition";
 
 export function makeObservable<TYPE>(targetIn: TYPE, transaction? : Transaction, nonRoot? : boolean) : TYPE {
     if (typeof targetIn === "object" && targetIn !== null) {
@@ -44,6 +45,7 @@ export function observe<T>(targetIn: T,
 // Additional properties on objects being proxied
 export interface Target {
     __transaction__ : Transaction;
+    __snapshot__ : Snapshots | undefined;
     __referenced__ : boolean
     __proxy__ : ProxyTarget
     __parentTarget__ : Target
@@ -61,7 +63,7 @@ export interface ProxyOrTarget {
     __proxy__? : ProxyTarget;
 }
 export function isInternalProperty (prop : any) {
-    return ['__referenced__', '__proxy__', '__target__', '__nonObservableProps__', '__memoizedProps__', '__contexts__', '__parentReferences__',
+    return ['__referenced__', '__proxy__', '__target__', '__nonObservableProps__', '__memoizedProps__', '__contexts__', '__parentReferences__', '__snapshot__',
      '__memoContexts__', '__transaction__', '__parentTarget__'].includes(prop)
 }
 export function target <T>(a: T) {return (a as unknown as any).__target__ as unknown as T};

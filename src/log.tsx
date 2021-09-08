@@ -1,7 +1,8 @@
 export interface LogLevels {
     propertyChange : boolean
     render: boolean;
-    propertyTracking : boolean
+    propertyTracking : boolean;
+    transitions: boolean
 }
 
 export let logLevel : Partial<LogLevels> = {}
