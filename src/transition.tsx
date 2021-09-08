@@ -2,6 +2,7 @@ import {observedTransitionSequence, transitionSequence} from "./reactUse";
 import {cloneObject, setInternalProps} from "./proxy/proxyCommon";
 import {Target} from "./proxyObserve";
 import {log, logLevel} from "./log";
+import {getSnapshotMemos} from "./memoize";
 
 interface Snapshot {
     sequence: number;
@@ -24,7 +25,9 @@ export class Snapshots {
     createSnapshotIfNeeded(target: Target) {
         if (!this.snapshots.get(transitionSequence)) {
             const newTarget = cloneObject(target);
-            setInternalProps(newTarget, target.__transaction__, target.__proxy__, target.__parentTarget__);
+            setInternalProps(newTarget, target.__transaction__, target.__proxy__, target.__parentTarget__, getSnapshotMemos(target));
+            if (target.__memoizedProps__)
+                newTarget.__memoizedProps__ = target.__memoizedProps__;
             this.snapshots.set(transitionSequence, {sequence: transitionSequence, target: newTarget});
             if (logLevel.transitions)
                 log(`Creating snapshot object for transition ${transitionSequence} `);
@@ -50,3 +53,4 @@ export class Snapshots {
 
     }
 }
+

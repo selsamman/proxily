@@ -1,4 +1,4 @@
-import {isObservable, ProxyOrTarget, ProxyTarget, Target} from "../proxyObserve";
+import {isObservable, MemoContexts, ProxyOrTarget, ProxyTarget, Target} from "../proxyObserve";
 import {currentContext, currentSelectorContext} from "../Observer";
 import {proxyHandlerMap} from "./proxyHandlerMap";
 import {proxyHandlerSet} from "./proxyHandlerSet";
@@ -58,7 +58,7 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     if (parentTarget)
         transaction.addParentTargetProxy(parentTarget, proxy);
 
-    setInternalProps(target, transaction, proxy, parentTarget);
+    setInternalProps(target, transaction, proxy, parentTarget, {});
     //if (target !== originalTarget && !originalTarget.__transaction__.isDefault())
     //    originalTarget.__parentTarget__ = target;
 
@@ -77,20 +77,19 @@ export function cloneObject(target : any) {
         target = Array.from(target);
     else {
         const emptyObject = Object.create(Object.getPrototypeOf(target));
-        target = Object.assign(emptyObject, target);
+        target = Object.assign(emptyObject, target.__proxy__);
     }
     return target;
 }
 
-export function setInternalProps (target: any, transaction: any, proxy: any, parentTarget: any) {
+export function setInternalProps (target: any, transaction: any, proxy: any, parentTarget: any, memos : MemoContexts) {
     Object.defineProperty(target, '__parentReferences__', {writable: true, enumerable: false, value: new Map()});
     Object.defineProperty(target, '__contexts__', {writable: true, enumerable: false, value: new Map()});
-    Object.defineProperty(target, '__memoContexts__', {writable: true, enumerable: false, value: {}});
-    Object.defineProperty(target, '__proxy__', {writable: true, enumerable: false, value: proxy});  // Get to a proxy from a target
+    Object.defineProperty(target, '__memoContexts__', {writable: true, enumerable: false, value: memos});
+    Object.defineProperty(target, '__proxy__', {writable: true, enumerable: false, value: proxy});
     Object.defineProperty(target, '__referenced__', {writable: true, enumerable: false, value: false});
     Object.defineProperty(target, '__transaction__', {writable: true, enumerable: false, value: transaction});
     Object.defineProperty(target, '__parentTarget__', {writable: true, enumerable: false, value: parentTarget});
-
 }
 
 export function getterProps(target : Target, prop : string) : any {

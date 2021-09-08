@@ -1,6 +1,7 @@
 import {currentSelectorContext, Observer, setCurrentSelectorContext} from "./Observer";
 import {ProxyTarget, Target} from "./proxyObserve";
 
+
 export class GetterMemo {
     constructor(valueFunction: () => any, target : ProxyTarget) {
         this.valueFunction = valueFunction;
@@ -71,7 +72,7 @@ export function isMemoized(prop: string, target: Target) {
     return target.__memoizedProps__ && target.__memoizedProps__.hasOwnProperty(prop);
 }
 
-export function createMemoization (prop: string, target: Target, valueFunction: any) : GetterMemo {
+export function createMemoization (prop: string, target: Target, valueFunction: any) : GetterMemo | SnapshotGetterMemo{
     if (target.__memoizedProps__ && target.__memoizedProps__[prop] &&
         (!target.__memoContexts__ || !target.__memoContexts__[prop]))
     {
@@ -82,4 +83,24 @@ export function createMemoization (prop: string, target: Target, valueFunction: 
 
     }
     return target.__memoContexts__[prop];
+}
+
+// When we create a snapshot for transitions the memoize value is constant since
+// it cannot change by definition in a render and is only offered during a render
+export class SnapshotGetterMemo {
+    lastValue: any
+    constructor (value : any) {
+        this.lastValue = value;
+    }
+    getValue() {
+        return this.lastValue;
+    }
+}
+
+// Creat a new __memoContext__ with snapshot memos
+export function getSnapshotMemos(target : Target) {
+    const memoContext : { [key: string] : SnapshotGetterMemo} = {};
+    for (let prop in target.__memoContexts__)
+        memoContext[prop] = new SnapshotGetterMemo(target.__memoContexts__[prop].lastValue);
+    return memoContext;
 }
