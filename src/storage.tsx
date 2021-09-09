@@ -1,5 +1,5 @@
 import {ClassHandlers, deserialize} from "./deserialize";
-import {observe, makeObservable} from "./proxyObserve";
+import {observe, observable} from "./proxyObserve";
 import {serialize} from "./serialize";
 export interface StorageEngine {
     getItem(key : string) : any
@@ -30,7 +30,7 @@ export function persist<T>(initialState: T, config : PersistConfig) : T {
         persistedState = initialState;
     let scheduled = false;
     observe(persistedState, onChange, undefined, {batch : true, delay: 0, notifyParents : true});
-    return makeObservable(persistedState);
+    return observable(persistedState);
     function onChange() {
         if (!scheduled)
             setTimeout(() => {
@@ -56,7 +56,7 @@ export async function  persistAsync <T>(initialState: T, config : PersistConfig)
         persistedState = initialState;
     let scheduled = false;
     observe(persistedState, onChange);
-    return makeObservable(persistedState);
+    return observable(persistedState);
     function onChange() {
         if (!scheduled)
             setTimeout(() => {

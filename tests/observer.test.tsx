@@ -1,4 +1,4 @@
-import {makeObservable, observe} from "../src";
+import {observable, observe} from "../src";
 import {scheduleTask} from "../src/sagas";
 import {delay} from "@redux-saga/core/effects";
 
@@ -32,7 +32,7 @@ describe("batching testing for observer", () => {
     const wait = (time : number) => new Promise((res : any) =>setTimeout(()=>res(), time));
     it ( "not batch actions", () => {
         let calls = 0;
-        const root = makeObservable(new Root());
+        const root = observable(new Root());
         observe(root, () => ++calls, (r) => r.value, {batch: false});
         root.action();
         expect(calls).toBe(2);
@@ -40,7 +40,7 @@ describe("batching testing for observer", () => {
     });
     it ( "batch actions", () => {
         let calls = 0;
-        const root = makeObservable(new Root());
+        const root = observable(new Root());
         observe(root, () => ++calls, (r) => r.value, {batch: true});
         root.action();
         expect(calls).toBe(1);
@@ -48,7 +48,7 @@ describe("batching testing for observer", () => {
     });
     it ( "batch actions on next tick", async () => {
         let calls = 0;
-        const root = makeObservable(new Root());
+        const root = observable(new Root());
         observe(root, () => ++calls, (r) => r.value, {batch: true, delay: 0});
         root.action();
         root.action();
@@ -59,7 +59,7 @@ describe("batching testing for observer", () => {
     });
     it ( "batch async actions with await", async () => {
         let calls = 0;
-        const root = makeObservable(new Root());
+        const root = observable(new Root());
         observe(root, () => ++calls, (r) => r.value, {batch: true, delay: 0});
         root.asyncAction();
         expect(calls).toBe(0);
@@ -72,7 +72,7 @@ describe("batching testing for observer", () => {
     });
     it ( "batch async actions with generataors", async () => {
         let calls = 0;
-        const root = makeObservable(new Root());
+        const root = observable(new Root());
         observe(root, () => ++calls, (r) => r.value, {batch: true, delay: 0});
         root.scheduleAction();
         expect(calls).toBe(0);

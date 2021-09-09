@@ -11,24 +11,26 @@ Proxily is a library for managing state in a non-prescriptive way. It re-renders
 * Rich support for Typescript, classes and objects including automatic function binding
 
 ## Install
+
+> Note:  This project is as an alpha because it has specific features relating to React 18 which at this time is in alpha.
+> 
 ```javascript
-yarn add proxily
+yarn add proxily@alpha
 ```
 or
 ```
-npm install proxily
+npm install proxily@alpha
 ```
-> Note:  This project is to be released shortly and published on NPM.  It is in the last stages of documentation review and test finalization.
+
 
 ## Import & Use
 
 ```typescript
-import {makeObservable, useObservables} from 'proxily';
+import {observable, observer} from 'proxily';
 
-const counter = makeObservable({value: 0});
+const counter = observable({value: 0});
 
 function App() {
-    useObservables();
     return (
         <div>
             <span>Count: {counter.value}</span>
@@ -38,6 +40,7 @@ function App() {
         </div>
     );
 }
+export default observer(App); 
 ```
 
 ## Documentation

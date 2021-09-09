@@ -1,4 +1,4 @@
-import {configureReduxDevTools, initReduxDevTools, makeObservable} from "../src";
+import {configureReduxDevTools, initReduxDevTools, observable} from "../src";
 import {Root} from "./data/classes";
 import "@testing-library/jest-dom/extend-expect";
 
@@ -25,8 +25,8 @@ class ExtendedRoot extends Root {
 describe( "Can time travel using devTools", () => {
     it ("Can do simplist case", () => {
         configureReduxDevTools();
-        const state1 = makeObservable(new ExtendedRoot());
-        const state2 = makeObservable(new ExtendedRoot());
+        const state1 = observable(new ExtendedRoot());
+        const state2 = observable(new ExtendedRoot());
         initReduxDevTools();
         state1.action();
         state2.action();

@@ -1,4 +1,4 @@
-import {observer, makeObservable, useTransactable, TransactionContext, TransactionProvider} from "../../src";
+import {observer, observable, useTransactable, TransactionContext, TransactionProvider} from "../../src";
 import {useContext} from "react";
 import * as React from 'react';
 import "@testing-library/jest-dom/extend-expect";
@@ -45,7 +45,7 @@ describe("Transaction Component Tests", () => {
         function App () {
             return (<UpdateCustomer customer={customer} />)
         }
-        const customer = makeObservable(new Customer());
+        const customer = observable(new Customer());
         render(<App />);
         const input = screen.getByTestId('n') as HTMLInputElement;
         input.select();
@@ -59,7 +59,7 @@ describe("Transaction Component Tests", () => {
         function App () {
             return (<UpdateCustomer customer={customer} />)
         }
-        const customer = makeObservable(new Customer());
+        const customer = observable(new Customer());
         render(<App />);
         const input = screen.getByTestId('n') as HTMLInputElement;
         input.select();
@@ -77,7 +77,7 @@ describe("Transaction Component Tests", () => {
                 </TransactionProvider>
             )
         }
-        const customer = makeObservable(new Customer());
+        const customer = observable(new Customer());
         render(<App />);
         const input = screen.getByTestId('n') as HTMLInputElement;
         input.select();

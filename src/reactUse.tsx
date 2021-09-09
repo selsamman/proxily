@@ -1,4 +1,4 @@
-import {makeObservable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
+import {observable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
 import {currentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
 import {getComponentName, log, logLevel} from "./log";
 import {useEffect, useLayoutEffect, useRef, useState, NamedExoticComponent, FunctionComponent,
@@ -156,13 +156,13 @@ export function useObservables(options? : ObserverOptions) : Observer {
 export function useLocalObservable<T>(callback : () => T, transaction? : Transaction) : T {
     if (!callback)
         throw new Error("useLocalObservable did not have callback - did you mean useObservables?");
-    const [observable] = useState( () => makeObservable(callback(), transaction,true));
+    const [localObservable] = useState( () => observable(callback(), transaction,true));
     useEffect(() => {
-        addRoot((observable as unknown as ProxyTarget).__target__);
-        return () =>removeRoot((observable as unknown as ProxyTarget).__target__)
+        addRoot((localObservable as unknown as ProxyTarget).__target__);
+        return () =>removeRoot((localObservable as unknown as ProxyTarget).__target__)
     }, []);
 
-    return observable as unknown as T;
+    return localObservable as unknown as T;
 }
 
 export function useObservableProp<S>(value: S) : [S, (value: S) => void] {

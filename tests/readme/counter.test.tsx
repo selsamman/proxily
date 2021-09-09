@@ -1,22 +1,22 @@
 import * as React from 'react';
 import {render, screen} from '@testing-library/react';
-import {setLogLevel, memoize, bindObservables, observer, makeObservable, jestMockFromClass, useObservableProp, nonObservable, useLocalObservable} from '../../src';
+import {setLogLevel, memoize, bindObservables, observer, observable, jestMockFromClass, useObservableProp, nonObservable, useLocalObservable} from '../../src';
 import "@testing-library/jest-dom/extend-expect";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
     it( 'Redux Style example Counter',  () => {
-        const store = makeObservable({
+        const store = observable({
             counter: {
                 value: 0
             }
         });
-        const actions = makeObservable({
+        const actions = observable({
             increment () {
                 store.counter.value++;
             }
         })
-        const selectors = makeObservable({
+        const selectors = observable({
             get value () {
                 return store.counter.value;
             }
@@ -40,11 +40,11 @@ describe('Counter Patterns',  () => {
         interface Item {text : string; completed: boolean};
         interface State {list : Array<Item>};
 
-        const store = makeObservable({
+        const store = observable({
             list: []
         } as State);
 
-        const actions = makeObservable({
+        const actions = observable({
             add () {
                 store.list.push({text: "New Item", completed: false})
             },
@@ -53,7 +53,7 @@ describe('Counter Patterns',  () => {
             }
         })
 
-        const selectors = makeObservable({
+        const selectors = observable({
             get list () {
                 return store.list;
             }
@@ -82,7 +82,7 @@ describe('Counter Patterns',  () => {
 
     });
     it( 'Minimal example', async () => {
-        const counter = makeObservable({value: 0});
+        const counter = observable({value: 0});
 
         const App = observer(function App() {
             return (
@@ -97,7 +97,7 @@ describe('Counter Patterns',  () => {
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Can modify data directly in events', async () => {
-        const state = makeObservable({
+        const state = observable({
             counter: {value: 0}
         });
 
@@ -115,7 +115,7 @@ describe('Counter Patterns',  () => {
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Can modify data anywhere', async () => {
-        const state = makeObservable({
+        const state = observable({
             counter: {value: 0}
         });
 
@@ -155,7 +155,7 @@ describe('Counter Patterns',  () => {
             );
         });
 
-        const {getByText, findByText} = render(<Counter counter={makeObservable(new CounterState())} />);
+        const {getByText, findByText} = render(<Counter counter={observable(new CounterState())} />);
         expect (getByText(/Count/)).toHaveTextContent("Count: 0");
         screen.getByText('Increment').click();
         await findByText("Count: 1", {}, {timeout: 5000});
@@ -166,7 +166,7 @@ describe('Counter Patterns',  () => {
             value : 0,
             increment () {this.value++}
         }
-        const state = makeObservable({
+        const state = observable({
             counter: Object.create(counter)
         });
 
@@ -222,7 +222,7 @@ describe('Counter Patterns',  () => {
             }
             increment () {this._value++}
         }
-        const state = makeObservable({
+        const state = observable({
             counter: new CounterState()
         });
 
@@ -252,7 +252,7 @@ describe('Counter Patterns',  () => {
             }
             increment () {this._value++}
         }
-        const state = makeObservable({
+        const state = observable({
             counter: new CounterState()
         });
         class CounterClass extends React.Component<{counter : CounterState}> {
@@ -285,7 +285,7 @@ describe('Counter Patterns',  () => {
             }
             increment () {this._value++}
         }
-        const state = makeObservable({
+        const state = observable({
             counter: new CounterState()
         });
         nonObservable(state, 'counter');
@@ -309,7 +309,7 @@ describe('Counter Patterns',  () => {
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 0");
     });
     it( 'Can use useObservable' , async () => {
-        const counter = makeObservable({
+        const counter = observable({
             value: 0
         });
         const App = observer(function App () {
@@ -354,7 +354,7 @@ describe('Counter Patterns',  () => {
                 this.value++
             }
         }
-        const state = makeObservable({
+        const state = observable({
             counters: [Object.assign({},counterState), Object.assign({},counterState)],
             sortedCounters: function () {
                 ++sorts;
@@ -410,7 +410,7 @@ describe('Counter Patterns',  () => {
             }
         }
         memoize(State, 'sortedCounters');
-        const state = makeObservable(new State());
+        const state = observable(new State());
 
         function Counter({counter, id} : {counter : CounterClass, id: any}) {
             const {value, increment} = counter;
@@ -461,7 +461,7 @@ describe('Counter Patterns',  () => {
                 return this.counters.slice(0).sort((a,b) => a.value - b.value) as Array<CounterClass>;
             }
         }
-        const state = makeObservable(new State());
+        const state = observable(new State());
 
         const Counter = observer(function Counter({counter, id} : {counter : CounterClass, id: any}) {
             const {value, increment} = counter;

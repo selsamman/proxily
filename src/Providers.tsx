@@ -1,5 +1,5 @@
 import {useContext, useState, useMemo, useEffect} from "react";
-import {makeObservable} from "./proxyObserve";
+import {observable} from "./proxyObserve";
 import React from 'react';
 import {Transaction, TransactionOptions} from "./Transaction";
 import {addRoot, removeRoot} from "./devTools";
@@ -11,9 +11,9 @@ export function ObservableProvider ({context, value, dependencies, transaction, 
     transaction = transaction || useContext(TransactionContext);
     let [providerValue] = dependencies
         ? [useMemo(() =>
-            makeObservable(typeof value === "function" ? value() : value, transaction, true), dependencies)]
+            observable(typeof value === "function" ? value() : value, transaction, true), dependencies)]
         : useState(() =>
-            makeObservable(typeof value === "function" ? value() : value, transaction, true))
+            observable(typeof value === "function" ? value() : value, transaction, true))
     useEffect(() => {
         addRoot(providerValue.__target__);
         return () =>removeRoot(providerValue.__target__)

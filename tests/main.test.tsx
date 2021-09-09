@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {Family, Person, Preference} from "./family";
 import { render, screen} from '@testing-library/react';
-import {setLogLevel, makeObservable, memoize, useObservableProp, observer} from "../src/index";
+import {setLogLevel, observable, memoize, useObservableProp, observer} from "../src/index";
 import "@testing-library/jest-dom/extend-expect";
 
 setLogLevel({});
@@ -61,7 +61,7 @@ test( 'memoizer', () => {
 
 test('can render names', async () => {
 
-    const family = makeObservable(new Family({members: [
+    const family = observable(new Family({members: [
             new Person({name: "Sam"}),
             new Person({name: "Karen", age: 53, preferences: [new Preference({name: "food", value: 1})]})
         ]}));

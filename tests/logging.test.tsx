@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {render, screen} from '@testing-library/react';
-import {setLogLevel, observer, makeObservable} from '../src';
+import {setLogLevel, observer, observable} from '../src';
 import "@testing-library/jest-dom/extend-expect";
 import {resetLogging, setLog} from "../src/log";
 import {Leaf, observeResult, Root} from "./data/classes";
@@ -16,17 +16,17 @@ describe('Logging Tests',  () => {
     afterEach(() => resetLogging());
 
     it( 'Can get component name',  () => {
-        const store = makeObservable({
+        const store = observable({
             counter: {
                 value: 0
             }
         });
-        const actions = makeObservable({
+        const actions = observable({
             increment () {
                 store.counter.value++;
             }
         })
-        const selectors = makeObservable({
+        const selectors = observable({
             get value () {
                 return store.counter.value;
             }
@@ -132,7 +132,7 @@ describe('Logging Tests',  () => {
             get list () {return this._list}
         };
 
-        const store = makeObservable(new State());
+        const store = observable(new State());
 
         setLogLevel({propertyTracking: true})
 

@@ -1,5 +1,5 @@
 import {Leaf, observeResult, Root} from "./classes";
-import {makeObservable} from "../../src";
+import {observable} from "../../src";
 
 describe("data structure tests: objects", () => {
 
@@ -17,7 +17,7 @@ describe("data structure tests: objects", () => {
         expect(observeResult(new Root(), (root) => {
 
             const leaf1 = new Leaf();
-            const leafProxy1 = makeObservable(leaf1);
+            const leafProxy1 = observable(leaf1);
             root.arrayObjectCollection[1] = leaf1;
             expect(root.arrayObjectCollection[1]).toBe(leafProxy1);
             const leafProxy0 = root.arrayObjectCollection[0];
@@ -89,8 +89,8 @@ describe("data structure tests: objects", () => {
 
             const arrObj: Leaf[]  = []
             root.arrayObjectCollection.forEach((value, ix) => arrObj[ix] = value);
-            expect(arrObj[0]).toBe(makeObservable(root.arrayObjectCollection[0]));
-            expect(arrObj[1]).toBe(makeObservable(root.arrayObjectCollection[1]));
+            expect(arrObj[0]).toBe(observable(root.arrayObjectCollection[0]));
+            expect(arrObj[1]).toBe(observable(root.arrayObjectCollection[1]));
             let leaf = arrObj[1];
             leaf.num = 5;
         })).toBe("Root-arrayObjectCollection-1");
@@ -166,13 +166,13 @@ describe("data structure tests: objects", () => {
     it ("can observe changes to arrays using fill", () => {
 
         expect(observeResult(new Root(), (root) => {
-            const leaf = makeObservable(new Leaf());
+            const leaf = observable(new Leaf());
             root.arrayObjectCollection.fill(leaf, 1)
             expect(root.arrayObjectCollection[1]).toBe(leaf);
         })).toBe("Root-arrayObjectCollection-1");
 
         expect(observeResult(new Root(), (root) => {
-            const leaf = makeObservable(new Leaf());
+            const leaf = observable(new Leaf());
             root.arrayObjectCollection.fill(leaf, 1);
             leaf.num = 3;
             expect(root.arrayObjectCollection[1]).toBe(leaf);
@@ -181,7 +181,7 @@ describe("data structure tests: objects", () => {
         })).toBe("Root-arrayObjectCollection-3");  // last assignment on unassigned leaf
 
         expect(observeResult(new Root(), (root) => {
-            const leaf = makeObservable(new Leaf());
+            const leaf = observable(new Leaf());
             root.arrayObjectCollection.fill(leaf, 0); // 1
             leaf.num = 4; // 2
             expect(root.arrayObjectCollection[0]).toBe(leaf);
@@ -233,8 +233,8 @@ describe("data structure tests: objects", () => {
             expect(root.arrayObjectCollection.push(leaf)).toBe(3); // 1
             expect(root.arrayObjectCollection.push(leaf2)).toBe(4); // 2
             expect(root.arrayObjectCollection.length).toBe(4);
-            expect(root.arrayObjectCollection[2]).toBe(makeObservable(leaf));
-            expect(root.arrayObjectCollection.indexOf(makeObservable(leaf2))).toBe(3);
+            expect(root.arrayObjectCollection[2]).toBe(observable(leaf));
+            expect(root.arrayObjectCollection.indexOf(observable(leaf2))).toBe(3);
             expect(root.arrayObjectCollection.indexOf(leaf2)).toBe(3);
             root.arrayObjectCollection[2].num = 5; // 3
         })).toBe("Root-arrayObjectCollection-3");
@@ -245,8 +245,8 @@ describe("data structure tests: objects", () => {
             expect(root.arrayObjectCollection.unshift(leaf2)).toBe(3); // 1
             expect(root.arrayObjectCollection.unshift(leaf)).toBe(4); // 2
             expect(root.arrayObjectCollection.length).toBe(4);
-            expect(root.arrayObjectCollection[0]).toBe(makeObservable(leaf));
-            expect(root.arrayObjectCollection.indexOf(makeObservable(leaf2))).toBe(1);
+            expect(root.arrayObjectCollection[0]).toBe(observable(leaf));
+            expect(root.arrayObjectCollection.indexOf(observable(leaf2))).toBe(1);
             expect(root.arrayObjectCollection.indexOf(leaf2)).toBe(1);
             root.arrayObjectCollection[0].num = 3; // 3
         })).toBe("Root-arrayObjectCollection-3");
@@ -254,11 +254,11 @@ describe("data structure tests: objects", () => {
         expect(observeResult(new Root(), (root) => {
             const leaf = new Leaf();
             const oldLeaf = root.arrayObjectCollection[1];
-            expect(oldLeaf).toBe(makeObservable(oldLeaf));
-            expect(root.arrayObjectCollection.splice(1, 1, leaf)[0]).toBe(makeObservable(oldLeaf)); // 1
-            expect(root.arrayObjectCollection[1]).toBe(makeObservable(leaf));
-            makeObservable(leaf).num = 5; //2
-            makeObservable(oldLeaf).num = 5; // Orphan
+            expect(oldLeaf).toBe(observable(oldLeaf));
+            expect(root.arrayObjectCollection.splice(1, 1, leaf)[0]).toBe(observable(oldLeaf)); // 1
+            expect(root.arrayObjectCollection[1]).toBe(observable(leaf));
+            observable(leaf).num = 5; //2
+            observable(oldLeaf).num = 5; // Orphan
         })).toBe("Root-arrayObjectCollection-2");
 
     });
@@ -280,7 +280,7 @@ describe("data structure tests: objects", () => {
             const leaf = root.arrayObjectCollection[0];
             leaf.num = 100;
             root.arrayObjectCollection.sort((a, b) => {
-                expect(makeObservable(a)).toBe(a);expect(makeObservable(b)).toBe(b); return a.num - b.num});
+                expect(observable(a)).toBe(a);expect(observable(b)).toBe(b); return a.num - b.num});
             expect(root.arrayObjectCollection[1].num).toBe(100);
         })).toBe("Root-arrayObjectCollection-1");
 
@@ -298,9 +298,9 @@ describe("data structure tests: objects", () => {
     // Array.prototype.join() - Joins all elements of an array into a string.
     it ("stringify", () => {
         const root = new Root();
-        expect(root.arrayObjectCollection.toString()).toBe(makeObservable(root).arrayObjectCollection.toString());
-        expect(root.arrayObjectCollection.toLocaleString()).toBe(makeObservable(root).arrayObjectCollection.toLocaleString());
-        expect(root.arrayObjectCollection.join()).toBe(makeObservable(root).arrayObjectCollection.join());
+        expect(root.arrayObjectCollection.toString()).toBe(observable(root).arrayObjectCollection.toString());
+        expect(root.arrayObjectCollection.toLocaleString()).toBe(observable(root).arrayObjectCollection.toLocaleString());
+        expect(root.arrayObjectCollection.join()).toBe(observable(root).arrayObjectCollection.join());
     });
 
     // Array.prototype.concat() - Returns a new array that is this array joined with other array(s) and/or value(s).
@@ -314,7 +314,7 @@ describe("data structure tests: objects", () => {
             const newRoot = new Root();
             const newArray = root.arrayObjectCollection.concat( newRoot.arrayObjectCollection);
             expect(newArray.length).toBe(4);
-            expect(newArray[0]).toBe(makeObservable(root.arrayObjectCollection[0]));
+            expect(newArray[0]).toBe(observable(root.arrayObjectCollection[0]));
             expect(newArray[3]).toBe(newRoot.arrayObjectCollection[1]);
             newArray[0].num = 5;
             newArray[3].num = 5; // not proxied
@@ -322,7 +322,7 @@ describe("data structure tests: objects", () => {
 
         expect(observeResult(new Root(), (root) => {
             const newArray = root.arrayObjectCollection.map((leaf, ix) => {
-                expect(leaf).toBe(makeObservable(root.arrayObjectCollection[ix])); return leaf});
+                expect(leaf).toBe(observable(root.arrayObjectCollection[ix])); return leaf});
             expect(newArray.length).toBe(2);
             const leaf = newArray[0] || new Leaf();
             leaf.num = 5;
@@ -335,9 +335,9 @@ describe("data structure tests: objects", () => {
             leaf.num = 5;
         })).toBe("Root-arrayObjectCollection-1");
 
-        const root = makeObservable(new Root());
-        expect(root.arrayObjectCollection.reduce((acc : number, leaf,ix) => makeObservable(leaf) === leaf ? acc + leaf.num * ix : -1, 0)).toBe(3);
-        expect(root.arrayObjectCollection.reduceRight((acc : number, leaf,ix) => makeObservable(leaf) === leaf ? acc + leaf.num * ix : -1, 0)).toBe(3);
+        const root = observable(new Root());
+        expect(root.arrayObjectCollection.reduce((acc : number, leaf,ix) => observable(leaf) === leaf ? acc + leaf.num * ix : -1, 0)).toBe(3);
+        expect(root.arrayObjectCollection.reduceRight((acc : number, leaf,ix) => observable(leaf) === leaf ? acc + leaf.num * ix : -1, 0)).toBe(3);
 
     });
 

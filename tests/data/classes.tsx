@@ -1,4 +1,4 @@
-import {makeObservable, observe} from "../../src";
+import {observable, observe} from "../../src";
 
 export class Leaf {
     constructor (val? : number | undefined) {
@@ -33,7 +33,7 @@ export function observeResult<T>(root : T, action : (obj : T) => void, observer?
     observedProp = "";
     observedObj = "";
     const context = observe (root, reactor, observer, {batch: false, notifyParents: true})
-    action(makeObservable(root) as T)
+    action(observable(root) as T)
     context.cleanup();
     return `${observedObj}-${observedProp}-${reactions}`;
     function reactor (obj? : string, prop? : string) {

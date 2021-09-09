@@ -6,7 +6,7 @@ import {Transaction} from "./Transaction";
 import {addRoot, removeRoot} from "./devTools";
 import {Snapshots} from "./transition";
 
-export function makeObservable<TYPE>(targetIn: TYPE, transaction? : Transaction, nonRoot? : boolean) : TYPE {
+export function observable<TYPE>(targetIn: TYPE, transaction? : Transaction, nonRoot? : boolean) : TYPE {
     if (typeof targetIn === "object" && targetIn !== null) {
         const target  = targetIn as unknown as ProxyOrTarget;
         const proxy =  makeProxy(target, transaction);
