@@ -1,6 +1,6 @@
 // A wrapper for the proxy that let's us track additional information
 import {Observer, ObserverOptions, setCurrentContext} from "./Observer";
-import {GetterMemo, SnapshotGetterMemo} from "./memoize";
+import {Memoization, MemoizationOptions, SnapshotGetterMemo} from "./memoize";
 import {makeProxy} from "./proxy/proxyCommon";
 import {Transaction} from "./Transaction";
 import {addRoot, removeRoot} from "./devTools";
@@ -43,7 +43,7 @@ export function observe<T>(targetIn: T,
 }
 
 // Additional properties on objects being proxied
-export type MemoContexts = { [key: string] : GetterMemo | SnapshotGetterMemo};
+export type MemoContexts = { [key: string] : Memoization | SnapshotGetterMemo};
 export interface Target {
     __transaction__ : Transaction;
     __snapshot__ : Snapshots | undefined;
@@ -51,7 +51,7 @@ export interface Target {
     __proxy__ : ProxyTarget
     __parentTarget__ : Target
     __nonObservableProps__ : {[index: string] : boolean};
-    __memoizedProps__ : {[index: string] : boolean};
+    __memoizedProps__ : {[index: string] : MemoizationOptions};
     __contexts__ : Map<Observer, Observer>;  // A context that can communicate with the component
     __parentReferences__ : Map<Target, { [index: string] : number }>;
     __memoContexts__ : MemoContexts

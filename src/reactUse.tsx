@@ -1,21 +1,19 @@
 import {makeObservable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
 import {currentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
 import {getComponentName, log, logLevel} from "./log";
-import {
-    useEffect,
-    useLayoutEffect,
-    useRef,
-    useState,
-    NamedExoticComponent,
-    FunctionComponent,
-    PropsWithChildren, useContext
-} from "react";
+import {useEffect, useLayoutEffect, useRef, useState, NamedExoticComponent, FunctionComponent,
+        PropsWithChildren, useContext} from "react";
 import {lastReference, makeProxy} from "./proxy/proxyCommon";
 import {Transaction, TransactionOptions} from "./Transaction";
-import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot, startHighLevelFunctionCall
-} from "./devTools";
+import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot,
+        startHighLevelFunctionCall} from "./devTools";
 import React from "react";
 import {Snapshots} from "./transition";
+
+// Context value for maintaining the current transition sequence which drives the delivery
+// of the correct snapshot version to components while being rendered. setSequence is called
+// during the transition.  Snapshots are saved under the prior sequence number and returned
+// to the component based on useDeferredValue
 interface TransitionProviderValue {
     sequence: number;
     setSequence:  Function
@@ -98,11 +96,21 @@ function TransitionProvider({children} : {children : any}) {
 // snapshots created as state is mutated.  This let's us try and find snapshots with the same sequence
 // numbers when state is referenced
 
-export function useObservableTransition (timeout: number) {
+export function useObservableTransition (options : any) {
     const useTransition = require('react').useTransition;
     const transitionContext = useContext(TransitionContext);
-    const [isPending, startTransition] = useTransition(timeout);
-    const proxilyStartTransition = (callback : Function) => {
+    const [isPending, startTransition] = useTransition(options);
+    return [isPending, getTransitionStarter(startTransition, transitionContext)];
+}
+
+export function useObservableStartTransition () {
+    const startTransition = require('react').startTransition;
+    const transitionContext = useContext(TransitionContext);
+    return getTransitionStarter(startTransition, transitionContext);
+}
+
+function getTransitionStarter (startTransition : Function, transitionContext : TransitionProviderValue | undefined) {
+    return (callback : Function) => {
         startTransition( () => {
             if (logLevel.transitions)
                 log(`starting mutable transition for ${transitionSequence}`);
@@ -116,7 +124,13 @@ export function useObservableTransition (timeout: number) {
                 throw Error("Component using useObservableTransition must be wrapped in Observe");
         });
     }
-    return [isPending, proxilyStartTransition];
+}
+
+export function useDeferredObservable<T>(obj : T) : [T, (callback : Function) => void] {
+    const useDeferredValue = require('react').useDeferredValue;
+    const startTransition = require('react').startTransition;
+    const transitionContext = useContext(TransitionContext);
+    return [useDeferredValue(obj), getTransitionStarter(startTransition, transitionContext)];
 }
 
 export function useObservables(options? : ObserverOptions) : Observer {

@@ -1,15 +1,26 @@
 import {currentSelectorContext, Observer, setCurrentSelectorContext} from "./Observer";
 import {ProxyTarget, Target} from "./proxyObserve";
 
+/* Memoization is an object that memoizes a particular instance of a function, either a getter
+   or a function with arguments.
 
-export class GetterMemo {
-    constructor(valueFunction: () => any, target : ProxyTarget) {
+   It creates an observer to monitor changes to any properties consumed during the execution of
+   the function so it knows to schedule the function to be run next time it is called if they
+   have changed.  It also remembers arguments and force the function to be run if they change.
+   Only the previous value is remembered.
+ */
+export class Memoization {
+    constructor(valueFunction: () => any, target : ProxyTarget, options : MemoizationOptions) {
         this.valueFunction = valueFunction;
         this.context = new Observer(()=>{
-            this.dependentsChanged = true
+            this.dependentsChanged = true;
+            if (options.prefetch)
+                this.updateLastValue(undefined);
         });
+        this.options = options;
         this.proxyTarget = target;
     }
+    options : MemoizationOptions;
     lastArgumentValues = [];
     proxyTarget: ProxyTarget
     lastValue: any;
@@ -23,7 +34,7 @@ export class GetterMemo {
             this.lastArgumentValues = args;
             this.dependentsChanged = false;
         }
-        return this.lastValue;
+        return this.options.resolver ? this.options.resolver(this.lastValue) : this.lastValue;
     }
     argsChanged (args : any) {
         let changed = false;
@@ -37,6 +48,8 @@ export class GetterMemo {
         const context = currentSelectorContext as Observer;
         setCurrentSelectorContext(this.context);
         this.lastValue = this.valueFunction.apply(this.proxyTarget, args);
+        if (this.options.wrapper)
+            this.lastValue = this.options.wrapper(this.lastValue);
         setCurrentSelectorContext(context);
         this.context.processPendingReferences();
     }
@@ -45,40 +58,72 @@ export class GetterMemo {
     }
 }
 
-export function memoize(obj?: any, propOrProps? : string | Array<string>) {
+
+
+
+// Functions for declaring that a method is to be memoized.  Overloaded to be used as a decorator,
+// on an object method or a class method (property provided as a string).  End result is storing
+// the memoization options in the object's __memoizedProps__ keyed by the property name
+
+export interface MemoizationOptions {
+    wrapper : ((obj : any) => any) | undefined, // Can be used wrap the function (see suspendable)
+    resolver : ((obj : any) => any) | undefined, // Can be used alter the result
+    prefetch: boolean; // Fetch value as soon as dependent is changed (useful for suspendable)
+}
+const defaultMemoizationOptions : MemoizationOptions = {
+    wrapper: undefined,
+    resolver: undefined,
+    prefetch : false
+}
+
+export function memoize(obj?: any, propOrProps? : string | Array<string>, options = defaultMemoizationOptions) {
     if (obj && propOrProps) {
         if (obj.prototype)
-            memoizeClass(obj, propOrProps)
+            memoizeClass(obj, propOrProps, options)
         else
-            memoizeObject(obj, propOrProps)
+            memoizeObject(obj, propOrProps, options)
     }
     return function (classPrototype: any, prop: string) {
-        memoizeObject(classPrototype, prop);
+        memoizeObject(classPrototype, prop, options);
     };
 }
 
-function memoizeObject (obj: any, propOrProps : string | Array<string>) {
+function memoizeObject (obj: any, propOrProps : string | Array<string>, options : MemoizationOptions) {
     const props = propOrProps instanceof Array ? propOrProps : [propOrProps];
     if (!obj.__memoizedProps__)
         obj.__memoizedProps__ = {};
-    props.map(prop => obj.__memoizedProps__[prop] = true);
+    props.map(prop => obj.__memoizedProps__[prop] = options);
 }
 
-function memoizeClass (cls : any, propOrProps : string | Array<string>) {
-    memoizeObject(cls.prototype, propOrProps);
+function memoizeClass (cls : any, propOrProps : string | Array<string>, options : MemoizationOptions) {
+    memoizeObject(cls.prototype, propOrProps, options);
 }
 
+// Functions for for declaring that a getter method is suspendable.  Sugar around memoize
+
+const defaultSuspendableOptions : MemoizationOptions = {
+    wrapper: wrapPromiseForSuspense,
+    resolver: (promise) => promise.read(),
+    prefetch : false  // Set to true to begin fetch in event
+}
+
+export function suspendable (obj?: any, propOrProps? : string | Array<string>, options = {}) {
+    memoize(obj, propOrProps, {...defaultSuspendableOptions, ...options});
+}
+
+// Utility to determine if memoization was requested for a given property
 export function isMemoized(prop: string, target: Target) {
     return target.__memoizedProps__ && target.__memoizedProps__.hasOwnProperty(prop);
 }
 
-export function createMemoization (prop: string, target: Target, valueFunction: any) : GetterMemo | SnapshotGetterMemo{
+// Create a new memoization which is a Memoization object in __memoContexts__ for the property
+export function createMemoization (prop: string, target: Target, valueFunction: any) : Memoization | SnapshotGetterMemo{
     if (target.__memoizedProps__ && target.__memoizedProps__[prop] &&
         (!target.__memoContexts__ || !target.__memoContexts__[prop]))
     {
         if (!target.__memoContexts__)
             target.__memoContexts__ = {};
-        const memo = new GetterMemo(valueFunction, target.__proxy__);
+        const memo = new Memoization(valueFunction, target.__proxy__, target.__memoizedProps__[prop]);
         target.__memoContexts__[prop] = memo;
 
     }
@@ -103,4 +148,39 @@ export function getSnapshotMemos(target : Target) {
     for (let prop in target.__memoContexts__)
         memoContext[prop] = new SnapshotGetterMemo(target.__memoContexts__[prop].lastValue);
     return memoContext;
+}
+
+/* Wrap a promise, making it useable in <Suspense>
+   - Create a new promise that will be used to resolve the final result
+   - Return an object with a read function to return the actual result
+   - If the result is not ready, read with throw the newly created promise
+     which React knows to use to determine whether the render should be retried
+   - Note that when used in the memoization, the resolver provided will
+     execute the read function, returning the actual result if ready
+ */
+function wrapPromiseForSuspense (promise : any) {
+    // shamelessly "cut and paste" from a gaeron's sandbox
+    let status = "pending";
+    let result : any;
+    let suspender = promise.then(
+        (r : any) => {
+            status = "success";
+            result = r;
+        },
+        (e : any) => {
+            status = "error";
+            result = e;
+        }
+    );
+    return {
+        read() {
+            if (status === "pending") {
+                throw suspender;
+            } else if (status === "error") {
+                throw result;
+            } else if (status === "success") {
+                return result;
+            }
+        }
+    };
 }
