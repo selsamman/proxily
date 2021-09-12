@@ -32,44 +32,51 @@ export let transitionSequence : number = 1;
 export let observedTransitionSequence = -1;
 export const useSnapshot = () => observedTransitionSequence > 0 && observedTransitionSequence < transitionSequence;
 
-export function observer<P>(Component : FunctionComponent<P>, options? : ObserverOptions) : NamedExoticComponent<P> {
+const defaultObserverOptions = {
+    batch : true,
+    delay: undefined,
+    notifyParents: false,
+    memo: true,
+}
+
+export function observer<P>(Component : FunctionComponent<P>, options : ObserverOptions = defaultObserverOptions) : NamedExoticComponent<P> {
 
     const name = Component.name;
-    return {[name] : function (props: PropsWithChildren<P>) {
+    function wrapper (props: PropsWithChildren<P>) {
 
-            const transitionContext = useContext(TransitionContext);
-            if (!transitionContext) {
-                const Child = observer(Component, options);
-                return <TransitionProvider><Child {...props}/></TransitionProvider>
-            }
+        const transitionContext = useContext(TransitionContext);
+        if (!transitionContext) {
+            const Child = observer(Component, options);
+            return <TransitionProvider><Child {...props}/></TransitionProvider>
+        }
 
-            const [,setSeq] = useState(1);
-            let contextContainer : any = useRef(null);
+        const [,setSeq] = useState(1);
+        let contextContainer : any = useRef(null);
 
-            if (!contextContainer.current) {
-                const componentName = (logLevel.render || logLevel.propertyTracking) ? getComponentName() : "";
-                contextContainer.current = new Observer(() => setSeq((seq) => seq + 1), options, componentName);
-            }
-            const context = contextContainer.current;
-            setCurrentContext(context);
+        if (!contextContainer.current)
+            contextContainer.current = new Observer(() => setSeq((seq) => seq + 1), options, name);
 
-            if(logLevel.render) log(`${context.componentName} render (${++context.renderCount})`);
-            useLayoutEffect(() => {  // After every render process any references
-                context.processPendingReferences();
-            });
-            useEffect(() => () => context.cleanup(), []);
+        const context = contextContainer.current;
+        setCurrentContext(context);
 
+        if(logLevel.render) log(`${context.componentName} render (${++context.renderCount})`);
+        useLayoutEffect(() => {  // After every render process any references
+            context.processPendingReferences();
+        });
+        useEffect(() => () => context.cleanup(), []);
 
-            // Wrap highest level in a transition provider that can pass down the transitionSequence number
+        // Wrap highest level in a transition provider that can pass down the transitionSequence number
 
-            observedTransitionSequence = transitionContext.sequence;
-            const ret = Component(props);
-            observedTransitionSequence = -1;
+        observedTransitionSequence = transitionContext.sequence;
+        const ret = Component(props);
+        observedTransitionSequence = -1;
 
-            setCurrentContext(undefined); // current context only exists during course of render
-            return ret;
+        setCurrentContext(undefined); // current context only exists during course of render
+        return ret;
 
-        }}[name] as NamedExoticComponent<P>
+    }
+
+    return (options.memo ? {[name] : React.memo(wrapper)}[name] : {[name] : wrapper}[name]) as unknown as NamedExoticComponent<P>;
 
 }
 

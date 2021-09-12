@@ -16,7 +16,8 @@ export function setCurrentContext (currentContextIn : Observer | undefined) {
 interface ObserverOptionsAll {
     batch: boolean,
     delay: number | undefined,
-    notifyParents : boolean
+    notifyParents : boolean,
+    memo: boolean,  // only used in observer()
 }
 export type ObserverOptions = Partial<ObserverOptionsAll>;
 

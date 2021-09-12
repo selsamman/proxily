@@ -14,7 +14,7 @@ export class Memoization {
         this.valueFunction = valueFunction;
         this.context = new Observer(()=>{
             this.dependentsChanged = true;
-            if (this.options.prefetch)
+            if (this.options.preFetch)
                 this.updateLastValue(undefined);
         });
         this.options = options;
@@ -68,12 +68,12 @@ export class Memoization {
 export interface MemoizationOptions {
     wrapper : ((obj : any) => any) | undefined, // Can be used wrap the function (see suspendable)
     resolver : ((obj : any) => any) | undefined, // Can be used alter the result
-    prefetch: boolean; // Fetch value as soon as dependent is changed (useful for suspendable)
+    preFetch: boolean; // Fetch value as soon as dependent is changed (useful for suspendable)
 }
 const defaultMemoizationOptions : MemoizationOptions = {
     wrapper: undefined,
     resolver: undefined,
-    prefetch : false
+    preFetch : false
 }
 
 export function memoize(obj?: any, propOrProps? : string | Array<string>, options = defaultMemoizationOptions) {
@@ -104,7 +104,7 @@ function memoizeClass (cls : any, propOrProps : string | Array<string>, options 
 const defaultSuspendableOptions : MemoizationOptions = {
     wrapper: wrapPromiseForSuspense,
     resolver: (promise) => promise.read(),
-    prefetch : false  // Set to true to begin fetch in event
+    preFetch : false  // Set to true to begin fetch in event
 }
 
 export function suspendable (obj?: any, propOrProps? : string | Array<string>, options = {}) {
