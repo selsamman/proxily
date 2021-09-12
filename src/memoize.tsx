@@ -13,9 +13,10 @@ export class Memoization {
     constructor(valueFunction: () => any, target : ProxyTarget, options : MemoizationOptions) {
         this.valueFunction = valueFunction;
         this.context = new Observer(()=>{
-            this.dependentsChanged = true;
             if (this.options.preFetch)
                 this.updateLastValue(undefined);
+            else
+                this.dependentsChanged = true;
         });
         this.options = options;
         this.proxyTarget = target;
