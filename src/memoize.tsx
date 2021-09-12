@@ -14,7 +14,7 @@ export class Memoization {
         this.valueFunction = valueFunction;
         this.context = new Observer(()=>{
             this.dependentsChanged = true;
-            if (options.prefetch)
+            if (this.options.prefetch)
                 this.updateLastValue(undefined);
         });
         this.options = options;
