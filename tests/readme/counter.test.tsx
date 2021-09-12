@@ -96,6 +96,29 @@ describe('Counter Patterns',  () => {
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
+    it( 'Minimal class example', async () => {
+        class Counter {
+            count = 0;
+            increment () {
+                this.count++;
+            }
+        }
+        const state = observable(new Counter());
+
+        function App() {
+            const {count, increment} = state;
+            return (
+                <div>
+                    <span>Count: {count}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+        };
+        const DefaultApp = observer(App);
+        render(<DefaultApp />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
     it( 'Can modify data directly in events', async () => {
         const state = observable({
             counter: {value: 0}
@@ -208,9 +231,35 @@ describe('Counter Patterns',  () => {
                 </div>
             );
         });
+
         const mockState = jestMockFromClass(CounterState, {get value () {return 5}});
         render(<Counter counter={mockState} />);
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 5");
+        screen.getByText('Increment').click();
+        expect(mockState.increment).toBeCalled();
+    });
+    it( 'Can test component with jestMockFromClass simplified' , async () => {
+        class CounterState {
+            value = 0;
+            increment () {this.value++}
+        }
+
+        const Counter = observer(function Counter({counter} : {counter : CounterState}) {
+            const {value, increment} = counter;
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+        });
+        const counter = new CounterState();
+        counter.increment();
+        expect(counter.value).toBe(1);
+
+        const mockState = jestMockFromClass(CounterState, {value: 5});
+        render(<Counter counter={mockState} />);
+        expect (screen.getByText(/Count/)).toHaveTextContent("Count: 5");
         screen.getByText('Increment').click();
         expect(mockState.increment).toBeCalled();
     });

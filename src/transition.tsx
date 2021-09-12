@@ -1,5 +1,4 @@
 import {observedTransitionSequence, transitionSequence} from "./reactUse";
-import {cloneObject, setInternalProps} from "./proxy/proxyCommon";
 import {Target} from "./proxyObserve";
 import {log, logLevel} from "./log";
 import {getSnapshotMemos} from "./memoize";
@@ -24,10 +23,9 @@ export class Snapshots {
     // Create a new snapshot based on the transition sequence
     createSnapshotIfNeeded(target: Target) {
         if (!this.snapshots.get(transitionSequence)) {
-            const newTarget = cloneObject(target);
-            setInternalProps(newTarget, target.__transaction__, target.__proxy__, target.__parentTarget__, getSnapshotMemos(target));
-            if (target.__memoizedProps__)
-                newTarget.__memoizedProps__ = target.__memoizedProps__;
+            const newTarget = Object.create(Object.getPrototypeOf(target));
+            Object.defineProperties(newTarget, Object.getOwnPropertyDescriptors(target));
+            newTarget.__memoContexts__ = getSnapshotMemos(target);
             this.snapshots.set(transitionSequence, {sequence: transitionSequence, target: newTarget});
             if (logLevel.transitions)
                 log(`Creating snapshot object for transition ${transitionSequence} `);
@@ -46,9 +44,10 @@ export class Snapshots {
     }
 
     static cleanup() {
+        const purged = Snapshots.toPurge.size > 0;
         Snapshots.toPurge.forEach(target => target.__snapshot__ = undefined);
         Snapshots.toPurge.clear();
-        if (logLevel.transitions)
+        if (purged && logLevel.transitions)
             log(`Deleted all snapshots `);
 
     }

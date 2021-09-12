@@ -77,7 +77,7 @@ export function cloneObject(target : any) {
         target = Array.from(target);
     else {
         const emptyObject = Object.create(Object.getPrototypeOf(target));
-        target = Object.assign(emptyObject, target.__proxy__);
+        target = Object.assign(emptyObject, target);
     }
     return target;
 }

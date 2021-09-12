@@ -133,12 +133,14 @@ export function createMemoization (prop: string, target: Target, valueFunction: 
 // When we create a snapshot for transitions the memoize value is constant since
 // it cannot change by definition in a render and is only offered during a render
 export class SnapshotGetterMemo {
-    lastValue: any
-    constructor (value : any) {
-        this.lastValue = value;
+    lastValue: any;
+    options: any;
+    constructor (value : Memoization | SnapshotGetterMemo) {
+        this.lastValue = value.lastValue;
+        this.options = value.options;
     }
     getValue() {
-        return this.lastValue;
+        return this.options.resolver ? this.options.resolver(this.lastValue) : this.lastValue;
     }
 }
 
@@ -146,7 +148,7 @@ export class SnapshotGetterMemo {
 export function getSnapshotMemos(target : Target) {
     const memoContext : { [key: string] : SnapshotGetterMemo} = {};
     for (let prop in target.__memoContexts__)
-        memoContext[prop] = new SnapshotGetterMemo(target.__memoContexts__[prop].lastValue);
+        memoContext[prop] = new SnapshotGetterMemo(target.__memoContexts__[prop]);
     return memoContext;
 }
 
