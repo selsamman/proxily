@@ -1,8 +1,10 @@
 import {observable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
 import {currentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
 import {getComponentName, log, logLevel} from "./log";
-import {useEffect, useLayoutEffect, useRef, useState, NamedExoticComponent, FunctionComponent,
-        PropsWithChildren, useContext} from "react";
+import {
+    useEffect, useLayoutEffect, useRef, useState, NamedExoticComponent, FunctionComponent,
+    PropsWithChildren, useContext
+} from "react";
 import {lastReference, makeProxy} from "./proxy/proxyCommon";
 import {Transaction, TransactionOptions} from "./Transaction";
 import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot,
@@ -41,7 +43,6 @@ export function observer<P>(Component : FunctionComponent<P>, options? : Observe
                 return <TransitionProvider><Child {...props}/></TransitionProvider>
             }
 
-
             const [,setSeq] = useState(1);
             let contextContainer : any = useRef(null);
 
@@ -58,14 +59,6 @@ export function observer<P>(Component : FunctionComponent<P>, options? : Observe
             });
             useEffect(() => () => context.cleanup(), []);
 
-            // Determine if idle
-
-            const useDeferredValue = require('react').useDeferredValue;
-            if (useDeferredValue) {
-                const deferredSequence = useDeferredValue(transitionContext.sequence, {timeout: 5000});
-                if (deferredSequence === transitionSequence && transitionSequence > 1)
-                    Snapshots.cleanup();
-             }
 
             // Wrap highest level in a transition provider that can pass down the transitionSequence number
 
@@ -82,6 +75,15 @@ export function observer<P>(Component : FunctionComponent<P>, options? : Observe
 
 function TransitionProvider({children} : {children : any}) {
     const [versionContext, setVersionContext] = useState({sequence: 1, setSequence: setVersion});
+    // Determine if idle
+
+    const useDeferredValue = require('react').useDeferredValue;
+    if (useDeferredValue) {
+        const deferredSequence = useDeferredValue(versionContext.sequence, {timeout: 5000});
+        if (deferredSequence === transitionSequence && transitionSequence > 1)
+            Snapshots.cleanup();
+    }
+
     return (
         <TransitionContext.Provider value={versionContext}>
             {children}
@@ -96,7 +98,7 @@ function TransitionProvider({children} : {children : any}) {
 // snapshots created as state is mutated.  This let's us try and find snapshots with the same sequence
 // numbers when state is referenced
 
-export function useObservableTransition (options : any) {
+export function useObservableTransition (options? : any) {
     const useTransition = require('react').useTransition;
     const transitionContext = useContext(TransitionContext);
     const [isPending, startTransition] = useTransition(options);
