@@ -53,9 +53,10 @@ export function observer<P>(Component : FunctionComponent<P>, options : Observer
         const [,setSeq] = useState(1);
         let contextContainer : any = useRef(null);
 
-        if (!contextContainer.current)
+        if (!contextContainer.current) {
+            if(logLevel.render) log(`${name} mount`);
             contextContainer.current = new Observer(() => setSeq((seq) => seq + 1), options, name);
-
+        }
         const context = contextContainer.current;
         setCurrentContext(context);
 
@@ -63,7 +64,10 @@ export function observer<P>(Component : FunctionComponent<P>, options : Observer
         useLayoutEffect(() => {  // After every render process any references
             context.processPendingReferences();
         });
-        useEffect(() => () => context.cleanup(), []);
+        useEffect(() => () => {
+            if(logLevel.render) log(`${context.componentName} unmount (${++context.renderCount})`);
+            context.cleanup()
+        }, []);
 
         // Wrap highest level in a transition provider that can pass down the transitionSequence number
 
