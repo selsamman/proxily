@@ -45,10 +45,11 @@ describe('Logging Tests',  () => {
         render(<App />);
         screen.getByText('Increment').click();
         expect (screen.getByText(/Count/)).toHaveTextContent("Count: 1");
-        expect(logs.length).toBe(3);
-        expect(logs[0]).toBe("App render (1)");
-        expect(logs[1]).toBe("Object.increment: Object.value = 1");
-        expect(logs[2]).toBe("App render (2)");
+        expect(logs.length).toBe(4);
+        expect(logs[0]).toBe("App mount");
+        expect(logs[1]).toBe("App render (1)");
+        expect(logs[2]).toBe("Object.increment: Object.value = 1");
+        expect(logs[3]).toBe("App render (2)");
     });
     it ("can observe changes to scalars", () => {
 

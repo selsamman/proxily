@@ -1,6 +1,6 @@
 {
   "name": "proxily",
-  "version": "0.9.1-alpha0",
+  "version": "0.9.31-alpha",
   "description": "Unopinionated state management for React",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
