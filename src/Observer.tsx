@@ -4,14 +4,17 @@ import {log, logLevel} from "./log";
 
 // Maintain the current context as a global state.  This is the context that should be assigned any
 // references detected by the proxy handlers
-export let currentContext : Observer | undefined = undefined;
-export let currentSelectorContext : Observer | undefined = undefined;
+let currentContext : Observer | undefined = undefined;
+let currentSelectorContext : Observer | undefined = undefined;
 export function setCurrentSelectorContext (currentSelectorContextIn : Observer | undefined) {
     currentSelectorContext = currentSelectorContextIn;
 }
 export function setCurrentContext (currentContextIn : Observer | undefined) {
     currentContext = currentContextIn;
 }
+
+export const getCurrentContext = () => currentContext;
+export const getCurrentSelectorContext = () => currentSelectorContext;
 
 interface ObserverOptionsAll {
     batch: boolean,
@@ -41,7 +44,7 @@ export class Observer {
     options: ObserverOptions;
     onChange : (target? : string, prop? : string, targetProxy? : ProxyTarget | Transaction) => void | undefined;
     connectedProxyTargets : Map<ProxyTarget | Transaction, {[index: string] : boolean}> = new Map();
-    pendingProxyTargets : Array<[ProxyTarget | Transaction, string]> = new Array();
+    pendingProxyTargets : Array<[ProxyTarget | Transaction, string]> = [];
     componentName = "";
     renderCount = 0;
     target : Target | undefined;
@@ -113,7 +116,7 @@ export class Observer {
         const logging : Array<string>= [];
         this.pendingProxyTargets.forEach(([target, prop]) =>
             this.processPendingReference(target, prop, logging))
-        this.pendingProxyTargets = new Array();
+        this.pendingProxyTargets = [];
         if (logLevel.propertyTracking && logging.length > 0 && this.componentName)
             log(this.componentName + " Observer" + " tracking " + logging.join(", "));
     }

@@ -1,4 +1,4 @@
-import {currentSelectorContext, Observer, setCurrentSelectorContext} from "./Observer";
+import {getCurrentSelectorContext, Observer, setCurrentSelectorContext} from "./Observer";
 import {ProxyTarget, Target} from "./proxyObserve";
 
 /* Memoization is an object that memoizes a particular instance of a function, either a getter
@@ -46,7 +46,7 @@ export class Memoization {
         return changed;
     }
     updateLastValue (args : any) {
-        const context = currentSelectorContext as Observer;
+        const context = getCurrentSelectorContext() as Observer;
         setCurrentSelectorContext(this.context);
         this.lastValue = this.valueFunction.apply(this.proxyTarget, args);
         if (this.options.wrapper)

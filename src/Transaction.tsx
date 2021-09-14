@@ -1,5 +1,5 @@
 import {ProxyTarget, Target} from "./proxyObserve";
-import {currentContext, currentSelectorContext, Observer} from "./Observer";
+import {getCurrentContext, getCurrentSelectorContext, Observer} from "./Observer";
 import {addTransaction, removeTransaction} from "./devTools";
 
 export interface TransactionOptions {
@@ -244,10 +244,10 @@ export class Transaction {
     }
 
     referenceContext () {
-        if(currentContext)
-            currentContext.referenced(this, "__undo__");
-        if(currentSelectorContext)
-            currentSelectorContext.referenced(this, "__undo__");
+        if(getCurrentContext())
+            getCurrentContext()?.referenced(this, "__undo__");
+        if(getCurrentSelectorContext())
+            getCurrentSelectorContext()?.referenced(this, "__undo__");
     }
     notifyContext () {
         this.__contexts__.forEach(context => {

@@ -1,7 +1,6 @@
 import {isInternalProperty, Target} from "../proxyObserve";
 import {DataChanged} from "./proxyCommon";
 
-
 export const proxyHandlerDate = {
 
     get(target : Target, prop: any) : any {

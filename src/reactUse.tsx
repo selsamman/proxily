@@ -1,5 +1,5 @@
 import {observable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
-import {currentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
+import {getCurrentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
 import {getComponentName, log, logLevel} from "./log";
 import {
     useEffect, useLayoutEffect, useRef, useState, NamedExoticComponent, FunctionComponent,
@@ -28,8 +28,10 @@ export const isTransition = () => inTransition;
 
 // Keep a transitionSequence number bumped on each new useTransition vs the one found in the context
 // which is set via the state which should reflect Reacts assumption about current or offscreen renders
-export let transitionSequence : number = 1;
-export let observedTransitionSequence = -1;
+let transitionSequence : number = 1;
+let observedTransitionSequence = -1;
+export const getObservedTransitionSequence = () => observedTransitionSequence;
+export const getTransitionSequence = () => transitionSequence;
 export const useSnapshot = () => observedTransitionSequence > 0 && observedTransitionSequence < transitionSequence;
 
 const defaultObserverOptions = {
@@ -182,9 +184,10 @@ export function useObservableProp<S>(value: S) : [S, (value: S) => void] {
     const {target, prop} = lastReference;
     if (!target)
         throw new Error("Improper useProp reference - is reference a proxy returned from useProxy?");
-    if (currentContext) {
-        target.__contexts__.set(currentContext, currentContext);
-        currentContext.referenced(target.__proxy__, prop);
+    const context = getCurrentContext();
+    if (context) {
+        target.__contexts__.set(context, context);
+        context.referenced(target.__proxy__, prop);
     } else
         throw new Error("Improper useProp reference - did you call useObservables?");
     lastReference.clear();
@@ -202,8 +205,7 @@ export function useObservableProp<S>(value: S) : [S, (value: S) => void] {
 
 export function useTransaction(options? : Partial<TransactionOptions>) {
     const [transaction] = useState(() => {
-        const transaction = new Transaction(options, true);
-        return transaction;
+        return new Transaction(options, true);
     });
     useEffect(() => {
         addTransaction(transaction);

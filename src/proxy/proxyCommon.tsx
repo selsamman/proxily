@@ -1,5 +1,4 @@
 import {isObservable, MemoContexts, ProxyOrTarget, ProxyTarget, Target} from "../proxyObserve";
-import {currentContext, currentSelectorContext} from "../Observer";
 import {proxyHandlerMap} from "./proxyHandlerMap";
 import {proxyHandlerSet} from "./proxyHandlerSet";
 import {proxyHandlerDate} from "./proxyHandlerDate";
@@ -10,6 +9,7 @@ import {setDirty} from "../devTools";
 import {logChange, logLevel} from "../log";
 import {isTransition, useSnapshot} from "../reactUse";
 import {Snapshots} from "../transition";
+import {getCurrentContext, getCurrentSelectorContext} from "../Observer";
 
 export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transaction) : ProxyTarget {
 
@@ -162,10 +162,10 @@ export function propertyReferenced(target : Target, prop: any, value: any, sette
     }
 
     // Let context know property was referenced
-    if(currentContext)
-        currentContext.referenced(target.__proxy__, prop);
-    if(currentSelectorContext)
-        currentSelectorContext.referenced(target.__proxy__, prop);
+    if(getCurrentContext())
+        getCurrentContext()?.referenced(target.__proxy__, prop);
+    if(getCurrentSelectorContext())
+        getCurrentSelectorContext()?.referenced(target.__proxy__, prop);
     lastReference.set(target, prop);
 
     return value;

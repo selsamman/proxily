@@ -1,4 +1,4 @@
-import {observedTransitionSequence, transitionSequence} from "./reactUse";
+import {getObservedTransitionSequence, getTransitionSequence} from "./reactUse";
 import {Target} from "./proxyObserve";
 import {log, logLevel} from "./log";
 import {getSnapshotMemos} from "./memoize";
@@ -14,26 +14,25 @@ export class Snapshots {
 
     // Get a snapshot based on reported state version or fall back to current state
     getSnapshot(target: Target) {
-        const ret = this.snapshots.get(observedTransitionSequence)?.target || target;
+        const ret = this.snapshots.get(getObservedTransitionSequence())?.target || target;
         if (logLevel.transitions)
-            log(`snapshot for ${observedTransitionSequence} ${!!ret ? 'returned' : 'not found'}`);
+            log(`snapshot for ${getObservedTransitionSequence()} ${!!ret ? 'returned' : 'not found'}`);
         return ret;
     }
 
     // Create a new snapshot based on the transition sequence
     createSnapshotIfNeeded(target: Target) {
-        if (!this.snapshots.get(transitionSequence)) {
+        if (!this.snapshots.get(getTransitionSequence())) {
             const newTarget = Object.create(Object.getPrototypeOf(target));
             Object.defineProperties(newTarget, Object.getOwnPropertyDescriptors(target));
             newTarget.__memoContexts__ = getSnapshotMemos(target);
-            this.snapshots.set(transitionSequence, {sequence: transitionSequence, target: newTarget});
+            this.snapshots.set(getTransitionSequence(), {sequence: getTransitionSequence(), target: newTarget});
             if (logLevel.transitions)
-                log(`Creating snapshot object for transition ${transitionSequence} `);
+                log(`Creating snapshot object for transition ${getTransitionSequence()} `);
         }
     }
 
     // Purge older snapshots
-    static purgeCheckTimeout: any = 0;
     static toPurge: Set<Target> = new Set();
 
     static create(target : Target) {
