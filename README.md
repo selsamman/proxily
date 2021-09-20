@@ -15,11 +15,11 @@ Proxily is a library for managing state in a non-prescriptive way. It re-renders
 > Note:  This project is as an alpha because it has specific features relating to React 18 which at this time is in alpha.
 > 
 ```javascript
-yarn add proxily@alpha
+yarn add proxily
 ```
 or
 ```
-npm install proxily@alpha
+npm install proxily
 ```
 
 
