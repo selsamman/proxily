@@ -1,5 +1,5 @@
 # Proxily 
-
+[![Build Status](https://app.travis-ci.com/selsamman/proxily.svg?branch=master)](https://app.travis-ci.com/selsamman/proxily)
 
 Proxily is a library for managing state in a non-prescriptive way. It re-renders components as state changes. While Proxily does not use immutable state it provides many of the same benefits. There is no need to annotate or describe the state shape as Proxily will discover it as it navigates through the state hierarchy. Core features include:
 
