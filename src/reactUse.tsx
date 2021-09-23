@@ -87,7 +87,7 @@ export function observer<P>(Component : FunctionComponent<P>, options : Observer
 }
 
 function TransitionProvider({children} : {children : any}) {
-    const [versionContext, setVersionContext] = useState({sequence: 1, setSequence: setVersion});
+    const [versionContext, setVersionContext] = useState({sequence: transitionSequence, setSequence: setVersion});
     // Determine if idle
 
     const useDeferredValue = require('react').useDeferredValue;
