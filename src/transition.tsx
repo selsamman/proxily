@@ -47,7 +47,7 @@ export class Snapshots {
         Snapshots.toPurge.forEach(target => target.__snapshot__ = undefined);
         Snapshots.toPurge.clear();
         if (purged && logLevel.transitions)
-            log(`Deleted all snapshots `);
+            log(`Deleted all snapshots`);
 
     }
 }

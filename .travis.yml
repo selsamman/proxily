@@ -4,5 +4,5 @@ node_js:
 before_install:
   - npm install -g codecov
 script:
-  - jest --ci --coverage && codecov
+  - jest --ci --coverage --collectCoverageFrom=src/** && codecov
   - codecov
