@@ -109,7 +109,7 @@ const defaultSuspendableOptions : MemoizationOptions = {
 }
 
 export function suspendable (obj?: any, propOrProps? : string | Array<string>, options = {}) {
-    memoize(obj, propOrProps, {...defaultSuspendableOptions, ...options});
+    return memoize(obj, propOrProps, {...defaultSuspendableOptions, ...options});
 }
 
 // Utility to determine if memoization was requested for a given property

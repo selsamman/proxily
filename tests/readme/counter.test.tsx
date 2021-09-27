@@ -1,7 +1,19 @@
 import * as React from 'react';
 import {render, screen} from '@testing-library/react';
-import {setLogLevel, memoize, bindObservables, observer, observable, jestMockFromClass, useObservableProp, nonObservable, useLocalObservable} from '../../src';
+import {
+    setLogLevel,
+    memoize,
+    bindObservables,
+    observer,
+    observable,
+    jestMockFromClass,
+    useObservableProp,
+    nonObservable,
+    useLocalObservable,
+    ObservableProvider
+} from '../../src';
 import "@testing-library/jest-dom/extend-expect";
+import {useContext} from "react";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
@@ -119,6 +131,7 @@ describe('Counter Patterns',  () => {
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
+
     it( 'Can modify data directly in events', async () => {
         const state = observable({
             counter: {value: 0}
@@ -263,6 +276,7 @@ describe('Counter Patterns',  () => {
         screen.getByText('Increment').click();
         expect(mockState.increment).toBeCalled();
     });
+
     it( 'Can have self contained state with TS' , async () => {
         class CounterState {
             private _value = 0;
@@ -293,6 +307,39 @@ describe('Counter Patterns',  () => {
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
     });
+
+    it( 'Can use ObservableProvider' , async () => {
+        class CounterState {
+            value = 0;
+            increment () {this.value++}
+        }
+        const CounterContext = React.createContext(undefined as unknown as CounterState);
+
+        const Counter = observer(function Counter() {
+            const counter = useContext(CounterContext);
+            const {value, increment} = counter;
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+        });
+
+
+        const App = observer(function App () {
+            return (
+                <ObservableProvider context={CounterContext} value={() => new CounterState()} dependencies={[]}>
+                    <Counter />
+                </ObservableProvider>
+            );
+        });
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+
+
     it( 'Can bind observables to class components' , async () => {
         class CounterState {
             private _value = 0;
