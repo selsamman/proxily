@@ -351,12 +351,13 @@ describe('Counter Patterns',  () => {
         const state = observable({
             counter: new CounterState()
         });
-        class CounterClass extends React.Component<{counter : CounterState}> {
+        class CounterClass extends React.Component<{counter : CounterState, text: string}> {
             render () {
                 const {value, increment} = this.props.counter;
+                const text = this.props.text;
                 return (
                     <div>
-                        <span>Count: {value}</span>
+                        <span>{text}: {value}</span>
                         <button onClick={increment}>Increment</button>2
                     </div>
                 );
@@ -366,7 +367,7 @@ describe('Counter Patterns',  () => {
         const Counter = bindObservables(CounterClass);
         function App () {
             return (
-                <Counter counter={state.counter}/>
+                <Counter counter={state.counter} text="Count"/>
             );
         }
         render(<App />);

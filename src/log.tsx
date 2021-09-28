@@ -7,9 +7,7 @@ export interface LogLevels {
 
 export let logLevel : Partial<LogLevels> = {}
 
-export let log = (data : string) : void => {
-    console.log(data);
-}
+export let log = console.log;
 
 export function logChange (target : any, prop : any, key: any, value : any) {
     let objName = "";
@@ -49,22 +47,10 @@ export function setLog(logFN : (data : string) => void) {
 }
 
 export function resetLogging() {
-    log = (data : string) : void => {
-        console.log(data);
-    }
+    log = console.log;
     logLevel = {};
 }
 
 export function setLogLevel(levels : Partial<LogLevels>) {
     logLevel = levels;
-}
-
-export function getComponentName() {
-    try {
-        throw new Error("Get Stack")
-    } catch (e) {
-        const lines = e.stack.split(/\r?\n/);
-        return lines[2].match(/at (.+) \(/)[1];
-    }
-    return "";
 }

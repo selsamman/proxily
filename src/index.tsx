@@ -1,7 +1,7 @@
 export {memoize, suspendable} from "./memoize";
 export {setLogLevel, LogLevels} from "./log";
 export {useObservableProp, useTransaction, useTransactable, useLocalObservable, bindObservables, observer,
-        useObservableTransition, useObservableStartTransition, useDeferredObservable} from "./reactUse";
+        useObservableTransition, useObservableStartTransition, useDeferredObservable, useAsImmutable} from "./reactUse";
 export {observable, observe, target, jestMockFromClass, nonObservable} from "./proxyObserve"
 export {groupUpdates} from "./proxy/proxyHandler";
 export {serialize} from "./serialize";

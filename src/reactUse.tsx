@@ -1,11 +1,11 @@
-import {observable, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
+import {observable, observe, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
 import {getCurrentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
-import {getComponentName, log, logLevel} from "./log";
+import {log, logLevel} from "./log";
 import {
     useEffect, useLayoutEffect, useRef, useState, NamedExoticComponent, FunctionComponent,
     PropsWithChildren, useContext
 } from "react";
-import {lastReference, makeProxy} from "./proxy/proxyCommon";
+import {getHandler, lastReference, makeProxy} from "./proxy/proxyCommon";
 import {Transaction, TransactionOptions} from "./Transaction";
 import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot,
         startHighLevelFunctionCall} from "./devTools";
@@ -148,26 +148,6 @@ export function useDeferredObservable<T>(obj : T) : [T, (callback : Function) =>
     return [useDeferredValue(obj), getTransitionStarter(startTransition, transitionContext)];
 }
 
-export function useObservables(options? : ObserverOptions) : Observer {
-
-    const [,setSeq] = useState(1);
-    let contextContainer : any = useRef(null);
-
-    if (!contextContainer.current) {
-        const componentName = (logLevel.render || logLevel.propertyTracking) ? getComponentName() : "";
-        contextContainer.current = new Observer(() => setSeq((seq) => seq + 1), options, componentName);
-    }
-    const context = contextContainer.current;
-    setCurrentContext(context);
-    if(logLevel.render) log(`${context.componentName} render (${++context.renderCount})`);
-    useLayoutEffect(() => {  // After every render process any references
-        context.processPendingReferences();
-        setCurrentContext(undefined); // current context only exists during course of render
-    });
-    useEffect(() => () => context.cleanup(), []);
-    return context;
-}
-
 export function useLocalObservable<T>(callback : () => T, transaction? : Transaction) : T {
     if (!callback)
         throw new Error("useLocalObservable did not have callback - did you mean useObservables?");
@@ -233,14 +213,39 @@ export function useTransactable<A>(targetIn: A, transaction : Transaction) : A {
     return proxy as unknown as A;
 }
 
+export function useAsImmutable<A>(targetIn: A) : A {
+
+    // Non-objects require no processing
+    if (typeof targetIn !== "object")
+        return targetIn;
+
+    // Create observer that will indicate whether value changed
+    let contextContainer : any = useRef(null);
+    const [changed, setChanged] = useState(false);
+    if (!contextContainer.current)
+        contextContainer.current = observe(targetIn, () => setChanged(true), undefined, {notifyParents: true});
+
+    if (changed) {
+        setChanged(false);
+        if (!(targetIn as any).__target__)
+            throw ("useAsImmutable called on non-observable object");
+        else
+            return new Proxy((targetIn as any).__target__ as any, getHandler(targetIn)) as A;
+    } else
+        return targetIn;
+}
+
 export function bindObservables<P> (ClassBasedComponent : React.ComponentType<P>) : (args : P) => any {
     const name = ClassBasedComponent.name;
+
     return {[name] : function (props : any) {
-            useObservables();
-            return (
-                <ClassBasedComponent {...props}/>
-            )
-        }}[name] as (args : P) => any
+        const immutableProps : any = {};
+        for (let prop in props)
+            immutableProps[prop] = useAsImmutable(props[prop]);
+        return (
+            <ClassBasedComponent {...immutableProps}/>
+        )
+    }}[name] as (args : P) => any
 }
 
 

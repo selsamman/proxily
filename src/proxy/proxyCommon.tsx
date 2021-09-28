@@ -42,6 +42,20 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
     }
 
     // Create the proxy with the appropriate handler
+
+    proxy = new Proxy(target as any, getHandler(proxyOrTarget)) as ProxyTarget;
+
+    if (parentTarget)
+        transaction.addParentTargetProxy(parentTarget, proxy);
+
+    setInternalProps(target, transaction, proxy, parentTarget, {});
+    //if (target !== originalTarget && !originalTarget.__transaction__.isDefault())
+    //    originalTarget.__parentTarget__ = target;
+
+    return proxy;
+
+}
+export function getHandler(proxyOrTarget : ProxyOrTarget) {
     let handler;
     if (proxyOrTarget instanceof Map)
         handler = proxyHandlerMap;
@@ -53,17 +67,7 @@ export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transact
         handler = proxyHandlerArray;
     else
         handler = proxyHandler;
-    proxy = new Proxy(target as any, handler) as ProxyTarget;
-
-    if (parentTarget)
-        transaction.addParentTargetProxy(parentTarget, proxy);
-
-    setInternalProps(target, transaction, proxy, parentTarget, {});
-    //if (target !== originalTarget && !originalTarget.__transaction__.isDefault())
-    //    originalTarget.__parentTarget__ = target;
-
-    return proxy;
-
+    return handler;
 }
 
 export function cloneObject(target : any) {
