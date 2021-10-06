@@ -185,7 +185,7 @@ export function useObservableProp<S>(value: S) : [S, (value: S) => void] {
 
 export function useTransaction(options? : Partial<TransactionOptions>) {
     const [transaction] = useState(() => {
-        return new Transaction(options, true);
+        return new Transaction(options);
     });
     useEffect(() => {
         addTransaction(transaction);

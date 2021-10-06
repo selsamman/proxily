@@ -77,7 +77,7 @@ describe("transation unit tests plane objects", () => {
    });
 
 });
-describe("transation unit tests arrays", () => {
+describe("transaction unit tests arrays", () => {
 
     it ("can isolate changes", () => {
         expect(observeResult(
@@ -102,13 +102,17 @@ describe("transation unit tests arrays", () => {
                 root.arrayObjectCollection[1].str = "Foo";
                 expect(root.arrayObjectCollection[0].str).toBe("foo");
                 expect(tRoot.arrayObjectCollection[1].str).toBe("Foo");
+
+                tRoot.arrayObjectCollection.push(new Leaf( 67));
+                expect(root.arrayObjectCollection[2]).toBe(undefined);
                 transaction.commit();
+                expect(root.arrayObjectCollection[2].num).toBe(67);
                 expect(root.arrayObjectCollection[0].str).toBe("Foo");
                 expect(root.arrayObjectCollection[1].str).toBe("Foo");
                 expect(tRoot.arrayObjectCollection[0].str).toBe("Foo");
                 expect(tRoot.arrayObjectCollection[1].str).toBe("Foo");
             }
-        )).toBe("Root-arrayObjectCollection-2");
+        )).toBe("Root-arrayObjectCollection-3");
     });
 
     it ("can rollback changes", () => {
@@ -119,7 +123,9 @@ describe("transation unit tests arrays", () => {
                 const tRoot = observable(root, transaction)
                 tRoot.arrayObjectCollection[0].str = "Foo";
                 expect(tRoot.arrayObjectCollection[0].str).toBe("Foo");
+                tRoot.arrayObjectCollection.push(new Leaf( 67));
                 transaction.rollback();
+                expect(tRoot.arrayObjectCollection[2]).toBe(undefined);
                 expect(tRoot.arrayObjectCollection[0].str).toBe("foo");
             }
         )).toBe("--0");
@@ -127,7 +133,7 @@ describe("transation unit tests arrays", () => {
 
 });
 
-describe("transation unit tests maps", () => {
+describe("transaction unit tests maps", () => {
 
     it ("can isolate changes", () => {
         expect(observeResult(
@@ -207,7 +213,63 @@ describe("transation unit tests maps", () => {
     });
 
 });
-describe("transation unit tests dates", () => {
+describe("transaction unit tests sets", () => {
+
+    it ("can isolate changes", () => {
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                const transaction = new Transaction();
+                const tRoot = observable(root, transaction);
+                const newLeaf = new Leaf(99)
+                tRoot.setCollection.add(newLeaf);
+                expect(root.setCollection.has(newLeaf)).toBe(false);
+                expect(tRoot.setCollection.has(newLeaf)).toBe(true);
+            }
+        )).toBe("--0");
+    });
+    it ("can commit changes", () => {
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                const transaction = new Transaction();
+                const tRoot = observable(root, transaction);
+                const newLeaf = new Leaf(88)
+                tRoot.setCollection.add(newLeaf);
+                expect(root.setCollection.size).toBe(2);
+                expect(tRoot.setCollection.has(newLeaf)).toBe(true);
+                transaction.commit();
+                expect(root.setCollection.size).toBe(3);
+                expect(Array.from(root.setCollection).find(e => e ? e.num === 88 : false)?.num).toBe(88);
+                const newLeaf2 = new Leaf(99)
+                tRoot.setCollection.add(newLeaf2);
+                expect(root.setCollection.size).toBe(3);
+                transaction.commit();
+                expect(root.setCollection.size).toBe(4);
+                expect(Array.from(root.setCollection).find(e => e ? e.num === 99 : false)?.num).toBe(99);;
+            }
+        )).toBe("Root-setCollection-2");
+    });
+
+    it ("can rollback changes", () => {
+        expect(observeResult(
+            new Root(),
+            (root) => {
+                const transaction = new Transaction();
+                const tRoot = observable(root, transaction);
+                const newLeaf = new Leaf(99)
+                tRoot.setCollection.add(newLeaf);
+                expect(root.setCollection.has(newLeaf)).toBe(false);
+                expect(tRoot.setCollection.has(newLeaf)).toBe(true);
+                transaction.rollback();
+                expect(tRoot.setCollection.size).toBe(2);
+            }
+        )).toBe("--0");
+    });
+
+});
+
+describe("transaction unit tests dates", () => {
 
     it ("can isolate changes", () => {
         expect(observeResult(

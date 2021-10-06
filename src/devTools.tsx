@@ -1,5 +1,14 @@
+/*
+This interface to __REDUX_DEVTOOLS_EXTENSION__ will subscribe to messages for receiving time travel requests
+and it will send actions when endHighLevelFunctionCall is called along with a serialized state.  Because
+a serialized state is not suitable for restoring state on the Proxily end, state is also recorded for each
+root object (rootTargets) and all of it's descendents.  The state is saved as property values in the actions
+array which has an entry for every action sent to devtools.  The entry consists of a map of target objects
+and their values.  This way objects are never re-created (since references may exist for them).  The fact that
+they are present in the map keeps old object from being garbage collected.
 
-// Each root element (makeObservable) is recorded
+Transactions are also recorded in values and are restored.
+*/
 import {Transaction} from "./Transaction";
 import {Target} from "./proxyObserve";
 import {Observer} from "./Observer";
@@ -13,11 +22,12 @@ const transactions : Set<Transaction> = new Set();
 let devTools : any;
 
 // actions are just a list of values for each object at the point when the state is saved
-const actions : Array<Map<Target, any>> = [];
+let actions : Array<Map<Target, any>> = [];
 let firstAction = -1;
 let lastAction = -1;
 
 // --- Connect to redux_devtools and handles incoming messages to goTo a particular state
+
 export function configureReduxDevTools(options? : any) {
     if (typeof window === "object" && (window as unknown as any).__REDUX_DEVTOOLS_EXTENSION__
         && (window as unknown as any).__REDUX_DEVTOOLS_EXTENSION__.connect) {
@@ -33,7 +43,9 @@ export function configureReduxDevTools(options? : any) {
             if (message.payload && typeof message.payload.actionId === 'number')
             restoreState(message.payload.actionId * 1);
         });
-
+        actions = [];
+        firstAction = -1;
+        lastAction = -1;
         return devTools;
     }
 }
@@ -47,12 +59,13 @@ export function initReduxDevTools() {
     }
 }
 
-// --- functions to maintain the list of all root state objects
+// --- Functions to maintain the list of all root state objects
 
 export function addRoot(target : Target) {
     if (devTools)
         rootTargets.add(target);
 }
+
 export function isRoot(target : Target) {
     return rootTargets.has(target);
 }
@@ -151,14 +164,18 @@ function saveState() {
 // Get all the values and stuff them into a map so we can freshen up targets on state restore
 function getProxyTargetProps(target : any, valueMap : Map<Target, any>) {
 
-    if (target instanceof Transaction)
-        return target.getState();
+    if (target instanceof Transaction) {
+        valueMap.set(target as unknown as Target, target.getState());
+        return;
+    }
+
 
     target = target.__target__ || target; // Only want the targets not the proxies
+    const proxy = target.__proxy__;
 
     // Deal with circular references
     if (valueMap.has(target))
-        return target;
+        return;
 
     // Get values for this target and recurse into next
     let values = {};
@@ -166,8 +183,8 @@ function getProxyTargetProps(target : any, valueMap : Map<Target, any>) {
 
     // get values of object
     let prop;
-    for(prop in target)
-        values[prop] = getPropValue(target[prop], valueMap);
+    for(prop in proxy)
+        values[prop] = getPropValue(proxy[prop], valueMap);
 }
 
 // Make a careful copy of the values depending on the type of object

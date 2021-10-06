@@ -1,6 +1,5 @@
 import {ProxyTarget, Target} from "./proxyObserve";
 import {getCurrentContext, getCurrentSelectorContext, Observer} from "./Observer";
-import {addTransaction, removeTransaction} from "./devTools";
 
 export interface TransactionOptions {
     timePositioning: boolean
@@ -8,19 +7,15 @@ export interface TransactionOptions {
 
 export class Transaction {
 
-    constructor(options? : Partial<TransactionOptions>, noAdd? : boolean) {
+    constructor(options? : Partial<TransactionOptions>) {
         if (options)
             this.options = options;
-        if (!noAdd)
-            addTransaction(this)
      }
-    cleanup () {removeTransaction(this)}
+
     static defaultTransaction : Transaction | undefined;
     static defaultTransactionOptions : Partial<TransactionOptions> = {};
 
     static createDefaultTransaction (options? : TransactionOptions) {
-        if (Transaction.defaultTransaction)
-            return Transaction.defaultTransaction;
         Transaction.defaultTransaction = new Transaction (options);
         return Transaction.defaultTransaction
     }
@@ -188,7 +183,7 @@ export class Transaction {
                     (proxy as unknown as Date).setTime((rootProxy as unknown as Date).getTime());
                 else if (proxy instanceof Array) {
                     (proxy as unknown as Array<any>).splice(0, (proxy as unknown as Array<any>).length);
-                    for (var ix = 0; ix < (proxy as unknown as Array<any>).length; ++ix)
+                    for (var ix = 0; ix < (rootProxy as unknown as Array<any>).length; ++ix)
                         (proxy.__target__ as unknown as Array<any>)[ix] = (rootProxy as unknown as Array<any>)[ix];
                 } else
                     keys.forEach(key => {
