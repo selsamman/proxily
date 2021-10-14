@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/extend-expect";
-import {serialize} from "../src";
+import {memoize, serialize} from "../src";
 import {deserialize} from "../src";
 
 let id = 1;
@@ -13,6 +13,10 @@ describe("serialization tests", () => {
             uuid = generateUUID();
             x = 0;
             y = 0;
+            @memoize()
+            get coordinate () {
+                return `${this.x}:${this.y}`;
+            }
             constructor(x : number, y : number) {
                 this.x = x;
                 this.y = y;
@@ -50,6 +54,7 @@ describe("serialization tests", () => {
         //expect(newDrawing.boxes[0].uuid).toBe(drawing.boxes[0].uuid);
         expect(newDrawing.arrows[0].from).toBe(newDrawing.boxes[0]);
         expect(newDrawing.arrows[0].to).toBe(newDrawing.boxes[1]);
+        expect(newDrawing.boxes[0].coordinate).toBe('20:40');
     })
     it("Can serialize ES 6 Sets", () => {
         class Container {
@@ -146,6 +151,39 @@ describe("serialization tests", () => {
         expect(newC.num).toBe(1);
         expect(typeof newC.str).toBe("string");
         expect(typeof newC.num).toBe("number");
+    });
+
+    it("Can serialize POJOs", () => {
+        const c = {
+            str: "1",
+            num:1
+        }
+
+        const json = serialize(c);
+        const newC = deserialize(json, );
+        expect(newC.str).toBe("1");
+        expect(newC.num).toBe(1);
+        expect(typeof newC.str).toBe("string");
+        expect(typeof newC.num).toBe("number");
+    });
+
+    it("Can serialize with helpers", () => {
+        class Box {
+            uuid = generateUUID();
+            x = 0;
+            y = 0;
+            constructor(x : number, y : number) {
+                this.x = x;
+                this.y = y;
+            }
+        }
+        const json = serialize(new Box(1, 1));
+        const box = deserialize(json, [], {Box: makeBox});
+        expect(box.x).toBe(2);
+        expect(box.y).toBe(2);
+        function makeBox(values : Box) {
+            return new Box(values.x + 1, values.y + 1);
+        }
     });
 
 });

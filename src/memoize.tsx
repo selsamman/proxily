@@ -92,7 +92,7 @@ export function memoize(obj?: any, propOrProps? : string | Array<string>, option
 function memoizeObject (obj: any, propOrProps : string | Array<string>, options : MemoizationOptions) {
     const props = propOrProps instanceof Array ? propOrProps : [propOrProps];
     if (!obj.__memoizedProps__)
-        obj.__memoizedProps__ = {};
+        Object.defineProperty(obj, '__memoizedProps__', {writable: true, enumerable: false, value: {}});
     props.map(prop => obj.__memoizedProps__[prop] = options);
 }
 
