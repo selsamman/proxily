@@ -16,7 +16,7 @@ export function observable<TYPE>(targetIn: TYPE, transaction? : Transaction, non
     } else
         throw new Error("Attempt to call proxy on a non-object");
 }
-export function releaseObservable(proxy : ProxyTarget) {
+export function releaseObservable(proxy : any) {
     removeRoot(proxy.__target__);
 }
 

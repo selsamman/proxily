@@ -14,6 +14,7 @@ import {
 } from '../../src';
 import "@testing-library/jest-dom/extend-expect";
 import {useContext} from "react";
+import {releaseObservable} from "../../src/proxyObserve";
 
 setLogLevel({});
 describe('Counter Patterns',  () => {
@@ -306,6 +307,7 @@ describe('Counter Patterns',  () => {
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        releaseObservable(state);
     });
 
     it( 'Can use ObservableProvider' , async () => {
@@ -405,6 +407,77 @@ describe('Counter Patterns',  () => {
         screen.getByText('Increment').click();
         expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 0");
     });
+    it( 'Can use nonObservable decorator' , async () => {
+        class CounterState {
+            private _value = 0;
+            get value () {
+                return this._value
+            }
+            increment () {this._value++}
+        }
+        class State {
+            @nonObservable()
+            counter: CounterState;
+            constructor () {
+                this.counter = new CounterState();
+            }
+        }
+        const state = observable(new State());
+
+        const Counter = observer(function Counter({counter} : {counter : CounterState}) {
+            const {value} = counter;
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={() => counter.increment}>Increment</button>
+                </div>
+            );
+        });
+        function App () {
+            return (
+                <Counter counter={state.counter}/>
+            );
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 0");
+    });
+    it( 'Can use nonObservable class' , async () => {
+        class CounterState {
+            private _value = 0;
+            get value () {
+                return this._value
+            }
+            increment () {this._value++}
+        }
+        class State {
+            counter: CounterState;
+            constructor () {
+                this.counter = new CounterState();
+            }
+        }
+        nonObservable(State, 'counter');
+        const state = observable(new State());
+
+        const Counter = observer(function Counter({counter} : {counter : CounterState}) {
+            const {value} = counter;
+            return (
+                <div>
+                    <span>Count: {value}</span>
+                    <button onClick={() => counter.increment}>Increment</button>
+                </div>
+            );
+        });
+        function App () {
+            return (
+                <Counter counter={state.counter}/>
+            );
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 0");
+    });
+
     it( 'Can use useObservable' , async () => {
         const counter = observable({
             value: 0
