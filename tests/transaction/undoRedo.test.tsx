@@ -420,7 +420,7 @@ describe("Transaction Component Test", () => {
         );
     });
 
-    it ("Can force render on changes if canundo caled", () => {
+    it ("Can force render on changes if canundo caled", async () => {
         const App = observer(function App () {
             const [txn] = useState(() => new Transaction({timePositioning: true}));
             return (
@@ -432,7 +432,7 @@ describe("Transaction Component Test", () => {
         });
         render(<App />);
         screen.getByText('Increment').click();
-        expect (screen.getByTestId(1)).toHaveTextContent("Can Undo");
+        expect (await screen.findByTestId(1)).toHaveTextContent("Can Undo");
 
     });
 });

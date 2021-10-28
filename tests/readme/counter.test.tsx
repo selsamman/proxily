@@ -17,8 +17,8 @@ import {useContext} from "react";
 import {releaseObservable} from "../../src/proxyObserve";
 
 setLogLevel({});
-describe('Counter Patterns',  () => {
-    it( 'Redux Style example Counter',  () => {
+describe('Counter Patterns',   () => {
+    it( 'Redux Style example Counter',  async () => {
         const store = observable({
             counter: {
                 value: 0
@@ -46,9 +46,9 @@ describe('Counter Patterns',  () => {
         })
         render(<App />);
         screen.getByText('Increment').click();
-        expect (screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
-    it( 'Redux Style example Todo',  () => {
+    it( 'Redux Style example Todo',  async () => {
 
         interface Item {text : string; completed: boolean};
         interface State {list : Array<Item>};
@@ -89,7 +89,7 @@ describe('Counter Patterns',  () => {
         })
         render(<App />);
         screen.getByText('Add').click();
-        expect (screen.getByText(/Item/)).toHaveTextContent("New Item");
+        expect (await screen.findByText(/Item/)).toHaveTextContent("New Item");
         screen.getByRole("checkbox").click();
         expect (store.list[0].completed).toBe(true);
 
@@ -107,7 +107,7 @@ describe('Counter Patterns',  () => {
         });
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Minimal class example', async () => {
         class Counter {
@@ -130,7 +130,7 @@ describe('Counter Patterns',  () => {
         const DefaultApp = observer(App);
         render(<DefaultApp />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
 
     it( 'Can modify data directly in events', async () => {
@@ -149,7 +149,7 @@ describe('Counter Patterns',  () => {
         });
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Can modify data anywhere', async () => {
         const state = observable({
@@ -224,7 +224,7 @@ describe('Counter Patterns',  () => {
         });
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Can test component with jestMockFromClass' , async () => {
         class CounterState {
@@ -248,7 +248,7 @@ describe('Counter Patterns',  () => {
 
         const mockState = jestMockFromClass(CounterState, {get value () {return 5}});
         render(<Counter counter={mockState} />);
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 5");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 5");
         screen.getByText('Increment').click();
         expect(mockState.increment).toBeCalled();
     });
@@ -306,7 +306,7 @@ describe('Counter Patterns',  () => {
         });
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
         releaseObservable(state);
     });
 
@@ -338,7 +338,7 @@ describe('Counter Patterns',  () => {
         });
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
 
 
@@ -374,7 +374,7 @@ describe('Counter Patterns',  () => {
         }
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Can use nonObservable' , async () => {
         class CounterState {
@@ -405,7 +405,7 @@ describe('Counter Patterns',  () => {
         }
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 0");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 0");
     });
     it( 'Can use nonObservable decorator' , async () => {
         class CounterState {
@@ -440,7 +440,7 @@ describe('Counter Patterns',  () => {
         }
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 0");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 0");
     });
     it( 'Can use nonObservable class' , async () => {
         class CounterState {
@@ -475,7 +475,7 @@ describe('Counter Patterns',  () => {
         }
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 0");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 0");
     });
 
     it( 'Can use useObservable' , async () => {
@@ -494,7 +494,7 @@ describe('Counter Patterns',  () => {
         });
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Can use useLocalObservable' , async () => {
 
@@ -513,7 +513,7 @@ describe('Counter Patterns',  () => {
         });
         render(<App />);
         screen.getByText('Increment').click();
-        expect (await screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it("can memoize a function", async () => {
         let sorts = 0;
@@ -556,7 +556,7 @@ describe('Counter Patterns',  () => {
         memoize(state, 'sortedCounters');
         render(<App />);
         screen.getByText('IncrementA0').click();
-        expect (await screen.getByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
+        expect (await screen.findByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
         expect(sorts).toBe(2);
 
     });
@@ -608,7 +608,7 @@ describe('Counter Patterns',  () => {
 
         render(<App />);
         screen.getByText('IncrementA0').click();
-        expect (await screen.getByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
+        expect (await screen.findByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
         expect(sorts).toBe(2);
     });
     it("can memoize a class with a decorator", async () => {
@@ -659,7 +659,7 @@ describe('Counter Patterns',  () => {
 
         render(<App />);
         screen.getByText('IncrementA0').click();
-        expect (await screen.getByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
+        expect (await screen.findByText("CountA1: 1")).toHaveTextContent("CountA1: 1");
         expect(sorts).toBe(2);
     });
 });

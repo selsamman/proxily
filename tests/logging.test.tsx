@@ -15,7 +15,7 @@ describe('Logging Tests',  () => {
     })
     afterEach(() => resetLogging());
 
-    it( 'Can get component name',  () => {
+    it( 'Can get component name',  async () => {
         const store = observable({
             counter: {
                 value: 0
@@ -44,7 +44,7 @@ describe('Logging Tests',  () => {
         });
         render(<App />);
         screen.getByText('Increment').click();
-        expect (screen.getByText(/Count/)).toHaveTextContent("Count: 1");
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
         expect(logs.length).toBe(4);
         expect(logs[0]).toBe("App mount");
         expect(logs[1]).toBe("App render (1)");

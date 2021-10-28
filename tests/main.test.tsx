@@ -132,9 +132,9 @@ test('can render names', async () => {
 
     screen.getByTestId('B0').click();
 
-    expect (await screen.getByTestId('P0')).toHaveTextContent("sam");
+    expect (await screen.findByTestId('P0')).toHaveTextContent("sam");
     expect (screen.getByTestId('P1')).toHaveTextContent("Karen");
-    expect (await screen.getByTestId('P2')).toHaveTextContent("sam");
+    expect (await screen.findByTestId('P2')).toHaveTextContent("sam");
 
     expect (Family.sorts).toBe(2); // Changing the name to lower case
     expect (Family.sortFunctions).toBe(4); // Changing the name to lower case

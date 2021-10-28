@@ -119,7 +119,7 @@ describe ("basic transition", () => {
         render(<App/>);
         expect (screen.getByTestId( 'pending')).toHaveTextContent("false");
         screen.getByText('Transition').click();
-        expect (screen.getByTestId( 'pending')).toHaveTextContent("true");
+        expect (await screen.findByTestId( 'pending')).toHaveTextContent("true");
         expect (screen.getByTestId( 'count')).toHaveTextContent("1");
         await wait(1000);
         await expect (screen.getByTestId( 'pending')).toHaveTextContent("false");
