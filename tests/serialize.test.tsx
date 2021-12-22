@@ -167,6 +167,52 @@ describe("serialization tests", () => {
         expect(typeof newC.num).toBe("number");
     });
 
+    it("Can serialize mixed arrays", () => {
+        const c = {
+            arr: [ [1,2], {1:1, 2:2}, [1, null]],
+            num:1,
+            nil: null,
+        }
+
+        const json = serialize(c);
+        const newC = deserialize(json, );
+        expect(newC.arr.length).toBe(3);
+        expect(newC.arr[0] instanceof Array).toBe(true);
+        expect(newC.arr[0][1]).toBe(2);
+        expect(typeof newC.arr[1]).toBe("object");
+        expect(newC.arr[1][2]).toBe(2);
+        expect(newC.arr[2][1]).toEqual(null);
+        expect(newC.num).toBe(1);
+        expect(typeof newC.num).toBe("number");
+        expect(newC.nil).toEqual(null);
+    });
+
+
+    it ("Can serialized mixed Maps", () => {
+        // @ts-ignore
+        const c = {map: new Map([[1, 1], [2, null], [3, undefined], [4, [1,2]]])}
+        const json = serialize(c);
+        const newC = deserialize(json, );
+        expect(newC.map.get(1)).toEqual(1);
+        expect(newC.map.get(2)).toEqual(null);
+        expect(newC.map.get(3)).toEqual(null); // because JSON.stringify does this
+        expect(newC.map.get(4)[0]).toEqual(1);
+        expect(newC.map.get(4)[1]).toEqual(2);
+    })
+
+
+    it ("Can serialized mixed Sets", () => {
+        const c = {set: new Set([1, null, undefined, [1,2]])}
+        const json = serialize(c);
+        const newC = deserialize(json, );
+        expect(newC.set.has(1)).toBe(true);
+        expect(newC.set.has(null)).toBe(true);
+        expect(newC.set.has(undefined)).toBe(false); // because JSON.stringify does this
+        expect(Array.from(newC.set).findIndex((e : any) => e instanceof Array && e[1] === 2)).toBeGreaterThan(-1);
+    })
+
+
+
     it("Can serialize with helpers", () => {
         class Box {
             uuid = generateUUID();

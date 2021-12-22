@@ -33,12 +33,34 @@ export function deserialize(json : string, classes? : Array<any>, classHandlers?
                     const map  = new Map(obj.v);
                     objects.set(obj.i, map);
                     map.forEach((value, key) => {
-                        if(typeof value === 'object')
-                            map.set(key, processObjectMarker(value as ObjectMarker));
-                    });
+                        if (value instanceof Array)
+                            map.set(key, value.map((element : any) => {
+                                if (element instanceof Array)
+                                    return processObject(element);
+                                else if (typeof element === "object" && element !== null)
+                                    return processObjectMarker(element)
+                                else
+                                    return element;
+                            }));
+                        else if (typeof value === "object" && value !== null)
+                            map.set(key,  processObjectMarker(value as ObjectMarker));
+                    })
                     return map;
                 case 'Set':
-                    const values = obj.v.map( (value : any) => (typeof value === 'object') ? processObjectMarker(value) : value);
+                    let values = obj.v;
+                    values.map( (value : any, ix : number) => {
+                        if (value instanceof Array)
+                            values[ix] = value.map((element : any) => {
+                                if (element instanceof Array)
+                                    return processObject(element);
+                                else if (typeof element === "object" && element !== null)
+                                    return processObjectMarker(element)
+                                else
+                                    return element;
+                            });
+                        else if (typeof value === "object" && value !== null)
+                            values[ix] = processObjectMarker(value as ObjectMarker);
+                    });
                     const set  = new Set(values);
                     objects.set(obj.i, set);
                     return set;
@@ -71,7 +93,9 @@ export function deserialize(json : string, classes? : Array<any>, classHandlers?
         for (const prop in obj) {
             if (obj[prop] instanceof Array)
                 obj[prop] = obj[prop].map((element : any) => {
-                    if (typeof element === "object" && element !== null)
+                    if (element instanceof Array)
+                        return processObject(element);
+                    else if (typeof element === "object" && element !== null)
                         return processObjectMarker(element)
                     else
                         return element;

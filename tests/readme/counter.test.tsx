@@ -442,6 +442,7 @@ describe('Counter Patterns',   () => {
         screen.getByText('Increment').click();
         expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 0");
     });
+
     it( 'Can use nonObservable class' , async () => {
         class CounterState {
             private _value = 0;
@@ -476,6 +477,43 @@ describe('Counter Patterns',   () => {
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 0");
+    });
+
+    it( 'Can detect object replacement' , async () => {
+        class CounterState {
+            value = 0;
+            constructor(v : number) {
+                this.value = v;
+            }
+        }
+        class State {
+            counter: CounterState;
+            constructor () {
+                this.counter = new CounterState(0);
+            }
+        }
+
+        const state = observable(new State());
+
+        const Counter = observer(function Counter({state} : {state : State}) {
+            return (
+                <div>
+                    <span>Count: {state.counter.value}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+            function increment() {
+                state.counter = new CounterState(state.counter.value + 1);
+            }
+        });
+        function App () {
+            return (
+                <Counter state={state}/>
+            );
+        }
+        render(<App />);
+        screen.getByText('Increment').click();
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
 
     it( 'Can use useObservable' , async () => {
