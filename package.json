@@ -40,6 +40,6 @@
     "build:esm": "tsc",
     "build:cjs": "tsc --module commonjs --outDir lib/cjs",
     "test": "jest",
-    "publish": "yarn build && npm publish --tag alpha"
+    "pub": "yarn build && npm publish"
   }
 }
