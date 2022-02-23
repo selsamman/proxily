@@ -1,6 +1,6 @@
 {
   "name": "proxily",
-  "version": "0.9.32-alpha",
+  "version": "1.0.0",
   "description": "Unopinionated state management for React",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
@@ -29,8 +29,11 @@
     "typescript": "^4.2.4"
   },
   "peerDependencies": {
-    "react": "^16.8.0",
-    "react-dom": "^16.8.0"
+    "react": ">=16",
+    "react-dom": ">=16"
+  },
+  "dependencies": {
+    "js-freeze-dry": ">=1"
   },
   "scripts": {
     "build": "yarn test && yarn build:esm && yarn build:cjs",

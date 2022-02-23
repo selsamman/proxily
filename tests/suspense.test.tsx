@@ -36,7 +36,7 @@ describe("suspense", () => {
         let done = false;
         try {
             root.goodResult
-        } catch (promise) {
+        } catch (promise : any) {
             promise.then( () => {
                 expect(root.goodResult).toBe("good");
                 done = true;
@@ -49,7 +49,7 @@ describe("suspense", () => {
         let done = false;
         try {
             root.badResult
-        } catch (promise) {
+        } catch (promise : any) {
             promise.then( () => {
                 expect(() => root.badResult).toThrow("bad");
                 done = true;

@@ -4,8 +4,8 @@ export {useObservableProp, useTransaction, useTransactable, useLocalObservable, 
         useObservableTransition, useObservableStartTransition, useDeferredObservable, useAsImmutable} from "./reactUse";
 export {observable, observe, target, jestMockFromClass, nonObservable} from "./proxyObserve"
 export {groupUpdates} from "./proxy/proxyHandler";
-export {serialize} from "./serialize";
-export {deserialize} from "./deserialize";
+export {serialize, deserialize, serializer, deserializer, serializable} from "js-freeze-dry";
+
 export {persist, persistAsync, migrate, StorageEngine, PersistConfig} from "./storage"
 //export {scheduleTask, cancelTask} from "./sagas";  -- Do not import or will drag in redux
 export {Transaction, TransactionOptions} from "./Transaction";

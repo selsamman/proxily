@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/extend-expect";
-import {memoize, serialize} from "../src";
+import {serialize, serializable} from "../src";
 import {deserialize} from "../src";
+import {deserializer, serializer} from "js-freeze-dry";
 
 let id = 1;
 function generateUUID() {
@@ -13,7 +14,6 @@ describe("serialization tests", () => {
             uuid = generateUUID();
             x = 0;
             y = 0;
-            @memoize()
             get coordinate () {
                 return `${this.x}:${this.y}`;
             }
@@ -22,6 +22,7 @@ describe("serialization tests", () => {
                 this.y = y;
             }
         }
+        serializable({Box});
 
         class Arrow {
             uuid = generateUUID();
@@ -32,12 +33,14 @@ describe("serialization tests", () => {
                 this.to = to;
             }
         }
+        serializable({Arrow})
 
         class Drawing {
             name = "My Drawing";
             boxes : Array<Box> = [];
             arrows : Array<Arrow> = [];
         }
+        serializable({Drawing});
 
         const drawing = new Drawing()
         const box1 = new Box(20, 40)
@@ -46,7 +49,7 @@ describe("serialization tests", () => {
         drawing.boxes.push(box1, box2)
         drawing.arrows.push(arrow1);
         const json = serialize(drawing);
-        const newDrawing = deserialize(json, [Box, Arrow, Drawing]);
+        const newDrawing = deserialize(json);
         expect(newDrawing instanceof Drawing).toBe(true);
         expect(newDrawing.boxes[0] instanceof Box).toBe(true);
         expect(newDrawing.boxes[0] instanceof Box).toBe(true);
@@ -80,8 +83,8 @@ describe("serialization tests", () => {
         }
         const c = new Container([new Data1(33), new Data2(35)]);
         c.data.add(c);
-        const json = serialize(c);
-        const newC = deserialize(json, [Container, Data1, Data2]);
+        const json = serialize(c, {Container, Data1, Data2});
+        const newC = deserialize(json, {Container, Data1, Data2});
         expect(newC instanceof Container).toBe(true);
         const arr = Array.from(newC.data);
         expect(arr[0] instanceof Data1).toBe(true);
@@ -114,8 +117,8 @@ describe("serialization tests", () => {
         }
         const c = new Container([['A', new Data1(33)], ['B', new Data2(35)]]);
         c.data.set('C', c);
-        const json = serialize(c);
-        const newC = deserialize(json, [Container, Data1, Data2]);
+        const json = serialize(c, {Container, Data1, Data2});
+        const newC = deserialize(json, {Container, Data1, Data2});
         expect(newC instanceof Container).toBe(true);
         expect(newC.data.get('A') instanceof Data1).toBe(true);
         expect(newC.data.get('A').value).toBe(33);
@@ -132,8 +135,8 @@ describe("serialization tests", () => {
         }
 
         const c = new Container();
-        const json = serialize(c);
-        const newC = deserialize(json, [Container]);
+        const json = serialize(c, {Container});
+        const newC = deserialize(json, {Container});
         expect(newC instanceof Container).toBe(true);
         expect(newC.date instanceof Date).toBe(true);
         expect(newC.date.getTime()).toBe(c.date.getTime());
@@ -145,8 +148,8 @@ describe("serialization tests", () => {
         }
 
         const c = new Container();
-        const json = serialize(c);
-        const newC = deserialize(json, [Container]);
+        const json = serialize(c, {Container});
+        const newC = deserialize(json, {Container});
         expect(newC.str).toBe("1");
         expect(newC.num).toBe(1);
         expect(typeof newC.str).toBe("string");
@@ -212,7 +215,6 @@ describe("serialization tests", () => {
     })
 
 
-
     it("Can serialize with helpers", () => {
         class Box {
             uuid = generateUUID();
@@ -223,13 +225,32 @@ describe("serialization tests", () => {
                 this.y = y;
             }
         }
-        const json = serialize(new Box(1, 1));
-        const box = deserialize(json, [], {Box: makeBox});
+        const classes  = {Box};
+
+        const json = serialize(new Box(1, 1), classes, {Box: (values : Box) => ({...values, y: 0 - values.y })});
+        const box = deserialize(json,  classes, {Box: (values : Box) => new Box(values.x + 1, values.y + 1)});
         expect(box.x).toBe(2);
-        expect(box.y).toBe(2);
-        function makeBox(values : Box) {
-            return new Box(values.x + 1, values.y + 1);
+        expect(box.y).toBe(0);
+    });
+
+    it("Can serialize with helpers", () => {
+        class GlobalBox {
+            uuid = generateUUID();
+            x = 0;
+            y = 0;
+            constructor(x : number, y : number) {
+                this.x = x;
+                this.y = y;
+            }
         }
+        serializable({GlobalBox});
+        serializer({GlobalBox: (values : GlobalBox) => ({...values, y: 0 - values.y })});
+        deserializer({GlobalBox: (values : GlobalBox) => new GlobalBox(values.x + 1, values.y + 1)});
+
+        const json = serialize(new GlobalBox(1, 1));
+        const box = deserialize(json );
+        expect(box.x).toBe(2);
+        expect(box.y).toBe(0);
     });
 
 });

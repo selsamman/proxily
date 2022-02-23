@@ -15,7 +15,7 @@ class Root1 {
     leaf1 = new Leaf1();
     leaf2 = new Leaf1();
 }
-
+const classes = {Root1, Leaf1};
 describe("storage tests", () => {
     it("Has basic sanity", async () => {
         let resolver : any;
@@ -34,11 +34,11 @@ describe("storage tests", () => {
         const leaf = pRoot.collection3.get('2');
         if (leaf)
             leaf.parent = pRoot;
-        const root = persist(pRoot, {storageEngine: myStorage});
+        const root = persist(pRoot, {classes: classes, storageEngine: myStorage});
         expect(root.collection3.get('2')?.parent).toBe(root)
         root.collection1[0].num = 4;
         await new Promise((resolve) => {resolver = resolve});
-        const root2 = persist(new Root1(), {storageEngine: myStorage, classes: [Root1, Leaf1]});
+        const root2 = persist(new Root1(), {storageEngine: myStorage, classes: classes});
         expect(root2.collection1[0].num).toBe(4)
         expect(root2.collection3.get('2')?.parent).toBe(root2)
     });
@@ -61,11 +61,11 @@ describe("storage tests async", () => {
         const leaf = pRoot.collection3.get('2');
         if (leaf)
             leaf.parent = pRoot;
-        const root = await persistAsync(pRoot, {storageEngine: myStorage});
+        const root = await persistAsync(pRoot, {classes: classes, storageEngine: myStorage});
         expect(root.collection3.get('2')?.parent).toBe(root)
         root.collection1[0].num = 4;
         await new Promise((resolve) => {resolver = resolve});
-        const root2 = await persistAsync(new Root1(), {storageEngine: myStorage, classes: [Root1, Leaf1]});
+        const root2 = await persistAsync(new Root1(), {storageEngine: myStorage, classes: classes});
         expect(root2.collection1[0].num).toBe(4)
         expect(root2.collection3.get('2')?.parent).toBe(root2)
     });

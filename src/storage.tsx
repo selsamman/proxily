@@ -1,6 +1,5 @@
-import {ClassHandlers, deserialize} from "./deserialize";
+import {serialize, deserialize} from "js-freeze-dry";
 import {observe, observable} from "./proxyObserve";
-import {serialize} from "./serialize";
 export interface StorageEngine {
     getItem(key : string) : any
     setItem(key: string, value: any) : any
@@ -10,8 +9,9 @@ export interface StorageEngine {
 export interface PersistConfig {
     key?: string,
     storageEngine?: StorageEngine,
-    classes? : Array<any>;
-    classHandlers? : ClassHandlers;
+    classes? : {[index: string] : any};
+    serializers? : {[index: string] : (obj: any, type? : any)=>any};
+    deserializers? : {[index: string] : (obj: any, type? : any)=>any};
     migrate?: (persistIn : any, initialIn : any) => any;
 }
 
@@ -21,7 +21,7 @@ export function persist<T>(initialState: T, config : PersistConfig) : T {
     const persistedStateJSON = storageEngine.getItem(key);
     let persistedState : T;
     if (persistedStateJSON) {
-        persistedState = deserialize(persistedStateJSON, config.classes, config.classHandlers);
+        persistedState = deserialize(persistedStateJSON, config.classes, config.deserializers, 'persist');
         if (config.migrate)
             persistedState = config.migrate(persistedState, initialState);
         else
@@ -34,7 +34,7 @@ export function persist<T>(initialState: T, config : PersistConfig) : T {
     function onChange() {
         if (!scheduled)
             setTimeout(() => {
-                storageEngine.setItem(key, serialize(persistedState))
+                storageEngine.setItem(key, serialize(persistedState, config.classes, config.serializers, 'persist'))
                 scheduled = false;
         }, 0);
     }
@@ -47,7 +47,7 @@ export async function  persistAsync <T>(initialState: T, config : PersistConfig)
     const persistedStateJSON = await storageEngine.getItem(key);
     let persistedState : T;
     if (persistedStateJSON) {
-        persistedState = deserialize(persistedStateJSON, config.classes, config.classHandlers);
+        persistedState = deserialize(persistedStateJSON, config.classes, config.serializers);
         if (config.migrate)
             persistedState = config.migrate(persistedState, initialState);
         else
@@ -60,7 +60,7 @@ export async function  persistAsync <T>(initialState: T, config : PersistConfig)
     function onChange() {
         if (!scheduled)
             setTimeout(() => {
-                storageEngine?.setItem(key, serialize(persistedState))
+                storageEngine?.setItem(key, serialize(persistedState, config.classes, config.serializers))
                 scheduled = false;
             }, 0);
     }
