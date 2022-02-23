@@ -63,13 +63,14 @@ export function observer<P>(Component : FunctionComponent<P>, options : Observer
         setCurrentContext(context);
 
         if(logLevel.render) log(`${context.componentName} render (${++context.renderCount})`);
-        useLayoutEffect(() => {  // After every render process any references
-            context.processPendingReferences();
-        });
-        useEffect(() => () => {
+        useLayoutEffect(() => () => {
             if(logLevel.render) log(`${context.componentName} unmount (${++context.renderCount})`);
             context.cleanup()
         }, []);
+        useLayoutEffect(() => {  // After every render process any references
+            context.processPendingReferences();
+        });
+
 
         // Wrap highest level in a transition provider that can pass down the transitionSequence number
 
