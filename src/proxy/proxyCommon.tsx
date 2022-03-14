@@ -156,7 +156,7 @@ export function propertyReferenced(target : Target, prop: any, value: any, sette
             if (target.__parentTarget__)
                 propertyReferenced(target.__parentTarget__, prop, value)
             else if (value.__parentTarget__) {
-                console.log("some magic");
+                //console.log("some magic");
                 //value = value.__parentTarget__.__proxy__ ||  value.__parentTarget__;
             }
             value = propertyUpdated(target, prop, value as unknown as ProxyOrTarget, undefined)

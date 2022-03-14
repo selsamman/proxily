@@ -77,6 +77,7 @@ const defaultMemoizationOptions : MemoizationOptions = {
     preFetch : false
 }
 
+
 export function memoize(obj?: any, propOrProps? : string | Array<string>, options = defaultMemoizationOptions) {
     if (obj && propOrProps) {
         if (obj.prototype)
@@ -100,6 +101,9 @@ function memoizeClass (cls : any, propOrProps : string | Array<string>, options 
     memoizeObject(cls.prototype, propOrProps, options);
 }
 
+export function memo<C>(cls : {new(...args: any[]): C}, cb : (cls : C) => any, options = defaultMemoizationOptions) {
+    memoizeClass(cls, cb(cls.prototype).name, options);
+}
 // Functions for for declaring that a getter method is suspendable.  Sugar around memoize
 
 const defaultSuspendableOptions : MemoizationOptions = {

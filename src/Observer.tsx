@@ -69,6 +69,18 @@ export class Observer {
 
     // Changes are batched up if they occur in the process of processing an action
 
+    static forceBatch = false;
+    static beginBatch () {
+        Observer.forceBatch = true;
+    }
+    static playBatch (clear = false) {
+        const toCall = Array.from(Observer.observersPendingChange)
+        if (clear)
+            Observer.observersPendingChange.clear();
+        toCall.forEach(observer => observer.effectChange());
+        if (clear)
+            Observer.forceBatch = false;
+    }
     static inAction = false;
     static observersPendingChange : Set<Observer> = new Set();
     static startTopLevelCall () {
@@ -86,7 +98,9 @@ export class Observer {
     // Handle the immediate notification of deferral and batching
 
     scheduleChange(name : string, prop : string, proxyTarget: ProxyTarget | Transaction) {
-        if (!this.options.batch) // no batching means immediate notification
+        if (Observer.forceBatch)
+            Observer.observersPendingChange.add(this);
+        else if (!this.options.batch) // no batching means immediate notification
             this.onChange(name, prop, proxyTarget);
         else if (Observer.inAction) // batch up changes that occur in an action
             Observer.observersPendingChange.add(this);

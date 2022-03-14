@@ -1,10 +1,7 @@
 import {observable, observe, ProxyOrTarget, ProxyTarget, Target} from "./proxyObserve";
 import {getCurrentContext, Observer, ObserverOptions, setCurrentContext} from "./Observer";
 import {log, logLevel} from "./log";
-import {
-    useEffect, useLayoutEffect, useRef, useState, NamedExoticComponent, FunctionComponent,
-    PropsWithChildren, useContext
-} from "react";
+import {useEffect, useLayoutEffect, useRef, useState, NamedExoticComponent, FunctionComponent, PropsWithChildren, useContext} from "react";
 import {getHandler, lastReference, makeProxy} from "./proxy/proxyCommon";
 import {Transaction, TransactionOptions} from "./Transaction";
 import {addRoot, addTransaction, removeTransaction, endHighLevelFunctionCall, isRoot, removeRoot,
@@ -30,9 +27,10 @@ export const isTransition = () => inTransition;
 // which is set via the state which should reflect Reacts assumption about current or offscreen renders
 let transitionSequence : number = 1;
 let observedTransitionSequence = -1;
+let inUseDeferredValue = false;
 export const getObservedTransitionSequence = () => observedTransitionSequence;
 export const getTransitionSequence = () => transitionSequence;
-export const useSnapshot = () => observedTransitionSequence > 0 && observedTransitionSequence < transitionSequence;
+export const useSnapshot = () => !inUseDeferredValue && observedTransitionSequence > 0 && observedTransitionSequence < transitionSequence;
 
 const defaultObserverOptions = {
     batch : true,
@@ -87,10 +85,13 @@ export function observer<P>(Component : FunctionComponent<P>, options : Observer
 
 }
 
+// Feeding consumers of proxy objects is driven by how children of an overarching context provider see the
+// the data in that context. The data is simply the transition sequence number.
+// If child components see an older version of that sequence number then we feed them snapshots
 function TransitionProvider({children} : {children : any}) {
     const [versionContext, setVersionContext] = useState({sequence: transitionSequence, setSequence: setVersion});
-    // Determine if idle
 
+    // Determine if idle
     const useDeferredValue = require('react').useDeferredValue;
     if (useDeferredValue) {
         const deferredSequence = useDeferredValue(versionContext.sequence, {timeout: 5000});
@@ -125,13 +126,23 @@ export function useObservableStartTransition () {
     return getTransitionStarter(startTransition, transitionContext);
 }
 
+export function getCurrentValue<T>(state : T, cb : (state : T) => any) {
+    inUseDeferredValue = true;
+    const ret = cb(state);
+    inUseDeferredValue = false;
+    return ret;
+}
+
+
 function getTransitionStarter (startTransition : Function, transitionContext : TransitionProviderValue | undefined) {
     return (callback : Function) => {
+        Observer.beginBatch();
         startTransition( () => {
             if (logLevel.transitions)
                 log(`starting mutable transition for ${transitionSequence}`);
             inTransition = true;
             callback();
+            Observer.playBatch();
             inTransition = false;
             ++transitionSequence;
             if (transitionContext) {
@@ -139,15 +150,11 @@ function getTransitionStarter (startTransition : Function, transitionContext : T
             } else
                 throw Error("Component using useObservableTransition must be wrapped in Observe");
         });
+        Observer.playBatch(true);
+
     }
 }
 
-export function useDeferredObservable<T>(obj : T) : [T, (callback : Function) => void] {
-    const useDeferredValue = require('react').useDeferredValue;
-    const startTransition = require('react').startTransition;
-    const transitionContext = useContext(TransitionContext);
-    return [useDeferredValue(obj), getTransitionStarter(startTransition, transitionContext)];
-}
 
 export function useLocalObservable<T>(callback : () => T, transaction? : Transaction) : T {
     if (!callback)
@@ -222,20 +229,29 @@ export function useAsImmutable<A>(targetIn: A) : A {
 
     // Create observer that will indicate whether value changed
     let contextContainer : any = useRef(null);
-    const [changed, setChanged] = useState(false);
     if (!contextContainer.current)
-        contextContainer.current = observe(targetIn, () => setChanged(true), undefined, {notifyParents: true});
-
-    if (changed) {
-        setChanged(false);
+        contextContainer.current = {
+            observer: observe(targetIn, () => contextContainer.current.changed = true, undefined, {notifyParents: true}),
+            changed: false
+        }
+    useLayoutEffect(() => () => {
+        contextContainer.current.observer.cleanup()
+    }, []);
+    if (contextContainer.current.changed) {
+        contextContainer.current.changed = false;
         if (!(targetIn as any).__target__)
             throw ("useAsImmutable called on non-observable object");
-        else
-            return new Proxy((targetIn as any).__target__ as any, getHandler(targetIn)) as A;
+        else {
+            const data = (targetIn as any).__target__;
+            if (data instanceof  Array)
+                return (data as []).slice(0) as unknown as A;
+            else
+                return new Proxy((targetIn as any).__target__ as any, getHandler(targetIn)) as A;
+        }
     } else
         return targetIn;
 }
-
+/*
 export function bindObservables<P> (ClassBasedComponent : React.ComponentType<P>) : (args : P) => any {
     const name = ClassBasedComponent.name;
 
@@ -244,9 +260,9 @@ export function bindObservables<P> (ClassBasedComponent : React.ComponentType<P>
         for (let prop in props)
             immutableProps[prop] = useAsImmutable(props[prop]);
         return (
-            <ClassBasedComponent {...immutableProps}/>
+            <ClassBasedComponent {...props}/>
         )
     }}[name] as (args : P) => any
 }
-
+*/
 

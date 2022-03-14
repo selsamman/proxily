@@ -3,7 +3,6 @@ import {render, screen} from '@testing-library/react';
 import {
     setLogLevel,
     memoize,
-    bindObservables,
     observer,
     observable,
     jestMockFromClass,
@@ -341,7 +340,7 @@ describe('Counter Patterns',   () => {
         expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
 
-
+/*
     it( 'Can bind observables to class components' , async () => {
         class CounterState {
             private _value = 0;
@@ -350,6 +349,7 @@ describe('Counter Patterns',   () => {
             }
             increment () {this._value++}
         }
+        setLogLevel({transitions: true, render: true, propertyTracking: true, propertyChange: true});
         const state = observable({
             counter: new CounterState()
         });
@@ -367,15 +367,17 @@ describe('Counter Patterns',   () => {
         }
 
         const Counter = bindObservables(CounterClass);
-        function App () {
+        const App = observer(function App () {
             return (
                 <Counter counter={state.counter} text="Count"/>
             );
-        }
+        })
         render(<App />);
         screen.getByText('Increment').click();
         expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
+
+ */
     it( 'Can use nonObservable' , async () => {
         class CounterState {
             private _value = 0;

@@ -1,7 +1,12 @@
 import * as React from 'react';
 import {act, render, screen} from '@testing-library/react';
 import "@testing-library/jest-dom/extend-expect";
-import {observer, useDeferredObservable, useObservableStartTransition, useObservableTransition} from "../src/reactUse";
+import {
+    getCurrentValue,
+    observer,
+    useObservableStartTransition,
+    useObservableTransition
+} from "../src/reactUse";
 import {observable, setLogLevel} from "../src";
 import {resetLogging, setLog} from "../src/log";
 
@@ -153,19 +158,19 @@ describe ("basic transition", () => {
         expect (screen.getByTestId( 'count')).toHaveTextContent("2");
 
     });
-    it ("supports useDeferredValue", async () => {
+    it ("supports getCurrentValue", async () => {
         const App = observer(() => {
 
-            const [{count}, startTransition] = useDeferredObservable(counter);
-            const transition = () => {
-                startTransition(() => counter.increment());
-            };
+            const [, startTransition] = useObservableTransition();
             return (
                 <>
                     <div data-testid="count">
-                        {count}
+                        {counter.count}
                     </div>
-                    <button onClick={transition}>
+                    <div data-testid="currentCount">
+                        {getCurrentValue(counter, counter => counter.count)}
+                    </div>
+                    <button onClick={() => startTransition(() => counter.increment())}>
                         Transition
                     </button>
                 </>
@@ -174,10 +179,13 @@ describe ("basic transition", () => {
         AppToRender = App;
         rerender = render(<AppToRender />).rerender;
         expect (screen.getByTestId( 'count')).toHaveTextContent("1");
+        expect (screen.getByTestId( 'currentCount')).toHaveTextContent("1");
         screen.getByText('Transition').click();
+        expect (await screen.getByTestId( 'currentCount')).toHaveTextContent("2");
         expect (screen.getByTestId( 'count')).toHaveTextContent("1");
         await wait(1000);
-        expect (screen.getByTestId( 'count')).toHaveTextContent("2");
+        expect (await screen.getByTestId( 'count')).toHaveTextContent("2");
+        expect (screen.getByTestId( 'currentCount')).toHaveTextContent("2");
 
     });
 })
