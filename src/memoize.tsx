@@ -101,8 +101,9 @@ function memoizeClass (cls : any, propOrProps : string | Array<string>, options 
     memoizeObject(cls.prototype, propOrProps, options);
 }
 
-export function memo<C>(cls : {new(...args: any[]): C}, cb : (cls : C) => any, options = defaultMemoizationOptions) {
-    memoizeClass(cls, cb(cls.prototype).name, options);
+export function memoizeGet<C>(cls : {new(...args: any[]): C}, cb : (cls : C) => any, options = defaultMemoizationOptions) {
+    const desc = Object.getOwnPropertyDescriptors(cls.prototype)
+    memoizeClass(cls, cb(desc as unknown as C).get.name.replace(/get /, ''), options);
 }
 // Functions for for declaring that a getter method is suspendable.  Sugar around memoize
 

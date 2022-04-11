@@ -6,7 +6,7 @@ import {
     useAsImmutable
 } from '../../src';
 import "@testing-library/jest-dom/extend-expect";
-import {useEffect} from "react";
+import {useEffect, useLayoutEffect} from "react";
 
 
 describe('Use As Immutable',   () => {
@@ -53,13 +53,13 @@ describe('Use As Immutable',   () => {
         expect(found).toBe(false);
 
     })
-    it( 'Wont fire with mutable data',  async () => {
+    it( 'Will fire with useAsImmutable',  async () => {
         const news = observable({
             topics: ["politics", "tech", "cooking"],
             results: ""
         });
         const App = observer( function App () {
-            useEffect( () => {
+            useLayoutEffect( () => {
                     news.results = news.topics.join(",");
                 }, [useAsImmutable(news.topics)]
             );

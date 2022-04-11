@@ -1,4 +1,4 @@
-import {memoize, observable} from "../src";
+import {memoize, memoizeGet, observable} from "../src";
 
 describe("data structure tests of proxy with decorator", () => {
     let calls = 0;
@@ -192,6 +192,34 @@ describe("data structure tests of proxy with objects", () => {
     it ( "memo a getter function true root", () => {
         calls = 0;
         const root = observable(Root);
+        expect(root.value).toBe(0);
+        expect(root.value).toBe(0);
+        expect(calls).toBe(1);
+        root._value++;
+        expect(root.value).toBe(1);
+        expect(root.value).toBe(1);
+        expect(calls).toBe(2);
+
+    });
+
+});
+describe("memoize", () => {
+    let calls = 0;
+    class Root {
+        _value = 0;
+         get value() {
+            ++ calls;
+            return this._value;
+        }
+
+    }
+
+    memoizeGet(Root, p => p.value);
+
+
+    it ( "memo a getter function", () => {
+        calls = 0;
+        const root = observable(new Root());
         expect(root.value).toBe(0);
         expect(root.value).toBe(0);
         expect(calls).toBe(1);
