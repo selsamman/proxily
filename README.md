@@ -12,6 +12,8 @@ Proxily is a library for managing state in a non-prescriptive way. It re-renders
 * Transactions that allow asynchronous changes to be committed or rolled back
 * Rich support for Typescript, classes and objects including automatic function binding
 
+This [article](https://sam-elsamman.medium.com/managing-react-state-with-proxily-20c73d985e75) provides an in-depth intro to Proxily.
+
 ## Install
 
 > Note:  This project is as an alpha because it has specific features relating to React 18 which at this time is in alpha.
@@ -47,7 +49,7 @@ export default observer(App);
 
 ## Documentation
 
-See [proxilyjs.com](https://proxilyjs.com) for the complete documentation
+See [proxilyjs.com](https://proxilyjs.com) for the complete documentation.  
 
 ## Compatability
 Because of it's use of ES6 Proxies, Proxily does not support Internet Explorer and requires 0.69 or higher of React-Native.  Proxily is written in Typescript and targets ES6. Therefore, it is advisable to target ES6 in your applications and enjoy the smaller code size.
