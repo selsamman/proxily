@@ -78,11 +78,16 @@ const defaultMemoizationOptions : MemoizationOptions = {
 }
 
 
-export function memoize(obj?: any, propOrProps? : string | Array<string>, options = defaultMemoizationOptions) {
+export function memoize<C>(obj?: {new(...args: any[]): C} | C , propOrProps? :  ((cls : C) => any) | string | Array<string>, options = defaultMemoizationOptions) {
+
     if (obj && propOrProps) {
-        if (obj.prototype)
+        if ((obj as any).prototype && typeof propOrProps !== "function")
             memoizeClass(obj, propOrProps, options)
-        else
+        else if ((obj as any).prototype && typeof propOrProps === "function")
+            memoizeClassCB(obj as {new(...args: any[]): C}, propOrProps, options);
+        else if (!(obj as any).prototype && typeof propOrProps === "function")
+            memoizeObjCB(obj as C, propOrProps, options);
+        else if(!(obj as any).prototype && typeof propOrProps !== "function")
             memoizeObject(obj, propOrProps, options)
     }
     return function (classPrototype: any, prop: string) {
@@ -101,9 +106,14 @@ function memoizeClass (cls : any, propOrProps : string | Array<string>, options 
     memoizeObject(cls.prototype, propOrProps, options);
 }
 
-export function memoizeGet<C>(cls : {new(...args: any[]): C}, cb : (cls : C) => any, options = defaultMemoizationOptions) {
-    const desc = Object.getOwnPropertyDescriptors(cls.prototype)
-    memoizeClass(cls, cb(desc as unknown as C).get.name.replace(/get /, ''), options);
+
+function memoizeClassCB<C>(cls : {new(...args: any[]): C}, cb : (cls : C) => any, options = defaultMemoizationOptions) {
+    const propertyDescriptors = Object.getOwnPropertyDescriptors(cls.prototype);
+    memoizeClass(cls, cb(cls.prototype)?.name || cb(propertyDescriptors as unknown as C).get.name.replace(/get /, ''), options);
+}
+function memoizeObjCB<C>(obj : C, cb : (cls : C) => any, options = defaultMemoizationOptions) {
+    const propertyDescriptors = Object.getOwnPropertyDescriptors(obj);
+    memoizeObject(obj, cb(obj)?.name || cb(propertyDescriptors as unknown as C).get.name.replace(/get /, ''), options);
 }
 // Functions for for declaring that a getter method is suspendable.  Sugar around memoize
 

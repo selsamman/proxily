@@ -1,4 +1,4 @@
-export {memoize, suspendable, memoizeGet} from "./memoize";
+export {memoize, suspendable} from "./memoize";
 export {setLogLevel, LogLevels} from "./log";
 export {useObservableProp, useTransaction, useTransactable, useLocalObservable, observer,
         getCurrentValue, useAsImmutable, useObservableStartTransition, useObservableTransition} from "./reactUse";
