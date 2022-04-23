@@ -1,7 +1,7 @@
 import {observable, Transaction, observer, useTransactable} from "../../src";
 import {Target} from "../../src/proxyObserve";
 import {Leaf} from "../data/classes";
-import {render, screen} from "@testing-library/react";
+import {act, render, screen} from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
 import * as React from "react";
 import {useState} from "react";
@@ -431,7 +431,7 @@ describe("Transaction Component Test", () => {
             );
         });
         render(<App />);
-        screen.getByText('Increment').click();
+        act(()=>screen.getByText('Increment').click());
         expect (await screen.findByTestId(1)).toHaveTextContent("Can Undo");
 
     });

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {Family, Person, Preference} from "./family";
-import { render, screen} from '@testing-library/react';
+import {act, render, screen} from '@testing-library/react';
 import {setLogLevel, observable, memoize, useObservableProp, observer} from "../src/index";
 import "@testing-library/jest-dom/extend-expect";
 
@@ -130,7 +130,7 @@ test('can render names', async () => {
     expect (screen.getByTestId('P1')).toHaveTextContent("Karen");
     expect (screen.getByTestId('P2')).toHaveTextContent("Sam");
 
-    screen.getByTestId('B0').click();
+    act(()=>screen.getByTestId('B0').click());
 
     expect (await screen.findByTestId('P0')).toHaveTextContent("sam");
     expect (screen.getByTestId('P1')).toHaveTextContent("Karen");

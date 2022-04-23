@@ -1,5 +1,6 @@
 import {getCurrentSelectorContext, Observer, setCurrentSelectorContext} from "./Observer";
 import {ProxyTarget, Target} from "./proxyObserve";
+import {memoReferenced} from "./proxy/proxyCommon";
 
 /* Memoization is an object that memoizes a particular instance of a function, either a getter
    or a function with arguments.
@@ -142,7 +143,8 @@ export function createMemoization (prop: string, target: Target, valueFunction: 
         const memo = new Memoization(valueFunction, target.__proxy__, target.__memoizedProps__[prop]);
         target.__memoContexts__[prop] = memo;
 
-    }
+    } else
+        memoReferenced(target.__memoContexts__[prop])
     return target.__memoContexts__[prop];
 }
 

@@ -62,22 +62,30 @@ export function observer<P>(Component : FunctionComponent<P>, options : Observer
 
         if(logLevel.render) log(`${context.componentName} render (${++context.renderCount})`);
         useLayoutEffect(() => () => {
-            if(logLevel.render) log(`${context.componentName} unmount (${++context.renderCount})`);
+            if(logLevel.render) log(`${context.componentName} unmount (${context.renderCount})`);
             context.cleanup()
         }, []);
-        useLayoutEffect(() => {  // After every render process any references
-            context.processPendingReferences();
-        });
+        //useLayoutEffect(() => {  // After every render process any references
+        //    context.processPendingReferences();
+        //});
 
 
         // Wrap highest level in a transition provider that can pass down the transitionSequence number
 
         observedTransitionSequence = transitionContext.sequence;
-        const ret = Component(props);
-        observedTransitionSequence = -1;
-
-        setCurrentContext(undefined); // current context only exists during course of render
-        return ret;
+        try {
+            const ret = Component(props);
+            observedTransitionSequence = -1;
+            setCurrentContext(undefined);
+            context.processPendingReferences(); // current context only exists during course of render
+            return ret;
+        } catch (e) {
+            observedTransitionSequence = -1;
+            setCurrentContext(undefined); // current context only exists during course of render
+            context.processPendingReferences();
+            if(logLevel.render) log(`${context.componentName} suspended (${context.renderCount})`)
+            throw e;
+        }
 
     }
 

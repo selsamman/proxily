@@ -123,7 +123,7 @@ describe ("basic transition", () => {
         });
         render(<App/>);
         expect (screen.getByTestId( 'pending')).toHaveTextContent("false");
-        screen.getByText('Transition').click();
+        act(()=>screen.getByText('Transition').click());
         expect (await screen.findByTestId( 'pending')).toHaveTextContent("true");
         expect (screen.getByTestId( 'count')).toHaveTextContent("1");
         await wait(1000);
@@ -152,7 +152,7 @@ describe ("basic transition", () => {
         AppToRender = App;
         rerender = render(<AppToRender />).rerender;
         expect (screen.getByTestId( 'count')).toHaveTextContent("1");
-        screen.getByText('Transition').click();
+        act(()=>screen.getByText('Transition').click());
         expect (screen.getByTestId( 'count')).toHaveTextContent("1");
         await wait(1000);
         expect (screen.getByTestId( 'count')).toHaveTextContent("2");
@@ -180,7 +180,7 @@ describe ("basic transition", () => {
         rerender = render(<AppToRender />).rerender;
         expect (screen.getByTestId( 'count')).toHaveTextContent("1");
         expect (screen.getByTestId( 'currentCount')).toHaveTextContent("1");
-        screen.getByText('Transition').click();
+        act(()=>screen.getByText('Transition').click());
         expect (await screen.getByTestId( 'currentCount')).toHaveTextContent("2");
         expect (screen.getByTestId( 'count')).toHaveTextContent("1");
         await wait(1000);

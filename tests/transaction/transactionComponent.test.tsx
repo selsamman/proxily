@@ -2,7 +2,7 @@ import {observer, observable, useTransactable, TransactionContext, TransactionPr
 import {useContext} from "react";
 import * as React from 'react';
 import "@testing-library/jest-dom/extend-expect";
-import { render, screen} from '@testing-library/react';
+import {act, render, screen} from '@testing-library/react';
 import userEvent from "@testing-library/user-event";
 import {useTransaction} from "../../src/reactUse";
 
@@ -51,7 +51,7 @@ describe("Transaction Component Tests", () => {
         input.select();
         userEvent.type(input, 'Karen');
         expect(input).toHaveValue('Karen');
-        expect (customer.name).toBe("Sam")
+        act(()=>expect (customer.name).toBe("Sam"))
         screen.getByText('Commit').click();
         expect (customer.name).toBe("Karen")
     })
@@ -66,7 +66,7 @@ describe("Transaction Component Tests", () => {
         userEvent.type(input, 'Karen');
         expect(input).toHaveValue('Karen');
         expect (customer.name).toBe("Sam")
-        screen.getByText('Rollback').click();
+        act(()=>screen.getByText('Rollback').click());
         expect (customer.name).toBe("Sam")
     })
     it ("can commit with context", async () => {
@@ -84,7 +84,7 @@ describe("Transaction Component Tests", () => {
         userEvent.type(input, 'Karen');
         expect(input).toHaveValue('Karen');
         expect (customer.name).toBe("Sam")
-        screen.getByText('Commit').click();
+        act(()=>screen.getByText('Commit').click());
         expect (customer.name).toBe("Karen")
     })
 })

@@ -1,10 +1,11 @@
 import * as React from 'react';
-import {render, screen} from '@testing-library/react';
+import {act, render, screen} from '@testing-library/react';
 import {setLogLevel, observer, observable} from '../src';
 import "@testing-library/jest-dom/extend-expect";
 import {resetLogging, setLog} from "../src/log";
 import {Leaf, observeResult, Root} from "./data/classes";
-
+// @ts-ignore
+global.IS_REACT_ACT_ENVIRONMENT = false;
 setLogLevel({});
 describe('Logging Tests',  () => {
 
@@ -43,7 +44,7 @@ describe('Logging Tests',  () => {
             );
         });
         render(<App />);
-        screen.getByText('Increment').click();
+        act(()=>screen.getByText('Increment').click());
         expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
         expect(logs.length).toBe(4);
         expect(logs[0]).toBe("App mount");

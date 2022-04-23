@@ -10,6 +10,7 @@ import {logChange, logLevel} from "../log";
 import {isTransition, useSnapshot} from "../reactUse";
 import {Snapshots} from "../transition";
 import {getCurrentContext, getCurrentSelectorContext} from "../Observer";
+import {Memoization, SnapshotGetterMemo} from "../memoize";
 
 export function makeProxy(proxyOrTarget : ProxyOrTarget, transaction? : Transaction) : ProxyTarget {
 
@@ -173,6 +174,15 @@ export function propertyReferenced(target : Target, prop: any, value: any, sette
     lastReference.set(target, prop);
 
     return value;
+}
+
+export function memoReferenced(memo : Memoization | SnapshotGetterMemo) {
+    if (memo instanceof Memoization) {
+        if(getCurrentContext())
+            getCurrentContext()?.referencedMemo(memo);
+        if(getCurrentSelectorContext())
+            getCurrentSelectorContext()?.referencedMemo(memo);
+    }
 }
 
 /*

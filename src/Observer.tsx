@@ -1,6 +1,7 @@
 import {ProxyTarget, Target} from "./proxyObserve";
 import {Transaction} from "./Transaction";
 import {log, logLevel} from "./log";
+import {Memoization} from "./memoize";
 
 // Maintain the current context as a global state.  This is the context that should be assigned any
 // references detected by the proxy handlers
@@ -126,6 +127,13 @@ export class Observer {
     referenced(proxyTarget : ProxyTarget | Transaction, prop : string) {
         this.pendingProxyTargets.push([proxyTarget, prop]);
     };
+
+    referencedMemo( memo : Memoization) {
+        memo.context.connectedProxyTargets.forEach((connectedProxy, proxyTarget) => {
+            for (let prop in connectedProxy)
+                this.referenced(proxyTarget, prop)
+        })
+    }
     processPendingReferences() {
         const logging : Array<string>= [];
         this.pendingProxyTargets.forEach(([target, prop]) =>

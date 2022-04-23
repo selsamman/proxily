@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {render, screen} from '@testing-library/react';
+import {act, render, screen} from '@testing-library/react';
 import {
     observer,
     observable,
@@ -25,7 +25,7 @@ describe('Use As Immutable',   () => {
         });
         render(<App />);
         expect (!!await screen.findAllByText(/politics,tech,cooking/)).toBe(true);
-        news.topics=["fun", "tech", "cooking"];
+        act(()=>{news.topics=["fun", "tech", "cooking"]});
         expect (!!await screen.findAllByText(/fun,tech,cooking/)).toBe(true);
 
     })
@@ -44,7 +44,7 @@ describe('Use As Immutable',   () => {
         });
         render(<App />);
         expect (!!await screen.findAllByText(/politics,tech,cooking/)).toBe(true);
-        news.topics[0] = "fun";
+        act(()=>{news.topics[0] = "fun"});
         let found = false;
         try {
         if (await screen.findAllByText(/fun,tech,cooking/))
@@ -67,7 +67,7 @@ describe('Use As Immutable',   () => {
         });
         render(<App />);
         expect (!!await screen.findAllByText(/politics,tech,cooking/)).toBe(true);
-        news.topics[0] = "fun";
+        act(()=>{news.topics[0] = "fun"});
         expect (!!await screen.findAllByText(/fun,tech,cooking/)).toBe(true);
 
     })
