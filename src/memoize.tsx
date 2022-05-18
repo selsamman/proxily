@@ -110,11 +110,13 @@ function memoizeClass (cls : any, propOrProps : string | Array<string>, options 
 
 function memoizeClassCB<C>(cls : {new(...args: any[]): C}, cb : (cls : C) => any, options = defaultMemoizationOptions) {
     const propertyDescriptors = Object.getOwnPropertyDescriptors(cls.prototype);
-    memoizeClass(cls, cb(cls.prototype)?.name || cb(propertyDescriptors as unknown as C).get.name.replace(/get /, ''), options);
+    const prop = cb(propertyDescriptors as unknown as C);
+    memoizeClass(cls, prop.value ? prop?.value.name : prop.get.name.replace(/get /, ''), options);
 }
 function memoizeObjCB<C>(obj : C, cb : (cls : C) => any, options = defaultMemoizationOptions) {
     const propertyDescriptors = Object.getOwnPropertyDescriptors(obj);
-    memoizeObject(obj, cb(obj)?.name || cb(propertyDescriptors as unknown as C).get.name.replace(/get /, ''), options);
+    const prop = cb(propertyDescriptors as unknown as C);
+    memoizeObject(obj, prop.value ? prop?.value.name : prop.get.name.replace(/get /, ''), options);
 }
 // Functions for for declaring that a getter method is suspendable.  Sugar around memoize
 
@@ -124,7 +126,7 @@ const defaultSuspendableOptions : MemoizationOptions = {
     preFetch : false  // Set to true to begin fetch in event
 }
 
-export function suspendable (obj?: any, propOrProps? : string | Array<string>, options = {}) {
+export function suspendable<C>(obj?: {new(...args: any[]): C} | C , propOrProps? :  ((cls : C) => any) | string | Array<string>, options = {}) {
     return memoize(obj, propOrProps, {...defaultSuspendableOptions, ...options});
 }
 
