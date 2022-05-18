@@ -30,7 +30,7 @@ export const proxyHandlerMap = {
                     newValue = propertyUpdated(target, '*', newValue,oldValue);
 
                     // Change the value in the target
-                    targetValue.call(target, key, newValue);
+                    const ret = targetValue.call(target, key, newValue);
 
                     // Notify referencing object that referenced property has changed
                     if (target.__transaction__.timePositioning)
@@ -38,6 +38,7 @@ export const proxyHandlerMap = {
                             ()=>mapProxy.set(key, oldValue),
                             ()=>mapProxy.set(key, newValue));
                     DataChanged(target, key, true, newValue);
+                    return ret;
                 }
 
             case 'delete':

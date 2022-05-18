@@ -25,5 +25,9 @@ describe("data structure tests: objects", () => {
 		})).toBe("Root-setCollection-1");
 
 	});
+	it ("can return actual value in setters", () => {
+		const root = observable(new Root());
+		expect(root.setCollection.add(new Leaf()).size).toBe(3);
+	});
 
 });

@@ -1,4 +1,5 @@
 import {Leaf, observeResult, Root} from "./classes";
+import {observable} from "../../src";
 
 describe("data structure tests: objects", () => {
 
@@ -40,6 +41,12 @@ describe("data structure tests: objects", () => {
             leafFromArray.num = 3
             expect(root.mapCollection.get('1')?.num).toBe(3);
         })).toBe("Root-mapCollection-3");
+
+    });
+
+    it ("can return actual value in setters", () => {
+        const root = observable(new Root());
+        expect(root.mapCollection.set("3", new Leaf()).get("3")?.str).toBe("foo");
     });
 
 
