@@ -61,13 +61,29 @@ export function observer<P>(Component : FunctionComponent<P>, options : Observer
         setCurrentContext(context);
 
         if(logLevel.render) log(`${context.componentName} render (${++context.renderCount})`);
-        useLayoutEffect(() => () => {
-            if(logLevel.render) log(`${context.componentName} unmount (${context.renderCount})`);
-            context.cleanup()
+        useLayoutEffect(() => {
+            //setSeq((seq) => seq + 1);
+            return () => {
+                if(logLevel.render) log(`${context.componentName} unmount (${context.renderCount})`);
+                // We need to cleanup when a component dismounts but in strict mode there is an extra useEffect
+                // and cleanup that occur AFTER the render which is where we accumulated the target references
+                // therefore we simply suspend it and if after a time interval we have not seen another useEffect
+                // clean it up.
+                context.isSuspended = true;
+                setTimeout(() => {
+                    if (context.isSuspended)
+                        context.cleanup();
+                }, 2000)
+            }
         }, []);
-        //useLayoutEffect(() => {  // After every render process any references
-        //    context.processPendingReferences();
-        //});
+
+        // We only process references when we get the effect processing.  With strict mode there will be
+        // an extra render that proceeds the "real" one and this will create an observer but since it has
+        // no proxies referencing it garbage collection will eventually clean it up.
+        useLayoutEffect(() => {  // After every render process any references
+            context.processPendingReferences();
+            context.isSuspended = false;
+        });
 
 
         // Wrap highest level in a transition provider that can pass down the transitionSequence number
@@ -77,20 +93,18 @@ export function observer<P>(Component : FunctionComponent<P>, options : Observer
             const ret = Component(props);
             observedTransitionSequence = -1;
             setCurrentContext(undefined);
-            context.processPendingReferences(); // current context only exists during course of render
+            //context.processPendingReferences(); // current context only exists during course of render
             return ret;
         } catch (e) {
             observedTransitionSequence = -1;
             setCurrentContext(undefined); // current context only exists during course of render
-            context.processPendingReferences();
+            //context.processPendingReferences();
             if(logLevel.render) log(`${context.componentName} suspended (${context.renderCount})`)
             throw e;
         }
 
     }
-
     return (options.memo ? {[name] : React.memo(wrapper)}[name] : {[name] : wrapper}[name]) as unknown as NamedExoticComponent<P>;
-
 }
 
 // Feeding consumers of proxy objects is driven by how children of an overarching context provider see the

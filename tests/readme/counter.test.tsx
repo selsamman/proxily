@@ -14,7 +14,6 @@ import {
 import "@testing-library/jest-dom/extend-expect";
 import {useContext} from "react";
 import {releaseObservable} from "../../src/proxyObserve";
-
 setLogLevel({});
 describe('Counter Patterns',   () => {
     it( 'Redux Style example Counter',  async () => {
@@ -42,9 +41,9 @@ describe('Counter Patterns',   () => {
                     <button onClick={increment}>Increment</button>
                 </div>
             );
-        })
-        render(<App />);
-        act(()=>screen.getByText('Increment').click());
+        }, {memo: false})
+        render(<React.StrictMode><App /></React.StrictMode>);
+        await act(()=>screen.getByText('Increment').click());
         expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
     it( 'Redux Style example Todo',  async () => {

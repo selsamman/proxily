@@ -41,7 +41,7 @@ export class Observer {
         this.options = options;
         this.componentName = componentName;
     }
-
+    isSuspended = false;
     options: ObserverOptions;
     onChange : (target? : string, prop? : string, targetProxy? : ProxyTarget | Transaction) => void | undefined;
     connectedProxyTargets : Map<ProxyTarget | Transaction, {[index: string] : boolean}> = new Map();
@@ -52,6 +52,8 @@ export class Observer {
 
     // Proxies notify us here of changes
     changed(proxyTarget : ProxyTarget | Transaction | undefined, prop : string,  isParent : boolean) {
+        if (this.isSuspended)
+            return;
         if (isParent && !this.options.notifyParents)
             return;
         if (!proxyTarget) {
