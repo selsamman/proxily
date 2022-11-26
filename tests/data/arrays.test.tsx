@@ -29,6 +29,7 @@ describe("data structure tests: objects", () => {
             expect(root.arrayObjectCollection.some(l => l === leafProxy0)).toBe(true);
             expect(root.arrayObjectCollection.some(l => l === leafProxy1)).toBe(true);
 
+            expect(root.arrayCollection.includes(3)).toBe(true);
             expect(root.arrayObjectCollection.includes(leafProxy1)).toBe(true);
             expect(root.arrayObjectCollection.includes(leaf1)).toBe(true);
 

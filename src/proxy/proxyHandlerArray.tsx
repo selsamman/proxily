@@ -43,7 +43,8 @@ export const proxyHandlerArray = {
                 case 'includes':
 
                     return (obj : any) => {
-                        obj = makeProxy(obj, target.__transaction__);
+                        if (typeof obj === "object")
+                            obj = makeProxy(obj, target.__transaction__);
                         proxyAllElements();
                         const val = (target as any)[prop].call(target, obj);
                         return val;
