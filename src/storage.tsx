@@ -77,7 +77,8 @@ export function migrate (persistIn : any, initialIn : any) {
             return Object.create(initialIn);
 
         // Pick the one that is not undefined
-        let outState = typeof persistIn !== 'undefined' ? persistIn : Object.create(initialIn);
+        let outState = typeof persistIn !== 'undefined' ? persistIn :
+            (typeof initialIn !== 'undefined' ? Object.create(initialIn) : undefined);
 
         if (outState instanceof Array || outState instanceof Map || outState instanceof Set ||
             outState instanceof Date || typeof outState === 'string' || typeof outState == 'number' ||

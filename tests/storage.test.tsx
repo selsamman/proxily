@@ -14,6 +14,7 @@ class Root1 {
     collection4 = {'1': new Leaf1(), '2': new Leaf1()};
     leaf1 = new Leaf1();
     leaf2 = new Leaf1();
+    undef = undefined;
 }
 const classes = {Root1, Leaf1};
 describe("storage tests", () => {
