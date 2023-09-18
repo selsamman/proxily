@@ -16,8 +16,6 @@ This [article](https://sam-elsamman.medium.com/managing-react-state-with-proxily
 
 ## Install
 
-> Note:  This project is as an alpha because it has specific features relating to React 18 which at this time is in alpha.
-> 
 ```javascript
 yarn add proxily
 ```
