@@ -253,7 +253,9 @@ export function useAsImmutable<A>(targetIn: A) : A {
     let contextContainer : any = useRef(null);
     if (!contextContainer.current)
         contextContainer.current = {
-            observer: observe(targetIn, () => contextContainer.current.changed = true, undefined, {notifyParents: true}),
+            observer: observe(targetIn, () =>
+                contextContainer.current.changed = true,
+                undefined, {notifyParents: true}),
             changed: false
         }
     useLayoutEffect(() => () => {

@@ -51,14 +51,14 @@ export const proxyHandler = {
         return propertyReferenced(target, prop, value, (value : ProxyTarget) => Reflect.set(target, prop, value));
     },
 
-    set(target : Target, prop: string, value: any, _receiver : unknown, isContainer = false): boolean {
+    set(target : Target, prop: string, value: any, receiver : unknown, isContainer = false): boolean {
 
         if (isInternalProperty(prop))
             return Reflect.set(target, prop, value);
 
         const oldValue = Reflect.get(target, prop, target);
         value = propertyUpdated(target, prop, value, oldValue)
-        const ret = Reflect.set(target, prop, value);
+        const ret = Reflect.set(target, prop, value, receiver);
         DataChanged(target, prop, isContainer, value);
 
         target.__transaction__.recordTimePosition(target, prop, oldValue, value);

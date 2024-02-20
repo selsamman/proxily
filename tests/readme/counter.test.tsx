@@ -131,6 +131,34 @@ describe('Counter Patterns',   () => {
         expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
     });
 
+    it( 'Class with setter example', async () => {
+        class Counter {
+            _count = 0;
+            get count () {return this._count}
+            set count (v) {
+                this._count = v
+            }
+            increment () {
+                this.count++;
+            }
+        }
+        const state = observable(new Counter());
+
+        function App() {
+            const {count, increment} = state;
+            return (
+                <div>
+                    <span>Count: {count}</span>
+                    <button onClick={increment}>Increment</button>
+                </div>
+            );
+        };
+        const DefaultApp = observer(App);
+        render(<DefaultApp />);
+        act(()=>screen.getByText('Increment').click());
+        expect (await screen.findByText(/Count/)).toHaveTextContent("Count: 1");
+    });
+
     it( 'Can modify data directly in events', async () => {
         const state = observable({
             counter: {value: 0}
