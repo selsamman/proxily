@@ -71,4 +71,25 @@ describe('Use As Immutable',   () => {
         expect (!!await screen.findAllByText(/fun,tech,cooking/)).toBe(true);
 
     })
+    it( 'Will fire with useAsImmutable even if observed is changed',  async () => {
+        const news = observable({
+            topics: ["politics", "tech", "cooking"],
+            results: ""
+        });
+        const App = observer( function App () {
+            useLayoutEffect( () => {
+                    news.results = news.topics.join(",");
+                }, [useAsImmutable(news.topics)]
+            );
+            return (<div>{news.results}</div>);
+        });
+        render(<App />);
+        expect (!!await screen.findAllByText(/politics,tech,cooking/)).toBe(true);
+        act(()=>{news.topics = ["politics", "tech", "cooking"]});
+        act(()=>{news.topics[0] = "fun"});
+        expect (!!await screen.findAllByText(/fun,tech,cooking/)).toBe(true);
+        act(()=>{news.topics[0] = "fun2"});
+        expect (!!await screen.findAllByText(/fun2,tech,cooking/)).toBe(true);
+
+    })
 });

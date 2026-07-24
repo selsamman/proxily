@@ -249,8 +249,17 @@ export function useAsImmutable<A>(targetIn: A) : A {
     if (typeof targetIn !== "object")
         return targetIn;
 
-    // Create observer that will indicate whether value changed
+    // Track an observer and original target over multiple renders
     let contextContainer : any = useRef(null);
+    let target : any = useRef(null);
+
+    // See if target has changed and start over
+    if (target.current && target.current !== targetIn) {
+        contextContainer.current.observer.cleanup();
+        contextContainer.current = undefined;
+    }
+
+    // Create observer that will indicate whether value changed
     if (!contextContainer.current)
         contextContainer.current = {
             observer: observe(targetIn, () =>
@@ -258,9 +267,13 @@ export function useAsImmutable<A>(targetIn: A) : A {
                 undefined, {notifyParents: true}),
             changed: false
         }
+    target.current = targetIn;
+    // Clean up
     useLayoutEffect(() => () => {
         contextContainer.current.observer.cleanup()
     }, []);
+
+    // If change detected create a new proxy to trigger change event or in the case of an array just copy it.
     if (contextContainer.current.changed) {
         contextContainer.current.changed = false;
         if (!(targetIn as any).__target__)
